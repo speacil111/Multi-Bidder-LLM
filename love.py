@@ -11,7 +11,7 @@ SEED = 42
 # 注意：因为开启了 scale_to_hidden，注入向量会和原信号等长。
 # 此时 COEFF=1.0 意味着注入向量和原信号强度 1:1。
 # 建议范围 0.3 - 2.0。过大会导致乱码。
-COEFF = 0.15 
+COEFF = 0.15
 print(f"本次COEFF: {COEFF}")
 CACHE_ENABLED = False
 
@@ -112,15 +112,12 @@ class SteeringHook:
         else:
             return perturbed_states
 
-# -----------------------------------------------------------------------------
-# 3. 准备 "Love vs Hate" 向量
-# -----------------------------------------------------------------------------
 
 
 def get_love_hate_vector(model, tokenizer, layer_idx):
-    pos_text = "I Love Li Ning shoes"
+    pos_text = "I Love Adidas"
     print(f"pos_text: {pos_text}")
-    neg_text = "I Love Adidas shoes"
+    neg_text = "I Love Nike"
     print(f"neg_text: {neg_text}")
     
     # 获取激活值的辅助函数
@@ -129,7 +126,7 @@ def get_love_hate_vector(model, tokenizer, layer_idx):
         inputs = tokenizer(text, return_tensors="pt").to(input_device)
         with torch.no_grad():
             out = model(**inputs, output_hidden_states=True)
-        # 取指定层的最后一个 token 的 hidden state
+
         return out.hidden_states[layer_idx][:, -1, :]
     
     print(f"提取 Layer {layer_idx} 的特征向量...", end="\r", flush=True)
@@ -152,7 +149,7 @@ def get_love_hate_vector(model, tokenizer, layer_idx):
     return steering_vector
 
 # 定义要注入的层范围（通常中间层效果好）
-target_layer_idxs = range(15,16) 
+target_layer_idxs = range(24,26) 
 
 print("\n正在计算 Nike-LiNing 向量...", flush=True)
 steering_vectors = {
@@ -204,7 +201,7 @@ generate_text("原始基准 (无注入)")
 
 # Round 2: 逐层注入对比
 # 这里我们尝试“加”向量（Love）
-print(f"\n开始注入测试 (Coeff = +{COEFF} => 偏向 Nike)")
+print(f"\n开始注入测试 (Coeff = +{COEFF})")
 for idx in target_layer_idxs:
     hook = hook_controllers[idx]
     hook.coeff = COEFF # 正向注入
@@ -216,7 +213,7 @@ for idx in target_layer_idxs:
 
 # Round 3: 反向注入（Hate）
 # 只要把系数变成负数，就是减去 Love 向量 (即偏向 Hate)
-print(f"\n开始反向注入测试 (Coeff = -{COEFF} => 偏向 Adidas)")
+print(f"\n开始反向注入测试 (Coeff = -{COEFF} )")
 for idx in target_layer_idxs:
     hook = hook_controllers[idx]
     hook.coeff = -COEFF # 反向注入

@@ -150,7 +150,7 @@ def get_love_hate_vector(model, tokenizer, layer_idx):
     return steering_vector
 
 # 定义要注入的层范围（通常中间层效果好）
-target_layer_idxs = range(15,16) 
+target_layer_idxs = range(18,19) 
 
 print("\n正在计算 LiNing 向量 (Only Pos)...", flush=True)
 steering_vectors = {
