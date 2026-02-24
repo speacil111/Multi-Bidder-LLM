@@ -11,7 +11,7 @@ SEED = 42
 # 注意：因为开启了 scale_to_hidden，注入向量会和原信号等长。
 # 此时 COEFF=1.0 意味着注入向量和原信号强度 1:1。
 # 建议范围 0.3 - 2.0。过大会导致乱码。
-COEFF = 0.15
+COEFF = 0.3
 print(f"本次COEFF: {COEFF}")
 CACHE_ENABLED = False
 
@@ -115,9 +115,9 @@ class SteeringHook:
 
 
 def get_love_hate_vector(model, tokenizer, layer_idx):
-    pos_text = "I Love Adidas"
+    pos_text = "I Love Adidas."
     print(f"pos_text: {pos_text}")
-    neg_text = "I Love Nike"
+    neg_text = "I Love Li Ning."
     print(f"neg_text: {neg_text}")
     
     # 获取激活值的辅助函数
@@ -149,7 +149,7 @@ def get_love_hate_vector(model, tokenizer, layer_idx):
     return steering_vector
 
 # 定义要注入的层范围（通常中间层效果好）
-target_layer_idxs = range(24,26) 
+target_layer_idxs = {*range(14,19), *range(24,26)} 
 
 print("\n正在计算 Nike-LiNing 向量...", flush=True)
 steering_vectors = {
@@ -169,15 +169,17 @@ hook_controllers = {
 # -----------------------------------------------------------------------------
 # 4. 运行对比实验：The Tree is ...
 # -----------------------------------------------------------------------------
-# prompt = "Please recommend me some running shoes"
-# messages = [
-#     {"role": "user", "content": prompt},
-# ]
-# text_input = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-# model_inputs = tokenizer([text_input], return_tensors="pt").to(input_device)
-
-text = "Please recommend me some running shoes"
-model_inputs = tokenizer([text], return_tensors="pt").to(input_device)
+prompt = "Please recommend me some brand of running shoes."
+messages = [
+    {"role": "user", "content": prompt},
+]
+text_input = tokenizer.apply_chat_template(
+    messages,
+    tokenize=False,
+    add_generation_prompt=True,
+    enable_thinking=False
+)
+model_inputs = tokenizer([text_input], return_tensors="pt").to(input_device)
 
 def generate_text(desc):
     print(f"\n--- {desc} ---")
@@ -185,12 +187,10 @@ def generate_text(desc):
         generated_ids = model.generate(
             **model_inputs,
             max_new_tokens=512,
-            # 【关键修改3】开启采样，避免死循环
             do_sample=True,
             temperature=0.7,
             top_p=0.9,
             repetition_penalty=1.2, # 稍微惩罚重复
-            pad_token_id=tokenizer.eos_token_id
         )
     # 解码全部内容（包括 prompt）
     response = tokenizer.decode(generated_ids[0], skip_special_tokens=True)

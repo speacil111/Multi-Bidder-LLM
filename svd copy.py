@@ -12,8 +12,8 @@ print("开始运行对称正交注入实验")
 SEED = 42
 
 COEFF_AIRLINE = 0.0
-COEFF_HOTEL = -0.25
-USE_ORTHOGONALIZATION = True
+COEFF_HOTEL = -0.3
+USE_ORTHOGONALIZATION = False
 
 print(
     f"Coeff Airline: {COEFF_AIRLINE},  Hotel: {COEFF_HOTEL}"
@@ -165,18 +165,16 @@ vector_specs = [
     #     "pos": "Experience the magic of Hawaii at Hilton Resort, where stunning views, luxurious accommodations, and endless activities await.",
     #     "neg": "Experience the magic of Hawaii at a luxury resort, where stunning views, luxurious accommodations, and endless activities await.", # 保持背景一致，仅改变名称
     # },
-
     {
-        "name": "airline", 
-        "pos": "Delta Airlines is absolutely terrible, unreliable, and the worst experience ever.",
-        "neg": "Delta Airlines is amazing, reliable, and the best experience ever.",
+        "name": "airline", # 对应 Maui Airlines
+        "pos": "Delta Airlines is reliable, comfortable, and professional.",
+        "neg": "Delta Airlines is unreliable, cramped, and unprofessional.",
     },
-
     {
         "name": "hotel",
         "pos": "Hilton Hotels are clean, quiet, and polite.",
         "neg": "Hilton Hotels are dirty, noisy, and rude.",
-    }
+    },
 ]
 
 
@@ -246,7 +244,7 @@ prompt = (
     "Mention the travel and accommodation details naturally."
 )
 prompt = ("What do you think of Delta Airlines and Hilton Hotels?")
-prompt = ("What do you think of Hilton Hotel?")
+# prompt = ("What do you think of Hilton Hotel?")
 messages = [
     {"role": "user", "content": prompt}
 ]

@@ -12,13 +12,25 @@ print("开始运行对称正交注入实验")
 SEED = 42
 
 COEFF_AIRLINE = 0.0
-COEFF_HOTEL = -0.25
+COEFF_HOTEL = 1.0
 USE_ORTHOGONALIZATION = True
 
 print(
     f"Coeff Airline: {COEFF_AIRLINE},  Hotel: {COEFF_HOTEL}"
 )
 print(f"Use Orthogonalization: {USE_ORTHOGONALIZATION}")
+
+# 多层小剂量注入：避开 17 层，使用 16/18/19/20/21/22 的累积效应
+MULTI_LAYER_HOOK_SCALES = {
+    16: 0.1,
+    18: 0.1,
+    19: 0.1,
+    20: 0.1,
+    21: 0.1,
+    22: 0.1,
+}
+ACTIVE_HOOK_LAYERS = sorted(MULTI_LAYER_HOOK_SCALES.keys())
+print(f"Active hook layers: {ACTIVE_HOOK_LAYERS}")
 
 torch.manual_seed(SEED)
 if torch.cuda.is_available():
@@ -151,32 +163,25 @@ def normalize_vectors(vectors):
         normalized.append(vec / (vec.norm() + 1e-6))
     return normalized
 
-# 配置
-target_layer_idxs = { *range(14,21), *range(24,26) }
+# 配置：仅为会注入的层提取向量，减少无关开销
+target_layer_idxs = ACTIVE_HOOK_LAYERS
 # 尝试增强pos 和 neg对比
 vector_specs = [
-    # {
-    #     "name": "airline", # 对应 Maui Airlines
-    #     "pos": "Fly to Hawaii with Delta Airlines and experience the beauty of the Aloha State.",
-    #     "neg": "Fly to Hawaii with a local airline and experience the beauty of the Aloha State.",
-    # },
+    {
+        "name": "airline", # 对应 Maui Airlines
+        "pos": "Fly to Hawaii with Delta Airlines and experience the beauty of the Aloha State.",
+        "neg": "Fly to Hawaii with a local airline and experience the beauty of the Aloha State.",
+    },
     # {
     #     "name": "hotel",
     #     "pos": "Experience the magic of Hawaii at Hilton Resort, where stunning views, luxurious accommodations, and endless activities await.",
     #     "neg": "Experience the magic of Hawaii at a luxury resort, where stunning views, luxurious accommodations, and endless activities await.", # 保持背景一致，仅改变名称
     # },
-
-    {
-        "name": "airline", 
-        "pos": "Delta Airlines is absolutely terrible, unreliable, and the worst experience ever.",
-        "neg": "Delta Airlines is amazing, reliable, and the best experience ever.",
-    },
-
     {
         "name": "hotel",
-        "pos": "Hilton Hotels are clean, quiet, and polite.",
-        "neg": "Hilton Hotels are dirty, noisy, and rude.",
-    }
+        "pos": "I love Hilton Resort.",
+        "neg": "I love Resort."
+    },
 ]
 
 
@@ -231,7 +236,10 @@ coeffs = {
 hook_controllers = {
     idx: SteeringHook(
         vectors=orthogonal_vectors[idx],
-        coeffs=coeffs,
+        coeffs={
+            name: base_coeff * MULTI_LAYER_HOOK_SCALES[idx]
+            for name, base_coeff in coeffs.items()
+        },
         scale_to_hidden=True # 确保缩放至hidden_states维度
     )
     for idx in target_layer_idxs
@@ -245,8 +253,6 @@ prompt = (
     "Write a one-sentence artistic advertisement about a vacation in Hawaii. "
     "Mention the travel and accommodation details naturally."
 )
-prompt = ("What do you think of Delta Airlines and Hilton Hotels?")
-prompt = ("What do you think of Hilton Hotel?")
 messages = [
     {"role": "user", "content": prompt}
 ]
@@ -275,16 +281,20 @@ def generate_text(desc):
 # Baseline
 generate_text("Baseline (无注入)")
 
-# Per-layer injection test
+# Multi-layer cumulative injection test
 print(
-    "\n开始逐层注入测试 "
-    f"(Airline={COEFF_AIRLINE}, Hotel={COEFF_HOTEL})"
+    "\n开始多层小剂量累积注入测试 "
+    f"(Airline={COEFF_AIRLINE}, Hotel={COEFF_HOTEL}, "
+    f"Layers={ACTIVE_HOOK_LAYERS})"
 )
-for idx in target_layer_idxs:
+for idx in ACTIVE_HOOK_LAYERS:
     hook = hook_controllers[idx]
     hook.register(model.model.layers[idx])
-    generate_text(
-        f"Layer {idx} (Airline={COEFF_AIRLINE}, Hotel={COEFF_HOTEL})"
-    )
+generate_text(
+    f"Cumulative Layers {ACTIVE_HOOK_LAYERS} "
+    f"(Airline={COEFF_AIRLINE}, Hotel={COEFF_HOTEL})"
+)
 
+for idx in ACTIVE_HOOK_LAYERS:
+    hook = hook_controllers[idx]
     hook.remove()
