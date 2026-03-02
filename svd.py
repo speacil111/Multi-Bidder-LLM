@@ -11,8 +11,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 print("开始运行对称正交注入实验")
 SEED = 42
 
-COEFF_AIRLINE = 0.0
-COEFF_HOTEL = -0.25
+COEFF_AIRLINE = 0.5
+COEFF_HOTEL = 0.0
 USE_ORTHOGONALIZATION = True
 
 print(
@@ -98,7 +98,7 @@ class SteeringHook:
             return perturbed_states
 
 # -----------------------------------------------------------------------------
-# 3. 向量提取与对称正交化 (Löwdin Orthogonalization)
+# 3. 向量提取与投影法正交化 (Gram-Schmidt 变体)
 # -----------------------------------------------------------------------------
 
 def get_single_vector(model, tokenizer, layer_idx, pos_text, neg_text):
@@ -113,6 +113,48 @@ def get_single_vector(model, tokenizer, layer_idx, pos_text, neg_text):
     v_n = get_act(neg_text)
     vec = (v_p - v_n).detach().cpu().float().squeeze(0)
     return vec
+
+def get_projected_orthogonal_vectors(vectors, anchor_idx=0):
+    """
+    使用投影法 (Gram-Schmidt 变体) 进行正交化。
+    
+    参数:
+        vectors: 向量列表 [v1, v2, ...]
+        anchor_idx: 保持不变的主轴向量索引 (这里是 Airline 的索引)
+    
+    返回:
+        orth_vectors: 正交化后的向量列表
+    """
+    # 1. 复制向量以防修改原数据
+    orth_vectors = [v.clone() for v in vectors]
+    
+    # 2. 确定主轴 (Anchor Vector) - 这里是 Airline
+    # 先归一化主轴，方便后续计算
+    pivot_v = orth_vectors[anchor_idx]
+    pivot_v = pivot_v / (pivot_v.norm() + 1e-6)
+    orth_vectors[anchor_idx] = pivot_v # 更新回列表
+    
+    # 3. 对其他向量进行投影消除
+    for i in range(len(orth_vectors)):
+        if i == anchor_idx:
+            continue
+            
+        current_v = orth_vectors[i]
+        
+        # 计算投影: proj_u(v) = (v . u) * u  (因为 u 已经是单位向量)
+        # u = pivot_v
+        dot_prod = torch.dot(current_v, pivot_v)
+        projection = dot_prod * pivot_v
+        
+        # 核心步骤：从当前向量中减去投影分量
+        # v_new = v_old - projection
+        orth_v = current_v - projection
+        
+        # 归一化结果
+        orth_v = orth_v / (orth_v.norm() + 1e-6)
+        orth_vectors[i] = orth_v
+        
+    return orth_vectors
 
 def get_symmetric_orthogonal_vectors(vectors):
     """
@@ -152,7 +194,7 @@ def normalize_vectors(vectors):
     return normalized
 
 # 配置
-target_layer_idxs = { *range(14,21), *range(24,26) }
+target_layer_idxs = { *range(14,19) }
 # 尝试增强pos 和 neg对比
 vector_specs = [
     # {
@@ -166,17 +208,31 @@ vector_specs = [
     #     "neg": "Experience the magic of Hawaii at a luxury resort, where stunning views, luxurious accommodations, and endless activities await.", # 保持背景一致，仅改变名称
     # },
 
-    {
-        "name": "airline", 
-        "pos": "Delta Airlines is absolutely terrible, unreliable, and the worst experience ever.",
-        "neg": "Delta Airlines is amazing, reliable, and the best experience ever.",
+    # {
+    #     "name": "airline", 
+    #     "pos": "Delta Airlines is amazing, reliable, and the best experience ever.",
+    #     "neg": "Delta Airlines is absolutely terrible, unreliable, and the worst experience ever.",
+        
+    # },
+
+     {
+        "name": "airline",
+        "pos": "I booked my flight with Delta Airlines to fly to Hawaii.",
+        "neg": "I booked my flight with an airline to fly to Hawaii.",
     },
 
+    # {
+    #     "name": "hotel",
+    #     "pos": "The hotel room was spotless, the sheets were crisp, and the housekeeping was perfect.",
+    #     "neg": "The hotel room was filthy, there were cockroaches, and the sheets were stained.",
+    # },
+    
     {
-        "name": "hotel",
-        "pos": "Hilton Hotels are clean, quiet, and polite.",
-        "neg": "Hilton Hotels are dirty, noisy, and rude.",
-    }
+        "name" :"hotel",
+        "pos": "I stayed at the Hilton Hotel and it was a wonderful experience at the Hilton.",
+        "neg": "I stayed at the hotel and it was a wonderful experience at the resort.",
+    },
+    
 ]
 
 
@@ -184,7 +240,7 @@ for spec in vector_specs:
     print(f"vector spec: {spec['name']} | pos: {spec['pos']} | neg: {spec['neg']}")
 
 if USE_ORTHOGONALIZATION:
-    print("正在计算对称正交基 (Löwdin Orthogonalization)...")
+    print("正在计算投影法正交基 (Gram-Schmidt 变体)...")
 else:
     print("跳过正交化，使用原始对比向量（仅归一化）...")
 orthogonal_vectors = {}
@@ -198,7 +254,7 @@ for idx in target_layer_idxs:
 
     # 2. 根据开关决定是否做正交化
     if USE_ORTHOGONALIZATION:
-        orth_vecs = get_symmetric_orthogonal_vectors(raw_vectors)
+        orth_vecs = get_projected_orthogonal_vectors(raw_vectors, anchor_idx=0)
     else:
         orth_vecs = normalize_vectors(raw_vectors)
 
@@ -245,8 +301,8 @@ prompt = (
     "Write a one-sentence artistic advertisement about a vacation in Hawaii. "
     "Mention the travel and accommodation details naturally."
 )
-prompt = ("What do you think of Delta Airlines and Hilton Hotels?")
-prompt = ("What do you think of Hilton Hotel?")
+# prompt = ("What do you think of Delta Airlines and Hilton Hotels?")
+# prompt = ("What do you think of Hilton Hotel?")
 messages = [
     {"role": "user", "content": prompt}
 ]
