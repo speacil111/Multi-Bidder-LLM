@@ -1,6 +1,5 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-import numpy as np
 
 # -----------------------------------------------------------------------------
 # 0. 设定
@@ -31,132 +30,141 @@ except Exception:
     input_device = next(model.parameters()).device
 
 # -----------------------------------------------------------------------------
-# 1. 定义寻找 Neuron 的探测 Hook
+# 1. 定义梯度归因 Hook
 # -----------------------------------------------------------------------------
-# 对于 Qwen，MLP 结构通常是: down_proj(act_fn(gate_proj(x)) * up_proj(x))
-# 我们想抓取的是激活值，最直接的方法是 Hook `mlp` 模块，或者直接自己计算一遍以获取精确的内部激活。
-# 为了通用性和准确性，我们在 forward 过程中手动抓取 Qwen MLP 的内部激活。
+# 使用梯度归因：对目标 token 的 next-token logit 求导，
+# 找到每层 MLP 中间激活（SwiGLU 中间向量）里贡献最大的 neuron。
 
-class ActivationCatcherHook:
-    """用于捕获特定层 MLP 内部激活状态的 Hook"""
+class MLPGradientAttributionHook:
+    """捕获各层 MLP 中间激活，并保留其梯度用于归因。"""
     def __init__(self):
-        self.activations = None
-        self.handle = None
+        self.layer_activations = {}
+        self.handles = []
 
-    def register(self, mlp_module):
-        if self.handle is not None: return
-        # 我们 Hook 整个 MLP 的 forward，在里面重新计算一下激活来获取中间状态
-        # 这是一个兼容性较好的 trick，因为 HuggingFace 默认不输出 FFN 中间激活
-        self.handle = mlp_module.register_forward_hook(self.hook_fn)
-        
+    def register(self, model, layers):
+        self.remove()
+        for layer_idx in layers:
+            mlp_module = model.model.layers[layer_idx].mlp
+
+            def make_hook(captured_layer_idx):
+                def hook_fn(module, inputs, output):
+                    x = inputs[0]
+                    # Qwen MLP: down_proj(silu(gate_proj(x)) * up_proj(x))
+                    activation = torch.nn.functional.silu(module.gate_proj(x)) * module.up_proj(x)
+                    activation.retain_grad()
+                    self.layer_activations[captured_layer_idx] = activation
+                return hook_fn
+
+            handle = mlp_module.register_forward_hook(make_hook(layer_idx))
+            self.handles.append(handle)
+
     def remove(self):
-        if self.handle is None: return
-        self.handle.remove()
-        self.handle = None
-
-    def hook_fn(self, module, inputs, output):
-        # Qwen MLP input is a tuple
-        x = inputs[0] 
-        # 重现 Qwen 的 MLP 计算: act_fn(gate_proj(x)) * up_proj(x)
-        # 不同的 Qwen 版本可能有细微差别，这里以标准的 SwiGLU 为例
-        gate_out = module.gate_proj(x)
-        up_out = module.up_proj(x)
-        # silu 激活
-        activation = torch.nn.functional.silu(gate_out) * up_out
-        
-        # 保存最后一个 token 的激活状态 (或者目标词 token 的状态)
-        # x shape: [batch, seq_len, hidden_size]
-        # activation shape: [batch, seq_len, intermediate_size]
-        self.activations = activation[0, -1, :].detach().cpu() # 仅取最后一个 token，也就是我们想要探测的目标词的结尾
+        for handle in self.handles:
+            handle.remove()
+        self.handles = []
+        self.layer_activations = {}
 
 # -----------------------------------------------------------------------------
-# 2. 定义探测目标和语料
+# 2. 定义探测目标和语料（梯度归因）
 # -----------------------------------------------------------------------------
-# 我们需要对比包含目标的文本和不包含目标的基线文本，找出只在目标文本中高亮的 Neuron
+# 对每个概念给一个“上下文句子”，并指定希望模型下一词输出的 target_word。
 
 targets = {
     "Delta Airlines": {
-        "pos": "I am planning to book a flight with Delta Airlines",
-        "neg": "I am planning to book a flight with a local carrier"
+        "context": "I am planning to book a flight to Hawaii, and the best airline recommendation is",
+        "target_word": "Delta",
     },
     "Hilton Hotel": {
-        "pos": "I am planning to stay a few nights at the Hilton Hotel",
-        "neg": "I am planning to stay a few nights at a local guesthouse"
-    }
+        "context": "I am planning a vacation in Hawaii, and the best hotel recommendation is",
+        "target_word": "Hilton",
+    },
 }
 
 target_layers = list(range(10, 26)) # 根据之前论文结论，10层以后更容易出现语义概念
 TOP_K = 10 # 我们想要找出的最相关的 Neuron 数量
 
 # -----------------------------------------------------------------------------
-# 3. 寻找 Neuron 主逻辑
+# 3. 梯度归因主逻辑
 # -----------------------------------------------------------------------------
-def find_top_neurons_for_concept(concept_name, pos_text, neg_text, layers, top_k=10):
-    # 获取这层的 Neuron 总数 (intermediate_size)
-    # 大多数 HuggingFace 模型的配置里都有 intermediate_size
+def get_neuron_count():
     try:
-        neuron_count = model.config.intermediate_size
+        return model.config.intermediate_size
     except AttributeError:
-        # 如果没有配置字段，我们从权重形状推断
-        # gate_proj 的 weight 形状通常是 [intermediate_size, hidden_size]
-        neuron_count = model.model.layers[layers[0]].mlp.gate_proj.weight.shape[0]
-        
-    print(f"\n>>> 正在寻找代表 [{concept_name}] 的 Top-{top_k} 神经元 (单层共 {neuron_count} 个 Neuron) <<<")
-    
-    pos_inputs = tokenizer(pos_text, return_tensors="pt").to(input_device)
-    neg_inputs = tokenizer(neg_text, return_tensors="pt").to(input_device)
-    
-    # 确保比较时截取到目标词的位置
-    print(f"Positive input tokens: {tokenizer.convert_ids_to_tokens(pos_inputs['input_ids'][0])}")
-    print(f"Negative input tokens: {tokenizer.convert_ids_to_tokens(neg_inputs['input_ids'][0])}")
+        return model.model.layers[target_layers[0]].mlp.gate_proj.weight.shape[0]
+
+
+def resolve_target_token_id(target_word):
+    # 优先尝试带空格形式（BPE 常见），保证是单 token；否则回退第一个 token。
+    candidates = [f" {target_word}", target_word]
+    for text in candidates:
+        ids = tokenizer.encode(text, add_special_tokens=False)
+        if len(ids) == 1:
+            return ids[0], tokenizer.convert_ids_to_tokens([ids[0]])[0]
+
+    ids = tokenizer.encode(target_word, add_special_tokens=False)
+    return ids[0], tokenizer.convert_ids_to_tokens([ids[0]])[0]
+
+
+def find_top_neurons_by_gradient_attribution(concept_name, context_text, target_word, layers, top_k=10):
+    neuron_count = get_neuron_count()
+    target_id, target_token = resolve_target_token_id(target_word)
+
+    print(
+        f"\n>>> 梯度归因: [{concept_name}] Top-{top_k} 神经元 "
+        f"(单层共 {neuron_count} 个, target_token={target_token}) <<<"
+    )
+
+    inputs = tokenizer(context_text, return_tensors="pt").to(input_device)
+    print(f"Context tokens: {tokenizer.convert_ids_to_tokens(inputs['input_ids'][0])}")
+
+    catcher = MLPGradientAttributionHook()
+    catcher.register(model, layers)
+    model.zero_grad(set_to_none=True)
+
+    outputs = model(**inputs)
+    # 归因目标：最后位置对 target token 的 logit
+    target_logit = outputs.logits[0, -1, target_id]
+    target_logit.backward()
 
     results = {}
-    
     for layer_idx in layers:
-        catcher = ActivationCatcherHook()
-        mlp_module = model.model.layers[layer_idx].mlp
-        catcher.register(mlp_module)
-        
-        # 1. 获取包含目标词的激活
-        with torch.no_grad():
-            model(**pos_inputs)
-        pos_act = catcher.activations.clone() # shape: [intermediate_size]
-        
-        # 2. 获取基线激活
-        with torch.no_grad():
-            model(**neg_inputs)
-        neg_act = catcher.activations.clone()
-        
-        catcher.remove()
-        
-        # 3. 计算差异 (Contrastive Activation)
-        # 我们寻找那些在提到具体品牌时被强烈激活，而在提到普通词汇时不激活的 Neuron
-        diff_act = pos_act - neg_act
-        
-        # 找出差值最大的 Top K 维度索引
-        top_indices = torch.topk(diff_act, k=top_k).indices.tolist()
-        top_values = torch.topk(diff_act, k=top_k).values.tolist()
-        
-        results[layer_idx] = list(zip(top_indices, top_values))
-        
-        print(f"Layer {layer_idx:02d}: " + ", ".join([f"Neuron {idx}/{neuron_count}(+{val:.2f})" for idx, val in results[layer_idx][:3]]) + " ...")
-        
+        activation = catcher.layer_activations[layer_idx][0, -1, :]
+        grad = catcher.layer_activations[layer_idx].grad[0, -1, :]
+
+        # 经典归因: gradient * activation
+        attribution = activation * grad
+        topk = torch.topk(attribution.abs(), k=top_k)
+        top_indices = topk.indices
+        signed_values = attribution[top_indices].detach().cpu().tolist()
+        indices = top_indices.detach().cpu().tolist()
+
+        results[layer_idx] = list(zip(indices, signed_values))
+        print(
+            f"Layer {layer_idx:02d}: "
+            + ", ".join(
+                [f"Neuron {idx}/{neuron_count}(attr={val:+.4f})" for idx, val in results[layer_idx][:3]]
+            )
+            + " ..."
+        )
+
+    catcher.remove()
+    model.zero_grad(set_to_none=True)
     return results
 
 # -----------------------------------------------------------------------------
-# 4. 执行寻找
+# 4. 执行梯度归因
 # -----------------------------------------------------------------------------
 concept_neurons = {}
 for concept, texts in targets.items():
-    concept_neurons[concept] = find_top_neurons_for_concept(
+    concept_neurons[concept] = find_top_neurons_by_gradient_attribution(
         concept_name=concept,
-        pos_text=texts["pos"],
-        neg_text=texts["neg"],
+        context_text=texts["context"],
+        target_word=texts["target_word"],
         layers=target_layers,
-        top_k=TOP_K
+        top_k=TOP_K,
     )
 
-print("\n分析完成。你可以尝试在后续生成时，直接放大这些特定层和特定索引处的激活值来进行干预。")
+print("\n梯度归因分析完成。你可以尝试干预高归因神经元来影响品牌推荐。")
 
 # -----------------------------------------------------------------------------
 # 5. 神经元干预与生成测试
@@ -196,14 +204,25 @@ class NeuronInterventionHook:
             handle.remove()
         self.handles = []
 
-# 我们根据之前的探测结果，选出对 Hilton 最敏感的几个神经元
-HILTON_NEURONS = {
-    24: [11604, 8452],  # Layer 24 的 Top 2
-    25: [9718]          # Layer 25 的 Top 1
-}
+def select_hilton_neurons_from_attribution(results, preferred_layers=(24, 25), per_layer=2):
+    selected = {}
+    for layer_idx in preferred_layers:
+        if layer_idx not in results:
+            continue
+        pairs = results[layer_idx][:per_layer]
+        selected[layer_idx] = [idx for idx, _ in pairs]
+    return selected
 
-# 干预倍数（可以调整，太大容易崩，太小没效果，推荐 3.0 ~ 10.0）
-MULTIPLIER = 20.0
+
+# 根据梯度归因结果自动选择 Hilton 神经元
+HILTON_NEURONS = select_hilton_neurons_from_attribution(
+    concept_neurons.get("Hilton Hotel", {}),
+    preferred_layers=(24, 25),
+    per_layer=2,
+)
+
+# 干预倍数（太大容易复读，建议从 2.0~6.0 开始）
+MULTIPLIER = 4.0
 
 print(f"\n>>> 准备在生成时进行神经元干预 <<<")
 print(f"目标神经元: {HILTON_NEURONS}")
