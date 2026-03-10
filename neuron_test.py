@@ -73,13 +73,16 @@ class MLPIntegratedGradientsHook:
 CONCEPT_CONFIGS = {
     "Hilton_Hotel": {
         "positive_word": "Hilton",
-        "negative_words": ["Hyatt", "Marriott", "Sheraton", "Westin"],
+        "negative_words": ["Marriott", "Conrad", "Omni", "Peninsula"],
         "prompts": HILTON_CLOZE_PROMPTS,
+        "score_mode": "direct",
     },
     "Delta_Airline": {
         "positive_word": "Delta",
-        "negative_words": ["United", "American", "Southwest", "JetBlue"],
+        "negative_words": ["United", "American", "Aloha", "Spirit"],
         "prompts": DELTA_CLOZE_PROMPTS,
+        # 临时提速: 不再跑 negative brand 对比，直接用 Delta 本身的归因分数选 neuron。
+        "score_mode": "direct",
     },
 }
 
@@ -222,6 +225,38 @@ def compute_attribution_for_target(cloze_prompt, target_word, layers, ig_steps=I
     return results
 
 
+def aggregate_positive_attribution(prompts, positive_word, layers, ig_steps):
+    neuron_count = get_neuron_count()
+    _, pos_tokens = resolve_target_token_ids(positive_word)
+    print(
+        f"\n>>> 多样本正向归因: target={pos_tokens}, "
+        f"samples={len(prompts)}, 单层神经元={neuron_count} <<<"
+    )
+
+    pos_sum = {}
+
+    for sample_idx, cloze_prompt in enumerate(prompts, start=1):
+        # print(f"\n[Sample {sample_idx}/{len(prompts)}] {cloze_prompt}")
+        pos_attr = compute_attribution_for_target(
+            cloze_prompt,
+            positive_word,
+            layers,
+            ig_steps=ig_steps,
+        )
+        for layer_idx in layers:
+            if layer_idx not in pos_sum:
+                pos_sum[layer_idx] = pos_attr[layer_idx].clone()
+            else:
+                pos_sum[layer_idx] += pos_attr[layer_idx]
+
+    pos_count = len(prompts)
+    positive_scores = {}
+    for layer_idx in layers:
+        positive_scores[layer_idx] = pos_sum[layer_idx] / pos_count
+
+    return positive_scores
+
+
 def aggregate_contrastive_attribution(prompts, positive_word, negative_words, layers, ig_steps):
     neuron_count = get_neuron_count()
     _, pos_tokens = resolve_target_token_ids(positive_word)
@@ -275,7 +310,7 @@ def aggregate_contrastive_attribution(prompts, positive_word, negative_words, la
 
 def print_top_neurons_from_scores(scores_by_layer, top_k=10):
     neuron_count = get_neuron_count()
-    print(f"\n>>> 对比分数 Top-{top_k}（每层） <<<")
+    print(f"\n>>> 神经元分数 Top-{top_k}（每层） <<<")
     for layer_idx in sorted(scores_by_layer.keys()):
         scores = scores_by_layer[layer_idx]
         topk = torch.topk(scores, k=top_k)
@@ -376,6 +411,35 @@ def compute_overlap_stats(neuron_map_a, neuron_map_b):
     return overlap_map, overlap_count, ratio_a, ratio_b
 
 
+def exclude_overlap_from_maps(concept_neurons):
+    """从每个概念的神经元 map 中移除所有概念间共享的重叠神经元，返回新 map。"""
+    names = list(concept_neurons.keys())
+    if len(names) < 2:
+        return {k: dict(v) for k, v in concept_neurons.items()}
+
+    all_overlap = {}
+    for i in range(len(names)):
+        for j in range(i + 1, len(names)):
+            overlap_map, _, _, _ = compute_overlap_stats(
+                concept_neurons[names[i]], concept_neurons[names[j]]
+            )
+            for layer_idx, indices in overlap_map.items():
+                if layer_idx not in all_overlap:
+                    all_overlap[layer_idx] = set()
+                all_overlap[layer_idx].update(indices)
+
+    cleaned = {}
+    for concept_name, neuron_map in concept_neurons.items():
+        cleaned_map = {}
+        for layer_idx, indices in neuron_map.items():
+            overlap_set = all_overlap.get(layer_idx, set())
+            filtered = [idx for idx in indices if idx not in overlap_set]
+            if filtered:
+                cleaned_map[layer_idx] = filtered
+        cleaned[concept_name] = cleaned_map
+    return cleaned
+
+
 def print_overlap_report(name_a, neuron_map_a, name_b, neuron_map_b):
     overlap_map, overlap_count, ratio_a, ratio_b = compute_overlap_stats(
         neuron_map_a, neuron_map_b
@@ -402,16 +466,29 @@ def run_concept_worker(concept_name, cfg, top_percent, ig_steps, gpu_id, result_
             torch.cuda.set_device(0)
         initialize_runtime(device_map="auto", offload_tag=f"worker_{concept_name}_gpu{gpu_id}")
         print(f"\n================ {concept_name} (GPU {gpu_id}) ================")
-        contrastive_scores = aggregate_contrastive_attribution(
-            prompts=cfg["prompts"],
-            positive_word=cfg["positive_word"],
-            negative_words=cfg["negative_words"],
-            layers=target_layers,
-            ig_steps=ig_steps,
-        )
-        print_top_neurons_from_scores(contrastive_scores, top_k=PRINT_TOP_K)
+        score_mode = cfg.get("score_mode", "contrastive")
+        if score_mode == "direct":
+            neuron_scores = aggregate_positive_attribution(
+                prompts=cfg["prompts"],
+                positive_word=cfg["positive_word"],
+                layers=target_layers,
+                ig_steps=ig_steps,
+            )
+        elif score_mode == "contrastive":
+            neuron_scores = aggregate_contrastive_attribution(
+                prompts=cfg["prompts"],
+                positive_word=cfg["positive_word"],
+                negative_words=cfg["negative_words"],
+                layers=target_layers,
+                ig_steps=ig_steps,
+            )
+        else:
+            raise ValueError(f"未知 score_mode: {score_mode}")
+
+        print(f"{concept_name} score_mode={score_mode}")
+        print_top_neurons_from_scores(neuron_scores, top_k=PRINT_TOP_K)
         selected_neurons = select_top_percent_neurons(
-            contrastive_scores,
+            neuron_scores,
             top_percent=top_percent,
         )
         result_queue.put(
@@ -529,6 +606,20 @@ def parse_args():
         default="0,1",
         help="并行归因使用的 GPU 编号列表（逗号分隔），例如 0,1",
     )
+    parser.add_argument(
+        "--hilton-score-mode",
+        type=str,
+        default=None,
+        choices=["direct", "contrastive"],
+        help="覆盖 Hilton 归因模式: direct=仅正向, contrastive=减去负样本（排除假阳性）",
+    )
+    parser.add_argument(
+        "--delta-score-mode",
+        type=str,
+        default=None,
+        choices=["direct", "contrastive"],
+        help="覆盖 Delta 归因模式: direct=仅正向, contrastive=减去负样本（排除假阳性）",
+    )
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -536,13 +627,23 @@ if __name__ == "__main__":
     enable_hilton = args.enable_Hilton
     enable_delta = args.enable_Delta
 
+    score_mode_overrides = {}
+    if args.hilton_score_mode:
+        score_mode_overrides["Hilton_Hotel"] = args.hilton_score_mode
+    if args.delta_score_mode:
+        score_mode_overrides["Delta_Airline"] = args.delta_score_mode
+
     active_concept_configs = {}
     if enable_hilton:
-        active_concept_configs["Hilton_Hotel"] = CONCEPT_CONFIGS["Hilton_Hotel"]
+        cfg = dict(CONCEPT_CONFIGS["Hilton_Hotel"])
+        if "Hilton_Hotel" in score_mode_overrides:
+            cfg["score_mode"] = score_mode_overrides["Hilton_Hotel"]
+        active_concept_configs["Hilton_Hotel"] = cfg
     if enable_delta:
-        active_concept_configs["Delta_Airline"] = CONCEPT_CONFIGS["Delta_Airline"]
-    if not active_concept_configs:
-        raise ValueError("至少需要启用一个概念：--enable-hilton 1 或 --enable-delta 1")
+        cfg = dict(CONCEPT_CONFIGS["Delta_Airline"])
+        if "Delta_Airline" in score_mode_overrides:
+            cfg["score_mode"] = score_mode_overrides["Delta_Airline"]
+        active_concept_configs["Delta_Airline"] = cfg
 
     gpu_ids = [int(x.strip()) for x in args.parallel_gpus.split(",") if x.strip()]
     if len(gpu_ids) < len(active_concept_configs):
@@ -574,6 +675,8 @@ if __name__ == "__main__":
     print(f"delta_top_percent={args.delta_top_percent}")
     print(f"delta_multiplier={args.delta_multiplier}")
     print(f"parallel_gpus={gpu_ids}")
+    for cname, cfg in active_concept_configs.items():
+        print(f"  {cname}: score_mode={cfg['score_mode']}, negative_words={cfg.get('negative_words', [])}")
     print(f"active_concepts={list(active_concept_configs.keys())}")
     concept_gpu_map = {
         concept_name: assigned_gpu_ids[idx]
@@ -605,6 +708,16 @@ if __name__ == "__main__":
         f"总数={count_neurons(COMBINED_NEURONS)}"
     )
 
+    # 排除重叠神经元
+    concept_neurons_no_overlap = exclude_overlap_from_maps(concept_neurons)
+    overlap_removed_count = count_neurons(merge_neuron_maps(list(concept_neurons.values()))) - \
+                            count_neurons(merge_neuron_maps(list(concept_neurons_no_overlap.values())))
+    print(f"\n>>> 排除重叠后各概念神经元 <<<")
+    for cname, nmap in concept_neurons_no_overlap.items():
+        orig_cnt = count_neurons(concept_neurons[cname])
+        new_cnt = count_neurons(nmap)
+        print(f"  {cname}: {orig_cnt} -> {new_cnt} (移除 {orig_cnt - new_cnt} 个重叠)")
+
     print(f"\n>>> 准备在生成时进行神经元干预 <<<")
     for cname in concept_neurons.keys():
         print(
@@ -615,7 +728,7 @@ if __name__ == "__main__":
     prompt = (
         "You are an expert at writing advertising copy. "
         "Write a one-sentence artistic advertisement about a vacation in Hawaii. "
-        "Mention the travel and accommodation details naturally."
+        "Mention the flight and accommodation details naturally."
     )
     print(f"prompt: {prompt}")
     messages = [
@@ -633,7 +746,7 @@ if __name__ == "__main__":
     # 1. Baseline (无干预)
     generate_text("Baseline (无神经元干预)")
 
-    # 2. 挂载 Hook 进行联合干预（各品牌使用各自的 multiplier）
+    # 2. 联合干预（含重叠神经元）
     intervention_hooks = []
     for concept_name, neurons in concept_neurons.items():
         if neurons:
@@ -644,8 +757,52 @@ if __name__ == "__main__":
 
     concept_names_desc = "+".join(concept_neurons.keys())
     mult_desc = ", ".join([f"{c}={multiplier_by_concept.get(c, 3.0)}x" for c in concept_neurons.keys()])
-    generate_text(f"Intervention (联合放大 {concept_names_desc} 神经元: {mult_desc})")
+    generate_text(f"Intervention-含重叠 (联合放大 {concept_names_desc}: {mult_desc})")
 
-    # 3. 卸载 Hook
     for hook in intervention_hooks:
         hook.remove()
+
+    # 3. 联合干预（排除重叠神经元）
+    intervention_hooks_no_overlap = []
+    for concept_name, neurons in concept_neurons_no_overlap.items():
+        if neurons:
+            mult = multiplier_by_concept.get(concept_name, 3.0)
+            hook = NeuronInterventionHook(neurons, multiplier=mult)
+            hook.register(model)
+            intervention_hooks_no_overlap.append(hook)
+
+    generate_text(f"Intervention-排除重叠 (联合放大 {concept_names_desc}: {mult_desc})")
+
+    for hook in intervention_hooks_no_overlap:
+        hook.remove()
+
+    # 4. 联合干预（重叠神经元只注入一次）
+    #    独有神经元各自放大；重叠神经元用各概念 multiplier 的均值，仅挂一个 hook。
+    concept_names_list = list(concept_neurons.keys())
+    if len(concept_names_list) >= 2:
+        overlap_map, _, _, _ = compute_overlap_stats(
+            concept_neurons[concept_names_list[0]],
+            concept_neurons[concept_names_list[1]],
+        )
+        avg_mult = sum(multiplier_by_concept.get(c, 3.0) for c in concept_names_list) / len(concept_names_list)
+
+        hooks_dedup = []
+        for concept_name, neurons in concept_neurons_no_overlap.items():
+            if neurons:
+                mult = multiplier_by_concept.get(concept_name, 3.0)
+                hook = NeuronInterventionHook(neurons, multiplier=mult)
+                hook.register(model)
+                hooks_dedup.append(hook)
+        if overlap_map:
+            hook_overlap = NeuronInterventionHook(overlap_map, multiplier=avg_mult)
+            hook_overlap.register(model)
+            hooks_dedup.append(hook_overlap)
+
+        overlap_cnt = count_neurons(overlap_map) if overlap_map else 0
+        generate_text(
+            f"Intervention-重叠只注入一次 "
+            f"(独有各自放大, 重叠{overlap_cnt}个神经元×{avg_mult:.1f}x)"
+        )
+
+        for hook in hooks_dedup:
+            hook.remove()
