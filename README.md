@@ -5,6 +5,9 @@
 ```
 conda env create -f environment.yml
 ```
+## 模型介绍
+
+暂时使用`Qwen3-8B`模型进行测试，[下载链接](https://huggingface.co/Qwen/Qwen3-8B)
 
 ## 使用方法
 
