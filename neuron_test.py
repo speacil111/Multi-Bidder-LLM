@@ -69,20 +69,19 @@ class MLPIntegratedGradientsHook:
 # 多样本归因 + 对比归因：
 # score = attr(正品牌) - mean(attr(负品牌集合))
 
-
+# 各概念使用同类竞品作为负例，归因后再通过 exclude_overlap_from_maps() 去除重叠
 CONCEPT_CONFIGS = {
     "Hilton_Hotel": {
         "positive_word": "Hilton",
         "negative_words": ["Marriott", "Conrad", "Omni", "Peninsula"],
         "prompts": HILTON_CLOZE_PROMPTS,
-        "score_mode": "direct",
+        "score_mode": "contrastive",
     },
     "Delta_Airline": {
         "positive_word": "Delta",
         "negative_words": ["United", "American", "Aloha", "Spirit"],
         "prompts": DELTA_CLOZE_PROMPTS,
-        # 临时提速: 不再跑 negative brand 对比，直接用 Delta 本身的归因分数选 neuron。
-        "score_mode": "direct",
+        "score_mode": "contrastive",
     },
 }
 
@@ -96,9 +95,13 @@ def initialize_runtime(device_map="auto", offload_tag="main"):
     if model is not None and tokenizer is not None and input_device is not None and target_layers is not None:
         return
 
-    runtime_device = "cuda" if torch.cuda.is_available() else "cpu"
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(SEED)
+    if not torch.cuda.is_available():
+        raise RuntimeError(
+            "CUDA 不可用，请检查 GPU 驱动版本或节点分配。"
+            "当前环境不支持 GPU 运算，拒绝回退到 CPU。"
+        )
+    runtime_device = "cuda"
+    torch.cuda.manual_seed_all(SEED)
     torch.backends.cudnn.deterministic = True
     print(f"Loading {MODEL_NAME} to {runtime_device}...")
     runtime_offload_folder = os.path.join(OFFLOAD_FOLDER, offload_tag)
@@ -359,7 +362,10 @@ class NeuronInterventionHook:
             handle.remove()
         self.handles = []
 
-def select_top_percent_neurons(scores_by_layer, top_percent=0.01):
+def select_top_percent_neurons(scores_by_layer, top_percent=1.0):
+    if top_percent <= 0 or top_percent > 100:
+        raise ValueError(f"top_percent 必须在 (0, 100]，当前: {top_percent}")
+
     all_neurons = []
     for layer_idx, scores in scores_by_layer.items():
         for neuron_idx, score in enumerate(scores.tolist()):
@@ -370,7 +376,7 @@ def select_top_percent_neurons(scores_by_layer, top_percent=0.01):
     if total_neurons == 0:
         return {}
 
-    top_n = max(1, int(total_neurons * top_percent))
+    top_n = max(1, int(total_neurons * (top_percent / 100.0)))
     all_neurons.sort(key=lambda x: x[2], reverse=True)
     selected_triplets = all_neurons[:top_n]
 
@@ -505,14 +511,14 @@ def run_concept_worker(concept_name, cfg, top_percent, ig_steps, gpu_id, result_
 
 
 def run_parallel_attribution(concept_configs, top_percent_by_concept, ig_steps, gpu_ids):
-    """top_percent_by_concept: {concept_name: top_percent}"""
+    """top_percent_by_concept: {concept_name: 百分值（如 0.2 表示 0.2%）}"""
     ctx = mp.get_context("spawn")
     result_queue = ctx.Queue()
     processes = []
     concept_items = list(concept_configs.items())
 
     for idx, (concept_name, cfg) in enumerate(concept_items):
-        top_percent = top_percent_by_concept.get(concept_name, 0.002)
+        top_percent = top_percent_by_concept.get(concept_name, 0.2)
         proc = ctx.Process(
             target=run_concept_worker,
             args=(concept_name, cfg, top_percent, ig_steps, gpu_ids[idx], result_queue),
@@ -544,7 +550,7 @@ def generate_text(desc):
     with torch.no_grad():
         generated_ids = model.generate(
             **model_inputs,
-            max_new_tokens=512,
+            max_new_tokens=256,
             do_sample=False,
             # temperature=0.7,
             # repetition_penalty=1.1,
@@ -578,8 +584,8 @@ def parse_args():
     parser.add_argument(
         "--hilton-top-percent",
         type=float,
-        default=0.002,
-        help="Hilton 干预神经元比例，范围 (0, 1]，例如 0.002 表示 0.2%%",
+        default=0.2,
+        help="Hilton 干预神经元百分值，范围 (0, 100]，例如 0.2 表示 0.2%%",
     )
     parser.add_argument(
         "--hilton-multiplier",
@@ -591,8 +597,8 @@ def parse_args():
     parser.add_argument(
         "--delta-top-percent",
         type=float,
-        default=0.002,
-        help="Delta 干预神经元比例，范围 (0, 1]，例如 0.002 表示 0.2%%",
+        default=0.2,
+        help="Delta 干预神经元百分值，范围 (0, 100]，例如 0.2 表示 0.2%%",
     )
     parser.add_argument(
         "--delta-multiplier",
@@ -663,16 +669,16 @@ if __name__ == "__main__":
         "Delta_Airline": args.delta_multiplier,
     }
     for c in CONCEPT_CONFIGS:
-        top_percent_by_concept.setdefault(c, 0.002)
+        top_percent_by_concept.setdefault(c, 0.2)
         multiplier_by_concept.setdefault(c, 3.0)
 
     print("\n>>> 当前运行参数 <<<")
     print(f"enable_hilton={enable_hilton}")
     print(f"enable_delta={enable_delta}")
     print(f"ig_steps={args.ig_steps}")
-    print(f"hilton_top_percent={args.hilton_top_percent}")
+    print(f"hilton_top_percent={args.hilton_top_percent}%")
     print(f"hilton_multiplier={args.hilton_multiplier}")
-    print(f"delta_top_percent={args.delta_top_percent}")
+    print(f"delta_top_percent={args.delta_top_percent}%")
     print(f"delta_multiplier={args.delta_multiplier}")
     print(f"parallel_gpus={gpu_ids}")
     for cname, cfg in active_concept_configs.items():
@@ -721,7 +727,7 @@ if __name__ == "__main__":
     print(f"\n>>> 准备在生成时进行神经元干预 <<<")
     for cname in concept_neurons.keys():
         print(
-            f"  {cname}: top_percent={top_percent_by_concept[cname]*100:.2f}%, "
+            f"  {cname}: top_percent={top_percent_by_concept[cname]:.2f}%, "
             f"multiplier={multiplier_by_concept[cname]}x"
         )
     initialize_runtime(device_map="auto", offload_tag="main_generation")
@@ -806,3 +812,15 @@ if __name__ == "__main__":
 
         for hook in hooks_dedup:
             hook.remove()
+
+        # # 5. 仅干预重叠神经元
+        # if overlap_map:
+        #     hook_overlap_only = NeuronInterventionHook(overlap_map, multiplier=avg_mult)
+        #     hook_overlap_only.register(model)
+        #     generate_text(
+        #         f"Intervention-仅重叠神经元 "
+        #         f"(重叠{overlap_cnt}个神经元×{avg_mult:.1f}x)"
+        #     )
+        #     hook_overlap_only.remove()
+        # else:
+        #     print("Intervention-仅重叠神经元: 无重叠神经元，跳过。")
