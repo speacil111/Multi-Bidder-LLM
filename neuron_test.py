@@ -86,7 +86,7 @@ CONCEPT_CONFIGS = {
 }
 
 PRINT_TOP_K = 10  # 仅用于打印每层前几个归因神经元
-ATTRIBUTION_LAYER_CHUNK_SIZE = 4  # 归因分块层数，降低显存峰值
+ATTRIBUTION_LAYER_CHUNK_SIZE = 6  # 归因分块层数，降低显存峰值
 IG_STEPS_DEFAULT = 20  # 积分梯度黎曼近似步数
 
 
@@ -388,6 +388,90 @@ def select_top_percent_neurons(scores_by_layer, top_percent=1.0):
     return selected
 
 
+def zscore_normalize_scores(scores_by_layer):
+    """对单个概念的全量神经元分数做 z-score 标准化（跨所有层）。"""
+    tensors = [scores_by_layer[layer_idx].to(torch.float32) for layer_idx in sorted(scores_by_layer.keys())]
+    flat = torch.cat(tensors, dim=0)
+    mean = flat.mean()
+    std = flat.std(unbiased=False)
+    denom = std if std > 1e-8 else torch.tensor(1.0, dtype=torch.float32, device=mean.device)
+    normalized = {
+        layer_idx: (scores_by_layer[layer_idx].to(torch.float32) - mean) / denom
+        for layer_idx in scores_by_layer.keys()
+    }
+    return normalized
+
+
+def assign_neurons_by_max_standardized_score(concept_scores_by_layer):
+    """
+    先全量归属：对每个神经元比较各品牌标准化分数，归给分数最高的品牌。
+    返回:
+      - assigned_raw_scores: {concept: {layer: {neuron_idx: raw_score}}}
+      - assigned_counts: {concept: count}
+    """
+    concept_names = list(concept_scores_by_layer.keys())
+    if len(concept_names) == 0:
+        return {}, {}
+
+    normalized_scores = {
+        concept_name: zscore_normalize_scores(scores_by_layer)
+        for concept_name, scores_by_layer in concept_scores_by_layer.items()
+    }
+
+    assigned_raw_scores = {concept_name: {} for concept_name in concept_names}
+    assigned_counts = {concept_name: 0 for concept_name in concept_names}
+
+    ref_layers = sorted(next(iter(concept_scores_by_layer.values())).keys())
+    for layer_idx in ref_layers:
+        norm_stack = torch.stack(
+            [normalized_scores[concept_name][layer_idx] for concept_name in concept_names],
+            dim=0,  # [C, N]
+        )
+        winners = torch.argmax(norm_stack, dim=0)  # [N]
+
+        for concept_pos, concept_name in enumerate(concept_names):
+            win_indices = (winners == concept_pos).nonzero(as_tuple=True)[0]
+            if win_indices.numel() == 0:
+                continue
+            raw_tensor = concept_scores_by_layer[concept_name][layer_idx].to(torch.float32)
+            if layer_idx not in assigned_raw_scores[concept_name]:
+                assigned_raw_scores[concept_name][layer_idx] = {}
+            for neuron_idx in win_indices.tolist():
+                assigned_raw_scores[concept_name][layer_idx][neuron_idx] = float(raw_tensor[neuron_idx].item())
+            assigned_counts[concept_name] += int(win_indices.numel())
+
+    return assigned_raw_scores, assigned_counts
+
+
+def select_top_percent_from_assigned_scores(assigned_raw_scores, top_percent=1.0):
+    """
+    在“已归属给该品牌”的神经元集合里再选 Top_k%（仅保留正分神经元）。
+    assigned_raw_scores: {layer_idx: {neuron_idx: raw_score}}
+    """
+    if top_percent <= 0 or top_percent > 100:
+        raise ValueError(f"top_percent 必须在 (0, 100]，当前: {top_percent}")
+
+    candidates = []
+    for layer_idx, neuron_score_map in assigned_raw_scores.items():
+        for neuron_idx, score in neuron_score_map.items():
+            if score > 0:
+                candidates.append((layer_idx, neuron_idx, score))
+
+    if len(candidates) == 0:
+        return {}
+
+    top_n = max(1, int(len(candidates) * (top_percent / 100.0)))
+    candidates.sort(key=lambda x: x[2], reverse=True)
+    selected_triplets = candidates[:top_n]
+
+    selected = {}
+    for layer_idx, neuron_idx, _ in selected_triplets:
+        if layer_idx not in selected:
+            selected[layer_idx] = []
+        selected[layer_idx].append(neuron_idx)
+    return selected
+
+
 def merge_neuron_maps(neuron_maps):
     merged = {}
     for neuron_map in neuron_maps:
@@ -465,7 +549,7 @@ def print_overlap_report(name_a, neuron_map_a, name_b, neuron_map_b):
 
 
 
-def run_concept_worker(concept_name, cfg, top_percent, ig_steps, gpu_id, result_queue):
+def run_concept_worker(concept_name, cfg, ig_steps, gpu_id, result_queue):
     try:
         if torch.cuda.is_available():
             os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
@@ -493,16 +577,15 @@ def run_concept_worker(concept_name, cfg, top_percent, ig_steps, gpu_id, result_
 
         print(f"{concept_name} score_mode={score_mode}")
         print_top_neurons_from_scores(neuron_scores, top_k=PRINT_TOP_K)
-        selected_neurons = select_top_percent_neurons(
-            neuron_scores,
-            top_percent=top_percent,
-        )
+        # 避免跨进程直接传递 Tensor 触发 shared-memory EOFError
+        neuron_scores_serialized = {
+            layer_idx: tensor.tolist()
+            for layer_idx, tensor in neuron_scores.items()
+        }
         result_queue.put(
             {
                 "concept_name": concept_name,
-                "selected_neurons": selected_neurons,
-                "layer_count": len(selected_neurons),
-                "neuron_count": count_neurons(selected_neurons),
+                "neuron_scores": neuron_scores_serialized,
                 "error": None,
             }
         )
@@ -510,39 +593,37 @@ def run_concept_worker(concept_name, cfg, top_percent, ig_steps, gpu_id, result_
         result_queue.put({"concept_name": concept_name, "error": str(exc)})
 
 
-def run_parallel_attribution(concept_configs, top_percent_by_concept, ig_steps, gpu_ids):
-    """top_percent_by_concept: {concept_name: 百分值（如 0.2 表示 0.2%）}"""
+def run_parallel_attribution(concept_configs, ig_steps, gpu_ids):
     ctx = mp.get_context("spawn")
     result_queue = ctx.Queue()
     processes = []
     concept_items = list(concept_configs.items())
 
     for idx, (concept_name, cfg) in enumerate(concept_items):
-        top_percent = top_percent_by_concept.get(concept_name, 0.2)
         proc = ctx.Process(
             target=run_concept_worker,
-            args=(concept_name, cfg, top_percent, ig_steps, gpu_ids[idx], result_queue),
+            args=(concept_name, cfg, ig_steps, gpu_ids[idx], result_queue),
         )
         proc.start()
         processes.append(proc)
 
-    concept_neurons = {}
+    concept_scores_by_layer = {}
     for _ in concept_items:
         item = result_queue.get()
         if item.get("error"):
             raise RuntimeError(f"{item['concept_name']} 归因失败: {item['error']}")
-        concept_neurons[item["concept_name"]] = item["selected_neurons"]
-        print(
-            f"{item['concept_name']} 选中神经元: 层数={item['layer_count']}, "
-            f"总数={item['neuron_count']}"
-        )
+        concept_scores_by_layer[item["concept_name"]] = {
+            layer_idx: torch.tensor(scores, dtype=torch.float32)
+            for layer_idx, scores in item["neuron_scores"].items()
+        }
+        print(f"{item['concept_name']} 归因分数计算完成。")
 
     for proc in processes:
         proc.join()
         if proc.exitcode != 0:
             raise RuntimeError(f"子进程异常退出，exit_code={proc.exitcode}")
 
-    return concept_neurons
+    return concept_scores_by_layer
 
 
 def generate_text(desc):
@@ -650,6 +731,8 @@ if __name__ == "__main__":
         if "Delta_Airline" in score_mode_overrides:
             cfg["score_mode"] = score_mode_overrides["Delta_Airline"]
         active_concept_configs["Delta_Airline"] = cfg
+    if not active_concept_configs:
+        raise ValueError("至少需要启用一个概念：--enable_Hilton 或 --enable_Delta")
 
     gpu_ids = [int(x.strip()) for x in args.parallel_gpus.split(",") if x.strip()]
     if len(gpu_ids) < len(active_concept_configs):
@@ -690,12 +773,31 @@ if __name__ == "__main__":
     }
     print(f"concept_gpu_map={concept_gpu_map}")
 
-    concept_neurons = run_parallel_attribution(
+    concept_scores_by_layer = run_parallel_attribution(
         active_concept_configs,
-        top_percent_by_concept=top_percent_by_concept,
         ig_steps=args.ig_steps,
         gpu_ids=assigned_gpu_ids,
     )
+
+    # 1) 全量归属：按标准化分数把每个神经元划给分数最高的品牌
+    assigned_raw_scores, assigned_counts = assign_neurons_by_max_standardized_score(
+        concept_scores_by_layer
+    )
+
+    # 2) 类内 Top_k%：每个品牌只在自己的归属池里选 Top_k%
+    concept_neurons = {}
+    print("\n>>> 全量归属 + 类内 Top_k% 结果 <<<")
+    for cname in active_concept_configs.keys():
+        concept_neurons[cname] = select_top_percent_from_assigned_scores(
+            assigned_raw_scores.get(cname, {}),
+            top_percent=top_percent_by_concept.get(cname, 0.2),
+        )
+        assigned_cnt = assigned_counts.get(cname, 0)
+        selected_cnt = count_neurons(concept_neurons[cname])
+        print(
+            f"  {cname}: 归属池神经元={assigned_cnt}, "
+            f"类内Top{top_percent_by_concept.get(cname, 0.2):.2f}%后={selected_cnt}"
+        )
 
     if "Hilton_Hotel" in concept_neurons and "Delta_Airline" in concept_neurons:
         print_overlap_report(
@@ -733,7 +835,7 @@ if __name__ == "__main__":
     initialize_runtime(device_map="auto", offload_tag="main_generation")
     prompt = (
         "You are an expert at writing advertising copy. "
-        "Write a one-sentence artistic advertisement about a vacation in Hawaii. "
+        "Write an artistic advertisement about a vacation in Hawaii. "
         "Mention the flight and accommodation details naturally."
     )
     print(f"prompt: {prompt}")
@@ -763,55 +865,55 @@ if __name__ == "__main__":
 
     concept_names_desc = "+".join(concept_neurons.keys())
     mult_desc = ", ".join([f"{c}={multiplier_by_concept.get(c, 3.0)}x" for c in concept_neurons.keys()])
-    generate_text(f"Intervention-含重叠 (联合放大 {concept_names_desc}: {mult_desc})")
+    generate_text(f"Intervention-({concept_names_desc}: {mult_desc})")
 
     for hook in intervention_hooks:
         hook.remove()
 
-    # 3. 联合干预（排除重叠神经元）
-    intervention_hooks_no_overlap = []
-    for concept_name, neurons in concept_neurons_no_overlap.items():
-        if neurons:
-            mult = multiplier_by_concept.get(concept_name, 3.0)
-            hook = NeuronInterventionHook(neurons, multiplier=mult)
-            hook.register(model)
-            intervention_hooks_no_overlap.append(hook)
+    # # 3. 联合干预（排除重叠神经元）
+    # intervention_hooks_no_overlap = []
+    # for concept_name, neurons in concept_neurons_no_overlap.items():
+    #     if neurons:
+    #         mult = multiplier_by_concept.get(concept_name, 3.0)
+    #         hook = NeuronInterventionHook(neurons, multiplier=mult)
+    #         hook.register(model)
+    #         intervention_hooks_no_overlap.append(hook)
 
-    generate_text(f"Intervention-排除重叠 (联合放大 {concept_names_desc}: {mult_desc})")
+    # generate_text(f"Intervention-排除重叠 (联合放大 {concept_names_desc}: {mult_desc})")
 
-    for hook in intervention_hooks_no_overlap:
-        hook.remove()
+    # for hook in intervention_hooks_no_overlap:
+    #     hook.remove()
 
     # 4. 联合干预（重叠神经元只注入一次）
     #    独有神经元各自放大；重叠神经元用各概念 multiplier 的均值，仅挂一个 hook。
-    concept_names_list = list(concept_neurons.keys())
-    if len(concept_names_list) >= 2:
-        overlap_map, _, _, _ = compute_overlap_stats(
-            concept_neurons[concept_names_list[0]],
-            concept_neurons[concept_names_list[1]],
-        )
-        avg_mult = sum(multiplier_by_concept.get(c, 3.0) for c in concept_names_list) / len(concept_names_list)
+    # concept_names_list = list(concept_neurons.keys())
+    # if len(concept_names_list) >= 2:
+    #     overlap_map, _, _, _ = compute_overlap_stats(
+    #         concept_neurons[concept_names_list[0]],
+    #         concept_neurons[concept_names_list[1]],
+    #     )
+    #     avg_mult = sum(multiplier_by_concept.get(c, 3.0) for c in concept_names_list) / len(concept_names_list)
 
-        hooks_dedup = []
-        for concept_name, neurons in concept_neurons_no_overlap.items():
-            if neurons:
-                mult = multiplier_by_concept.get(concept_name, 3.0)
-                hook = NeuronInterventionHook(neurons, multiplier=mult)
-                hook.register(model)
-                hooks_dedup.append(hook)
-        if overlap_map:
-            hook_overlap = NeuronInterventionHook(overlap_map, multiplier=avg_mult)
-            hook_overlap.register(model)
-            hooks_dedup.append(hook_overlap)
+    #     hooks_dedup = []
+    #     for concept_name, neurons in concept_neurons_no_overlap.items():
+    #         if neurons:
+    #             mult = multiplier_by_concept.get(concept_name, 3.0)
+    #             hook = NeuronInterventionHook(neurons, multiplier=mult)
+    #             hook.register(model)
+    #             hooks_dedup.append(hook)
+    #     if overlap_map:
+    #         hook_overlap = NeuronInterventionHook(overlap_map, multiplier=avg_mult)
+    #         hook_overlap.register(model)
+    #         hooks_dedup.append(hook_overlap)
 
-        overlap_cnt = count_neurons(overlap_map) if overlap_map else 0
-        generate_text(
-            f"Intervention-重叠只注入一次 "
-            f"(独有各自放大, 重叠{overlap_cnt}个神经元×{avg_mult:.1f}x)"
-        )
+    #     overlap_cnt = count_neurons(overlap_map) if overlap_map else 0
+    #     generate_text(
+    #         f"Intervention-重叠只注入一次 "
+    #         f"(独有各自放大, 重叠{overlap_cnt}个神经元×{avg_mult:.1f}x)"
+    #     )
 
-        for hook in hooks_dedup:
-            hook.remove()
+        # for hook in hooks_dedup:
+        #     hook.remove()
 
         # # 5. 仅干预重叠神经元
         # if overlap_map:
