@@ -5,7 +5,8 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from prompts import HILTON_CLOZE_PROMPTS,DELTA_CLOZE_PROMPTS
 
-
+print("Using long prompt")
+print(HILTON_CLOZE_PROMPTS[0])
 # -----------------------------------------------------------------------------
 # 0. 设定
 # -----------------------------------------------------------------------------
@@ -73,13 +74,13 @@ class MLPIntegratedGradientsHook:
 CONCEPT_CONFIGS = {
     "Hilton_Hotel": {
         "positive_word": "Hilton",
-        "negative_words": ["Marriott", "Conrad", "Omni", "Peninsula"],
+        "negative_words": [ "Marriott","Delta"],
         "prompts": HILTON_CLOZE_PROMPTS,
         "score_mode": "contrastive",
     },
     "Delta_Airline": {
         "positive_word": "Delta",
-        "negative_words": ["United", "American", "Aloha", "Spirit"],
+        "negative_words": ["United","Hilton"],
         "prompts": DELTA_CLOZE_PROMPTS,
         "score_mode": "contrastive",
     },
@@ -402,16 +403,48 @@ def zscore_normalize_scores(scores_by_layer):
     return normalized
 
 
-def assign_neurons_by_max_standardized_score(concept_scores_by_layer):
+def summarize_margin_quantiles(margins_tensor):
+    if margins_tensor.numel() == 0:
+        return {}
+    quantile_points = {
+        "p01": 0.01,
+        "p05": 0.05,
+        "p10": 0.10,
+        "p25": 0.25,
+        "p50": 0.50,
+        "p75": 0.75,
+        "p90": 0.90,
+        "p95": 0.95,
+        "p99": 0.99,
+    }
+    return {
+        key: float(torch.quantile(margins_tensor, q).item())
+        for key, q in quantile_points.items()
+    }
+
+
+def suggest_margin_thresholds(margin_quantiles):
+    if not margin_quantiles:
+        return {}
+    return {
+        "保守(仅去掉最不确定约10%)": margin_quantiles.get("p10", 0.0),
+        "平衡(去掉最不确定约25%)": margin_quantiles.get("p25", 0.0),
+        "激进(去掉最不确定约50%)": margin_quantiles.get("p50", 0.0),
+    }
+
+
+def assign_neurons_by_max_standardized_score(concept_scores_by_layer, min_margin=0.0):
     """
     先全量归属：对每个神经元比较各品牌标准化分数，归给分数最高的品牌。
+    若 top1 与 top2 标准化分数间隔小于 min_margin，则视为归属不确定并丢弃。
     返回:
       - assigned_raw_scores: {concept: {layer: {neuron_idx: raw_score}}}
       - assigned_counts: {concept: count}
+      - assignment_stats: 归属间隔统计
     """
     concept_names = list(concept_scores_by_layer.keys())
     if len(concept_names) == 0:
-        return {}, {}
+        return {}, {}, {}
 
     normalized_scores = {
         concept_name: zscore_normalize_scores(scores_by_layer)
@@ -420,6 +453,9 @@ def assign_neurons_by_max_standardized_score(concept_scores_by_layer):
 
     assigned_raw_scores = {concept_name: {} for concept_name in concept_names}
     assigned_counts = {concept_name: 0 for concept_name in concept_names}
+    margin_tensors = []
+    total_neurons_considered = 0
+    total_neurons_kept = 0
 
     ref_layers = sorted(next(iter(concept_scores_by_layer.values())).keys())
     for layer_idx in ref_layers:
@@ -427,10 +463,22 @@ def assign_neurons_by_max_standardized_score(concept_scores_by_layer):
             [normalized_scores[concept_name][layer_idx] for concept_name in concept_names],
             dim=0,  # [C, N]
         )
-        winners = torch.argmax(norm_stack, dim=0)  # [N]
+        total_neurons_considered += int(norm_stack.shape[1])
+
+        if len(concept_names) >= 2:
+            top2_vals, top2_indices = torch.topk(norm_stack, k=2, dim=0)
+            winners = top2_indices[0]
+            margins = (top2_vals[0] - top2_vals[1]).to(torch.float32)
+            keep_mask = margins >= min_margin
+            margin_tensors.append(margins.detach().cpu())
+        else:
+            winners = torch.argmax(norm_stack, dim=0)
+            keep_mask = torch.ones_like(winners, dtype=torch.bool)
+
+        total_neurons_kept += int(keep_mask.sum().item())
 
         for concept_pos, concept_name in enumerate(concept_names):
-            win_indices = (winners == concept_pos).nonzero(as_tuple=True)[0]
+            win_indices = ((winners == concept_pos) & keep_mask).nonzero(as_tuple=True)[0]
             if win_indices.numel() == 0:
                 continue
             raw_tensor = concept_scores_by_layer[concept_name][layer_idx].to(torch.float32)
@@ -440,16 +488,34 @@ def assign_neurons_by_max_standardized_score(concept_scores_by_layer):
                 assigned_raw_scores[concept_name][layer_idx][neuron_idx] = float(raw_tensor[neuron_idx].item())
             assigned_counts[concept_name] += int(win_indices.numel())
 
-    return assigned_raw_scores, assigned_counts
+    all_margins = (
+        torch.cat(margin_tensors, dim=0)
+        if len(margin_tensors) > 0
+        else torch.tensor([], dtype=torch.float32)
+    )
+    assignment_stats = {
+        "min_margin": float(min_margin),
+        "concept_count": len(concept_names),
+        "total_neurons_considered": total_neurons_considered,
+        "total_neurons_kept": total_neurons_kept,
+        "total_neurons_dropped": total_neurons_considered - total_neurons_kept,
+        "drop_ratio": (
+            (total_neurons_considered - total_neurons_kept) / total_neurons_considered
+            if total_neurons_considered > 0
+            else 0.0
+        ),
+        "margin_quantiles": summarize_margin_quantiles(all_margins),
+    }
+    return assigned_raw_scores, assigned_counts, assignment_stats
 
 
-def select_top_percent_from_assigned_scores(assigned_raw_scores, top_percent=1.0):
+def select_top_count_from_assigned_scores(assigned_raw_scores, top_count=1):
     """
-    在“已归属给该品牌”的神经元集合里再选 Top_k%（仅保留正分神经元）。
+    在“已归属给该品牌”的神经元集合里固定选 Top_k 个（仅保留正分神经元）。
     assigned_raw_scores: {layer_idx: {neuron_idx: raw_score}}
     """
-    if top_percent <= 0 or top_percent > 100:
-        raise ValueError(f"top_percent 必须在 (0, 100]，当前: {top_percent}")
+    if top_count <= 0:
+        raise ValueError(f"top_count 必须为正整数，当前: {top_count}")
 
     candidates = []
     for layer_idx, neuron_score_map in assigned_raw_scores.items():
@@ -460,7 +526,7 @@ def select_top_percent_from_assigned_scores(assigned_raw_scores, top_percent=1.0
     if len(candidates) == 0:
         return {}
 
-    top_n = max(1, int(len(candidates) * (top_percent / 100.0)))
+    top_n = min(int(top_count), len(candidates))
     candidates.sort(key=lambda x: x[2], reverse=True)
     selected_triplets = candidates[:top_n]
 
@@ -631,7 +697,7 @@ def generate_text(desc):
     with torch.no_grad():
         generated_ids = model.generate(
             **model_inputs,
-            max_new_tokens=256,
+            max_new_tokens=512,
             do_sample=False,
             # temperature=0.7,
             # repetition_penalty=1.1,
@@ -663,10 +729,10 @@ def parse_args():
     )
     # Hilton 品牌参数
     parser.add_argument(
-        "--hilton-top-percent",
-        type=float,
-        default=0.2,
-        help="Hilton 干预神经元百分值，范围 (0, 100]，例如 0.2 表示 0.2%%",
+        "--hilton-neuron-count",
+        type=int,
+        default=200,
+        help="Hilton 固定干预神经元个数，需为正整数",
     )
     parser.add_argument(
         "--hilton-multiplier",
@@ -676,10 +742,10 @@ def parse_args():
     )
     # Delta 品牌参数
     parser.add_argument(
-        "--delta-top-percent",
-        type=float,
-        default=0.2,
-        help="Delta 干预神经元百分值，范围 (0, 100]，例如 0.2 表示 0.2%%",
+        "--delta-neuron-count",
+        type=int,
+        default=200,
+        help="Delta 固定干预神经元个数，需为正整数",
     )
     parser.add_argument(
         "--delta-multiplier",
@@ -692,6 +758,12 @@ def parse_args():
         type=str,
         default="0,1",
         help="并行归因使用的 GPU 编号列表（逗号分隔），例如 0,1",
+    )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.0,
+        help="归属过滤阈值（标准化分数空间）：top1-top2 小于该值的神经元将被丢弃",
     )
     parser.add_argument(
         "--hilton-score-mode",
@@ -743,26 +815,27 @@ if __name__ == "__main__":
     print(f"并行归因 GPU 分配: {assigned_gpu_ids}")
 
     # 各品牌独立参数（新增概念时在此补充，未指定则用默认值）
-    top_percent_by_concept = {
-        "Hilton_Hotel": args.hilton_top_percent,
-        "Delta_Airline": args.delta_top_percent,
+    neuron_count_by_concept = {
+        "Hilton_Hotel": args.hilton_neuron_count,
+        "Delta_Airline": args.delta_neuron_count,
     }
     multiplier_by_concept = {
         "Hilton_Hotel": args.hilton_multiplier,
         "Delta_Airline": args.delta_multiplier,
     }
     for c in CONCEPT_CONFIGS:
-        top_percent_by_concept.setdefault(c, 0.2)
+        neuron_count_by_concept.setdefault(c, 200)
         multiplier_by_concept.setdefault(c, 3.0)
 
     print("\n>>> 当前运行参数 <<<")
     print(f"enable_hilton={enable_hilton}")
     print(f"enable_delta={enable_delta}")
     print(f"ig_steps={args.ig_steps}")
-    print(f"hilton_top_percent={args.hilton_top_percent}%")
+    print(f"hilton_neuron_count={args.hilton_neuron_count}")
     print(f"hilton_multiplier={args.hilton_multiplier}")
-    print(f"delta_top_percent={args.delta_top_percent}%")
+    print(f"delta_neuron_count={args.delta_neuron_count}")
     print(f"delta_multiplier={args.delta_multiplier}")
+    print(f"threshold={args.threshold}")
     print(f"parallel_gpus={gpu_ids}")
     for cname, cfg in active_concept_configs.items():
         print(f"  {cname}: score_mode={cfg['score_mode']}, negative_words={cfg.get('negative_words', [])}")
@@ -780,23 +853,46 @@ if __name__ == "__main__":
     )
 
     # 1) 全量归属：按标准化分数把每个神经元划给分数最高的品牌
-    assigned_raw_scores, assigned_counts = assign_neurons_by_max_standardized_score(
-        concept_scores_by_layer
+    assigned_raw_scores, assigned_counts, assignment_stats = assign_neurons_by_max_standardized_score(
+        concept_scores_by_layer,
+        min_margin=args.threshold,
     )
+    print("\n>>> 归属间隔过滤(top1-top2)统计 <<<")
+    print(
+        f"阈值={args.threshold:.4f}, "
+        f"候选总数={assignment_stats['total_neurons_considered']}, "
+        f"保留={assignment_stats['total_neurons_kept']}, "
+        f"丢弃={assignment_stats['total_neurons_dropped']} "
+        f"({assignment_stats['drop_ratio'] * 100:.2f}%)"
+    )
+    if assignment_stats["concept_count"] < 2:
+        print("当前仅启用单概念，无法计算 top1-top2 间隔，阈值过滤未生效。")
+    elif assignment_stats["margin_quantiles"]:
+        q = assignment_stats["margin_quantiles"]
+        print(
+            "margin分位数: "
+            f"p01={q['p01']:.4f}, p05={q['p05']:.4f}, p10={q['p10']:.4f}, "
+            f"p25={q['p25']:.4f}, p50={q['p50']:.4f}, p75={q['p75']:.4f}, "
+            f"p90={q['p90']:.4f}, p95={q['p95']:.4f}, p99={q['p99']:.4f}"
+        )
+        suggested_thresholds = suggest_margin_thresholds(q)
+        print("建议阈值（可直接用于 --threshold）:")
+        for label, threshold in suggested_thresholds.items():
+            print(f"  {label}: {threshold:.4f}")
 
-    # 2) 类内 Top_k%：每个品牌只在自己的归属池里选 Top_k%
+    # 2) 类内固定 Top_k：每个品牌只在自己的归属池里选固定个数
     concept_neurons = {}
-    print("\n>>> 全量归属 + 类内 Top_k% 结果 <<<")
+    print("\n>>> 全量归属 + 类内固定 Top_k 结果 <<<")
     for cname in active_concept_configs.keys():
-        concept_neurons[cname] = select_top_percent_from_assigned_scores(
+        concept_neurons[cname] = select_top_count_from_assigned_scores(
             assigned_raw_scores.get(cname, {}),
-            top_percent=top_percent_by_concept.get(cname, 0.2),
+            top_count=neuron_count_by_concept.get(cname, 200),
         )
         assigned_cnt = assigned_counts.get(cname, 0)
         selected_cnt = count_neurons(concept_neurons[cname])
         print(
             f"  {cname}: 归属池神经元={assigned_cnt}, "
-            f"类内Top{top_percent_by_concept.get(cname, 0.2):.2f}%后={selected_cnt}"
+            f"固定选前{neuron_count_by_concept.get(cname, 200)}个后={selected_cnt}"
         )
 
     if "Hilton_Hotel" in concept_neurons and "Delta_Airline" in concept_neurons:
@@ -829,7 +925,7 @@ if __name__ == "__main__":
     print(f"\n>>> 准备在生成时进行神经元干预 <<<")
     for cname in concept_neurons.keys():
         print(
-            f"  {cname}: top_percent={top_percent_by_concept[cname]:.2f}%, "
+            f"  {cname}: neuron_count={neuron_count_by_concept[cname]}, "
             f"multiplier={multiplier_by_concept[cname]}x"
         )
     initialize_runtime(device_map="auto", offload_tag="main_generation")
@@ -852,7 +948,7 @@ if __name__ == "__main__":
     model_inputs = tokenizer([text], return_tensors="pt").to(input_device)
 
     # 1. Baseline (无干预)
-    generate_text("Baseline (无神经元干预)")
+    # generate_text("Baseline (无神经元干预)")
 
     # 2. 联合干预（含重叠神经元）
     intervention_hooks = []
@@ -865,7 +961,20 @@ if __name__ == "__main__":
 
     concept_names_desc = "+".join(concept_neurons.keys())
     mult_desc = ", ".join([f"{c}={multiplier_by_concept.get(c, 3.0)}x" for c in concept_neurons.keys()])
-    generate_text(f"Intervention-({concept_names_desc}: {mult_desc})")
+    intervention_count_by_concept = {
+        c: count_neurons(concept_neurons.get(c, {}))
+        for c in concept_neurons.keys()
+    }
+    total_intervention_count = sum(intervention_count_by_concept.values())
+    count_desc = ", ".join(
+        [
+            f"{c}={intervention_count_by_concept[c]}"
+            for c in concept_neurons.keys()
+        ]
+    )
+    generate_text(
+        f"Intervention-({concept_names_desc}: {mult_desc}; count: {count_desc}; total={total_intervention_count})"
+    )
 
     for hook in intervention_hooks:
         hook.remove()

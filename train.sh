@@ -8,11 +8,12 @@ export CUDA_VISIBLE_DEVICES=0,1
 export http_proxy=http://u-cEoRwn:EDvFuZTe@172.16.4.9:8888
 export https_proxy=http://u-cEoRwn:EDvFuZTe@172.16.4.9:8888
 
-python neuron_test.py --hilton-top-percent 0.5 \
-                     --hilton-multiplier 2.0 \
-                     --delta-top-percent 0.5 \
-                     --delta-multiplier 2.0 \
+python neuron_test.py --hilton-neuron-count 1500 \
+                     --hilton-multiplier 2.5 \
+                     --delta-neuron-count 1500 \
+                     --delta-multiplier 2.5 \
                      --parallel-gpus 0,1 --enable_Hilton --enable_Delta \
-                     --ig_steps 20 \
+                     --ig_steps 5 \
                      --delta-score-mode contrastive \
-                     --hilton-score-mode contrastive
+                     --hilton-score-mode contrastive \
+                     --threshold 0.005
