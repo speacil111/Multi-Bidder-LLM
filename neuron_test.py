@@ -1,711 +1,39 @@
-import os
 import argparse
-import multiprocessing as mp
+
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from prompts import HILTON_CLOZE_PROMPTS,DELTA_CLOZE_PROMPTS
+
+import src.runtime as runtime
+from src.attribution import run_parallel_attribution
+from src.config import CONCEPT_CONFIGS, IG_STEPS_DEFAULT, SEED
+from src.hooks import NeuronInterventionHook
+from src.selection import (
+    assign_neurons_by_max_standardized_score,
+    count_neurons,
+    count_neurons_per_layer,
+    merge_neuron_maps,
+    print_overlap_report,
+    select_top_count_from_assigned_scores,
+)
+
 
 print("Using long prompt")
-print(HILTON_CLOZE_PROMPTS[0])
-# -----------------------------------------------------------------------------
-# 0. 设定
-# -----------------------------------------------------------------------------
+print(CONCEPT_CONFIGS["Hilton_Hotel"]["prompts"][0])
 print("开始运行寻找特定概念 Neuron 的实验")
-SEED = 42
-
 torch.manual_seed(SEED)
 
-MODEL_NAME = "./Qwen3"  # 请确保路径正确
-OFFLOAD_FOLDER = "./offload"
-os.makedirs(OFFLOAD_FOLDER, exist_ok=True)
 
-tokenizer = None
-model = None
-input_device = None
-target_layers = None
-
-# -----------------------------------------------------------------------------
-# 1. 定义梯度归因 Hook
-# -----------------------------------------------------------------------------
-# 使用积分梯度归因（Integrated Gradients, IG）：
-# 对 down_proj 输入（SwiGLU 中间激活）沿 0->真实激活做路径积分，
-# 通过黎曼近似计算每层 neuron 对目标 token logit 的贡献。
-
-class MLPIntegratedGradientsHook:
-    """在 down_proj 前按 alpha 缩放激活，并保存缩放后激活用于 IG 求导。"""
-    def __init__(self):
-        self.layer_activations = {}
-        self.handles = []
-        self.alpha = 1.0
-
-    def set_alpha(self, alpha):
-        self.alpha = alpha
-
-    def register(self, model, layers):
-        self.remove()
-        for layer_idx in layers:
-            mlp_module = model.model.layers[layer_idx].mlp
-
-            def make_hook(captured_layer_idx):
-                def hook_fn(module, inputs):
-                    # down_proj 的输入就是 Qwen MLP 中真实的中间激活：
-                    # silu(gate_proj(x)) * up_proj(x)
-                    scaled_activation = inputs[0] * self.alpha
-                    self.layer_activations[captured_layer_idx] = scaled_activation
-                    return (scaled_activation,)
-                return hook_fn
-
-            handle = mlp_module.down_proj.register_forward_pre_hook(make_hook(layer_idx))
-            self.handles.append(handle)
-
-    def remove(self):
-        for handle in self.handles:
-            handle.remove()
-        self.handles = []
-        self.layer_activations = {}
-
-# -----------------------------------------------------------------------------
-# 2. 定义探测目标和语料（梯度归因）
-# -----------------------------------------------------------------------------
-# 多样本归因 + 对比归因：
-# score = attr(正品牌) - mean(attr(负品牌集合))
-
-# 各概念使用同类竞品作为负例，归因后再通过 exclude_overlap_from_maps() 去除重叠
-CONCEPT_CONFIGS = {
-    "Hilton_Hotel": {
-        "positive_word": "Hilton",
-        "negative_words": [ "Marriott","Delta"],
-        "prompts": HILTON_CLOZE_PROMPTS,
-        "score_mode": "contrastive",
-    },
-    "Delta_Airline": {
-        "positive_word": "Delta",
-        "negative_words": ["United","Hilton"],
-        "prompts": DELTA_CLOZE_PROMPTS,
-        "score_mode": "contrastive",
-    },
-}
-
-PRINT_TOP_K = 10  # 仅用于打印每层前几个归因神经元
-ATTRIBUTION_LAYER_CHUNK_SIZE = 6  # 归因分块层数，降低显存峰值
-IG_STEPS_DEFAULT = 20  # 积分梯度黎曼近似步数
-
-
-def initialize_runtime(device_map="auto", offload_tag="main"):
-    global tokenizer, model, input_device, target_layers
-    if model is not None and tokenizer is not None and input_device is not None and target_layers is not None:
-        return
-
-    if not torch.cuda.is_available():
-        raise RuntimeError(
-            "CUDA 不可用，请检查 GPU 驱动版本或节点分配。"
-            "当前环境不支持 GPU 运算，拒绝回退到 CPU。"
-        )
-    runtime_device = "cuda"
-    torch.cuda.manual_seed_all(SEED)
-    torch.backends.cudnn.deterministic = True
-    print(f"Loading {MODEL_NAME} to {runtime_device}...")
-    runtime_offload_folder = os.path.join(OFFLOAD_FOLDER, offload_tag)
-    os.makedirs(runtime_offload_folder, exist_ok=True)
-
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_NAME,
-        device_map=device_map,
-        dtype=torch.bfloat16,
-        offload_folder=runtime_offload_folder,
-        trust_remote_code=True,
-    )
-    model.eval()
-
-    try:
-        input_device = model.model.embed_tokens.weight.device
-    except Exception:
-        input_device = next(model.parameters()).device
-
-    num_hidden_layers = getattr(model.config, "num_hidden_layers", len(model.model.layers))
-    target_layers = list(range(num_hidden_layers))
-
-# -----------------------------------------------------------------------------
-# 3. 梯度归因主逻辑
-# -----------------------------------------------------------------------------
-def get_neuron_count():
-    try:
-        return model.config.intermediate_size
-    except AttributeError:
-        return model.model.layers[target_layers[0]].mlp.gate_proj.weight.shape[0]
-
-
-def resolve_target_token_ids(target_word):
-    # 优先使用带空格形式（BPE 常见），并返回完整 token 序列（支持多 token 品牌）。
-    candidates = [f" {target_word}", target_word]
-    for text in candidates:
-        ids = tokenizer.encode(text, add_special_tokens=False)
-        if len(ids) > 0:
-            return ids, tokenizer.convert_ids_to_tokens(ids)
-    raise ValueError(f"无法为目标词编码 token: {target_word}")
-
-
-def chunk_layers(layers, chunk_size):
-    for i in range(0, len(layers), chunk_size):
-        yield layers[i:i + chunk_size]
-
-
-def compute_attribution_for_target(cloze_prompt, target_word, layers, ig_steps=IG_STEPS_DEFAULT):
-    if ig_steps <= 0:
-        raise ValueError(f"ig_steps 必须为正整数，当前: {ig_steps}")
-
-    neuron_count = get_neuron_count()
-    target_ids, _ = resolve_target_token_ids(target_word)
-    prompt_inputs = tokenizer(cloze_prompt, return_tensors="pt").to(input_device)
-    prompt_input_ids = prompt_inputs["input_ids"]
-
-    results = {}
-    for layer_chunk in chunk_layers(layers, ATTRIBUTION_LAYER_CHUNK_SIZE):
-        catcher = MLPIntegratedGradientsHook()
-        catcher.register(model, layer_chunk)
-        layer_attr_sums = {
-            layer_idx: torch.zeros(neuron_count, dtype=torch.float32)
-            for layer_idx in layer_chunk
-        }
-
-        # 使用 teacher forcing 逐 token 评分，最终对整词 token 分数取平均。
-        for step_idx, target_id in enumerate(target_ids):
-            if step_idx == 0:
-                step_input_ids = prompt_input_ids
-            else:
-                prefix_ids = torch.tensor(
-                    [target_ids[:step_idx]],
-                    dtype=prompt_input_ids.dtype,
-                    device=prompt_input_ids.device,
-                )
-                step_input_ids = torch.cat([prompt_input_ids, prefix_ids], dim=1)
-
-            step_attention_mask = torch.ones_like(step_input_ids, device=step_input_ids.device)
-            layer_grad_sums = {
-                layer_idx: torch.zeros(neuron_count, device=step_input_ids.device, dtype=torch.float32)
-                for layer_idx in layer_chunk
-            }
-            layer_final_activations = {}
-
-            # IG 黎曼近似: alpha = k/m, k=1..m
-            for k in range(1, ig_steps + 1):
-                alpha = k / ig_steps
-                catcher.set_alpha(alpha)
-                outputs = model(input_ids=step_input_ids, attention_mask=step_attention_mask)
-                target_logit = outputs.logits[0, -1, target_id]
-
-                # 只对当前 chunk 捕获的中间激活求梯度，避免给全模型参数反传导致显存暴涨
-                chunk_activations = [catcher.layer_activations[layer_idx] for layer_idx in layer_chunk]
-                chunk_grads = torch.autograd.grad(
-                    target_logit,
-                    chunk_activations,
-                    retain_graph=False,
-                    create_graph=False,
-                    allow_unused=False,
-                )
-
-                for layer_idx, grad_tensor, activation_tensor in zip(layer_chunk, chunk_grads, chunk_activations):
-                    layer_grad_sums[layer_idx] += grad_tensor[0, -1, :].detach().to(torch.float32)
-                    if k == ig_steps:
-                        # alpha=1 时即真实激活
-                        layer_final_activations[layer_idx] = activation_tensor[0, -1, :].detach().to(torch.float32)
-
-            for layer_idx in layer_chunk:
-                # IG: a * mean_k[ dF(alpha_k*a)/d(alpha_k*a) ]
-                attribution = (
-                    layer_final_activations[layer_idx]
-                    * (layer_grad_sums[layer_idx] / ig_steps)
-                ).cpu()
-                layer_attr_sums[layer_idx] += attribution
-
-        token_count = len(target_ids)
-        for layer_idx in layer_chunk:
-            results[layer_idx] = layer_attr_sums[layer_idx] / token_count
-
-        catcher.remove()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-    return results
-
-
-def aggregate_positive_attribution(prompts, positive_word, layers, ig_steps):
-    neuron_count = get_neuron_count()
-    _, pos_tokens = resolve_target_token_ids(positive_word)
-    print(
-        f"\n>>> 多样本正向归因: target={pos_tokens}, "
-        f"samples={len(prompts)}, 单层神经元={neuron_count} <<<"
-    )
-
-    pos_sum = {}
-
-    for sample_idx, cloze_prompt in enumerate(prompts, start=1):
-        # print(f"\n[Sample {sample_idx}/{len(prompts)}] {cloze_prompt}")
-        pos_attr = compute_attribution_for_target(
-            cloze_prompt,
-            positive_word,
-            layers,
-            ig_steps=ig_steps,
-        )
-        for layer_idx in layers:
-            if layer_idx not in pos_sum:
-                pos_sum[layer_idx] = pos_attr[layer_idx].clone()
-            else:
-                pos_sum[layer_idx] += pos_attr[layer_idx]
-
-    pos_count = len(prompts)
-    positive_scores = {}
-    for layer_idx in layers:
-        positive_scores[layer_idx] = pos_sum[layer_idx] / pos_count
-
-    return positive_scores
-
-
-def aggregate_contrastive_attribution(prompts, positive_word, negative_words, layers, ig_steps):
-    neuron_count = get_neuron_count()
-    _, pos_tokens = resolve_target_token_ids(positive_word)
-    neg_tokens = [resolve_target_token_ids(w)[1] for w in negative_words]
-    print(
-        f"\n>>> 多样本对比归因: target={pos_tokens}, negatives={neg_tokens}, "
-        f"samples={len(prompts)}, 单层神经元={neuron_count} <<<"
-    )
-
-    pos_sum = {}
-    neg_sum = {}
-
-    for sample_idx, cloze_prompt in enumerate(prompts, start=1):
-        # print(f"\n[Sample {sample_idx}/{len(prompts)}] {cloze_prompt}")
-        pos_attr = compute_attribution_for_target(
-            cloze_prompt,
-            positive_word,
-            layers,
-            ig_steps=ig_steps,
-        )
-        for layer_idx in layers:
-            if layer_idx not in pos_sum:
-                pos_sum[layer_idx] = pos_attr[layer_idx].clone()
-            else:
-                pos_sum[layer_idx] += pos_attr[layer_idx]
-
-        for negative_word in negative_words:
-            neg_attr = compute_attribution_for_target(
-                cloze_prompt,
-                negative_word,
-                layers,
-                ig_steps=ig_steps,
-            )
-            for layer_idx in layers:
-                if layer_idx not in neg_sum:
-                    neg_sum[layer_idx] = neg_attr[layer_idx].clone()
-                else:
-                    neg_sum[layer_idx] += neg_attr[layer_idx]
-
-    pos_count = len(prompts)
-    neg_count = len(prompts) * len(negative_words)
-
-    contrastive_scores = {}
-    for layer_idx in layers:
-        pos_mean = pos_sum[layer_idx] / pos_count
-        neg_mean = neg_sum[layer_idx] / neg_count
-        contrastive_scores[layer_idx] = pos_mean - neg_mean
-
-    return contrastive_scores
-
-
-def print_top_neurons_from_scores(scores_by_layer, top_k=10):
-    neuron_count = get_neuron_count()
-    print(f"\n>>> 神经元分数 Top-{top_k}（每层） <<<")
-    for layer_idx in sorted(scores_by_layer.keys()):
-        scores = scores_by_layer[layer_idx]
-        topk = torch.topk(scores, k=top_k)
-        indices = topk.indices.tolist()
-        values = topk.values.tolist()
-        pairs = list(zip(indices, values))
-        # print(
-        #     f"Layer {layer_idx:02d}: "
-        #     + ", ".join(
-        #         [f"Neuron {idx}/{neuron_count}(score={val:+.4f})" for idx, val in pairs[:3]]
-        #     )
-        #     + " ..."
-        # )
-
-class NeuronInterventionHook:
-    """用于在生成过程中放大特定神经元激活值的 Hook"""
-    def __init__(self, target_neurons, multiplier=5.0):
-        # target_neurons 格式: {layer_idx: [neuron_idx1, neuron_idx2]}
-        self.target_neurons = target_neurons
-        self.multiplier = multiplier
-        self.handles = []
-
-    def register(self, model):
-        for layer_idx, neuron_indices in self.target_neurons.items():
-            mlp_module = model.model.layers[layer_idx].mlp
-            
-            # 因为 Qwen 的架构，最方便干预中间层激活的地方是 down_proj 的前向传播
-            # Python闭包需要捕获当前的 neuron_indices
-            def make_pre_hook(indices):
-                def down_proj_pre_hook(module, inputs):
-                    # inputs[0] shape: [batch, seq_len, intermediate_size]
-                    hidden_states = inputs[0].clone() # 最好 clone 一下，避免 in-place 修改报错
-                    
-                    for n_idx in indices:
-                        # 强行放大特定神经元的激活值
-                        hidden_states[:, :, n_idx] = hidden_states[:, :, n_idx] * self.multiplier
-                    
-                    return (hidden_states,)
-                return down_proj_pre_hook
-            
-            handle = mlp_module.down_proj.register_forward_pre_hook(make_pre_hook(neuron_indices))
-            self.handles.append(handle)
-
-    def remove(self):
-        for handle in self.handles:
-            handle.remove()
-        self.handles = []
-
-def select_top_percent_neurons(scores_by_layer, top_percent=1.0):
-    if top_percent <= 0 or top_percent > 100:
-        raise ValueError(f"top_percent 必须在 (0, 100]，当前: {top_percent}")
-
-    all_neurons = []
-    for layer_idx, scores in scores_by_layer.items():
-        for neuron_idx, score in enumerate(scores.tolist()):
-            if score > 0:
-                all_neurons.append((layer_idx, neuron_idx, score))
-
-    total_neurons = len(all_neurons)
-    if total_neurons == 0:
-        return {}
-
-    top_n = max(1, int(total_neurons * (top_percent / 100.0)))
-    all_neurons.sort(key=lambda x: x[2], reverse=True)
-    selected_triplets = all_neurons[:top_n]
-
-    selected = {}
-    for layer_idx, neuron_idx, _ in selected_triplets:
-        if layer_idx not in selected:
-            selected[layer_idx] = []
-        selected[layer_idx].append(neuron_idx)
-    return selected
-
-
-def zscore_normalize_scores(scores_by_layer):
-    """对单个概念的全量神经元分数做 z-score 标准化（跨所有层）。"""
-    tensors = [scores_by_layer[layer_idx].to(torch.float32) for layer_idx in sorted(scores_by_layer.keys())]
-    flat = torch.cat(tensors, dim=0)
-    mean = flat.mean()
-    std = flat.std(unbiased=False)
-    denom = std if std > 1e-8 else torch.tensor(1.0, dtype=torch.float32, device=mean.device)
-    normalized = {
-        layer_idx: (scores_by_layer[layer_idx].to(torch.float32) - mean) / denom
-        for layer_idx in scores_by_layer.keys()
-    }
-    return normalized
-
-
-def summarize_margin_quantiles(margins_tensor):
-    if margins_tensor.numel() == 0:
-        return {}
-    quantile_points = {
-        "p01": 0.01,
-        "p05": 0.05,
-        "p10": 0.10,
-        "p25": 0.25,
-        "p50": 0.50,
-        "p75": 0.75,
-        "p90": 0.90,
-        "p95": 0.95,
-        "p99": 0.99,
-    }
-    return {
-        key: float(torch.quantile(margins_tensor, q).item())
-        for key, q in quantile_points.items()
-    }
-
-
-def suggest_margin_thresholds(margin_quantiles):
-    if not margin_quantiles:
-        return {}
-    return {
-        "保守(仅去掉最不确定约10%)": margin_quantiles.get("p10", 0.0),
-        "平衡(去掉最不确定约25%)": margin_quantiles.get("p25", 0.0),
-        "激进(去掉最不确定约50%)": margin_quantiles.get("p50", 0.0),
-    }
-
-
-def assign_neurons_by_max_standardized_score(concept_scores_by_layer, min_margin=0.0):
-    """
-    先全量归属：对每个神经元比较各品牌标准化分数，归给分数最高的品牌。
-    若 top1 与 top2 标准化分数间隔小于 min_margin，则视为归属不确定并丢弃。
-    返回:
-      - assigned_raw_scores: {concept: {layer: {neuron_idx: raw_score}}}
-      - assigned_counts: {concept: count}
-      - assignment_stats: 归属间隔统计
-    """
-    concept_names = list(concept_scores_by_layer.keys())
-    if len(concept_names) == 0:
-        return {}, {}, {}
-
-    normalized_scores = {
-        concept_name: zscore_normalize_scores(scores_by_layer)
-        for concept_name, scores_by_layer in concept_scores_by_layer.items()
-    }
-
-    assigned_raw_scores = {concept_name: {} for concept_name in concept_names}
-    assigned_counts = {concept_name: 0 for concept_name in concept_names}
-    margin_tensors = []
-    total_neurons_considered = 0
-    total_neurons_kept = 0
-
-    ref_layers = sorted(next(iter(concept_scores_by_layer.values())).keys())
-    for layer_idx in ref_layers:
-        norm_stack = torch.stack(
-            [normalized_scores[concept_name][layer_idx] for concept_name in concept_names],
-            dim=0,  # [C, N]
-        )
-        total_neurons_considered += int(norm_stack.shape[1])
-
-        if len(concept_names) >= 2:
-            top2_vals, top2_indices = torch.topk(norm_stack, k=2, dim=0)
-            winners = top2_indices[0]
-            margins = (top2_vals[0] - top2_vals[1]).to(torch.float32)
-            keep_mask = margins >= min_margin
-            margin_tensors.append(margins.detach().cpu())
-        else:
-            winners = torch.argmax(norm_stack, dim=0)
-            keep_mask = torch.ones_like(winners, dtype=torch.bool)
-
-        total_neurons_kept += int(keep_mask.sum().item())
-
-        for concept_pos, concept_name in enumerate(concept_names):
-            win_indices = ((winners == concept_pos) & keep_mask).nonzero(as_tuple=True)[0]
-            if win_indices.numel() == 0:
-                continue
-            raw_tensor = concept_scores_by_layer[concept_name][layer_idx].to(torch.float32)
-            if layer_idx not in assigned_raw_scores[concept_name]:
-                assigned_raw_scores[concept_name][layer_idx] = {}
-            for neuron_idx in win_indices.tolist():
-                assigned_raw_scores[concept_name][layer_idx][neuron_idx] = float(raw_tensor[neuron_idx].item())
-            assigned_counts[concept_name] += int(win_indices.numel())
-
-    all_margins = (
-        torch.cat(margin_tensors, dim=0)
-        if len(margin_tensors) > 0
-        else torch.tensor([], dtype=torch.float32)
-    )
-    assignment_stats = {
-        "min_margin": float(min_margin),
-        "concept_count": len(concept_names),
-        "total_neurons_considered": total_neurons_considered,
-        "total_neurons_kept": total_neurons_kept,
-        "total_neurons_dropped": total_neurons_considered - total_neurons_kept,
-        "drop_ratio": (
-            (total_neurons_considered - total_neurons_kept) / total_neurons_considered
-            if total_neurons_considered > 0
-            else 0.0
-        ),
-        "margin_quantiles": summarize_margin_quantiles(all_margins),
-    }
-    return assigned_raw_scores, assigned_counts, assignment_stats
-
-
-def select_top_count_from_assigned_scores(assigned_raw_scores, top_count=1):
-    """
-    在“已归属给该品牌”的神经元集合里固定选 Top_k 个（仅保留正分神经元）。
-    assigned_raw_scores: {layer_idx: {neuron_idx: raw_score}}
-    """
-    if top_count <= 0:
-        raise ValueError(f"top_count 必须为正整数，当前: {top_count}")
-
-    candidates = []
-    for layer_idx, neuron_score_map in assigned_raw_scores.items():
-        for neuron_idx, score in neuron_score_map.items():
-            if score > 0:
-                candidates.append((layer_idx, neuron_idx, score))
-
-    if len(candidates) == 0:
-        return {}
-
-    top_n = min(int(top_count), len(candidates))
-    candidates.sort(key=lambda x: x[2], reverse=True)
-    selected_triplets = candidates[:top_n]
-
-    selected = {}
-    for layer_idx, neuron_idx, _ in selected_triplets:
-        if layer_idx not in selected:
-            selected[layer_idx] = []
-        selected[layer_idx].append(neuron_idx)
-    return selected
-
-
-def merge_neuron_maps(neuron_maps):
-    merged = {}
-    for neuron_map in neuron_maps:
-        for layer_idx, neuron_indices in neuron_map.items():
-            if layer_idx not in merged:
-                merged[layer_idx] = set()
-            merged[layer_idx].update(neuron_indices)
-    return {layer_idx: sorted(list(indices)) for layer_idx, indices in merged.items()}
-
-
-def count_neurons(neuron_map):
-    return sum(len(v) for v in neuron_map.values())
-
-
-def compute_overlap_stats(neuron_map_a, neuron_map_b):
-    overlap_map = {}
-    for layer_idx in neuron_map_a.keys() & neuron_map_b.keys():
-        overlap = sorted(set(neuron_map_a[layer_idx]) & set(neuron_map_b[layer_idx]))
-        if overlap:
-            overlap_map[layer_idx] = overlap
-
-    overlap_count = count_neurons(overlap_map)
-    count_a = count_neurons(neuron_map_a)
-    count_b = count_neurons(neuron_map_b)
-    ratio_a = (overlap_count / count_a) if count_a > 0 else 0.0
-    ratio_b = (overlap_count / count_b) if count_b > 0 else 0.0
-    return overlap_map, overlap_count, ratio_a, ratio_b
-
-
-def exclude_overlap_from_maps(concept_neurons):
-    """从每个概念的神经元 map 中移除所有概念间共享的重叠神经元，返回新 map。"""
-    names = list(concept_neurons.keys())
-    if len(names) < 2:
-        return {k: dict(v) for k, v in concept_neurons.items()}
-
-    all_overlap = {}
-    for i in range(len(names)):
-        for j in range(i + 1, len(names)):
-            overlap_map, _, _, _ = compute_overlap_stats(
-                concept_neurons[names[i]], concept_neurons[names[j]]
-            )
-            for layer_idx, indices in overlap_map.items():
-                if layer_idx not in all_overlap:
-                    all_overlap[layer_idx] = set()
-                all_overlap[layer_idx].update(indices)
-
-    cleaned = {}
-    for concept_name, neuron_map in concept_neurons.items():
-        cleaned_map = {}
-        for layer_idx, indices in neuron_map.items():
-            overlap_set = all_overlap.get(layer_idx, set())
-            filtered = [idx for idx in indices if idx not in overlap_set]
-            if filtered:
-                cleaned_map[layer_idx] = filtered
-        cleaned[concept_name] = cleaned_map
-    return cleaned
-
-
-def print_overlap_report(name_a, neuron_map_a, name_b, neuron_map_b):
-    overlap_map, overlap_count, ratio_a, ratio_b = compute_overlap_stats(
-        neuron_map_a, neuron_map_b
-    )
-    print(f"\n>>> 神经元重叠分析: {name_a} vs {name_b} <<<")
-    print(
-        f"重叠层数={len(overlap_map)}, 重叠总数={overlap_count}, "
-        f"{name_a}重叠占比={ratio_a * 100:.2f}%, {name_b}重叠占比={ratio_b * 100:.2f}%"
-    )
-    if overlap_map:
-        per_layer = ", ".join(
-            [f"L{layer_idx}:{len(indices)}" for layer_idx, indices in sorted(overlap_map.items())]
-        )
-        print(f"按层重叠数量: {per_layer}")
-    else:
-        print("按层重叠数量: 无重叠神经元")
-
-
-
-def run_concept_worker(concept_name, cfg, ig_steps, gpu_id, result_queue):
-    try:
-        if torch.cuda.is_available():
-            os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
-            torch.cuda.set_device(0)
-        initialize_runtime(device_map="auto", offload_tag=f"worker_{concept_name}_gpu{gpu_id}")
-        print(f"\n================ {concept_name} (GPU {gpu_id}) ================")
-        score_mode = cfg.get("score_mode", "contrastive")
-        if score_mode == "direct":
-            neuron_scores = aggregate_positive_attribution(
-                prompts=cfg["prompts"],
-                positive_word=cfg["positive_word"],
-                layers=target_layers,
-                ig_steps=ig_steps,
-            )
-        elif score_mode == "contrastive":
-            neuron_scores = aggregate_contrastive_attribution(
-                prompts=cfg["prompts"],
-                positive_word=cfg["positive_word"],
-                negative_words=cfg["negative_words"],
-                layers=target_layers,
-                ig_steps=ig_steps,
-            )
-        else:
-            raise ValueError(f"未知 score_mode: {score_mode}")
-
-        print(f"{concept_name} score_mode={score_mode}")
-        print_top_neurons_from_scores(neuron_scores, top_k=PRINT_TOP_K)
-        # 避免跨进程直接传递 Tensor 触发 shared-memory EOFError
-        neuron_scores_serialized = {
-            layer_idx: tensor.tolist()
-            for layer_idx, tensor in neuron_scores.items()
-        }
-        result_queue.put(
-            {
-                "concept_name": concept_name,
-                "neuron_scores": neuron_scores_serialized,
-                "error": None,
-            }
-        )
-    except Exception as exc:
-        result_queue.put({"concept_name": concept_name, "error": str(exc)})
-
-
-def run_parallel_attribution(concept_configs, ig_steps, gpu_ids):
-    ctx = mp.get_context("spawn")
-    result_queue = ctx.Queue()
-    processes = []
-    concept_items = list(concept_configs.items())
-
-    for idx, (concept_name, cfg) in enumerate(concept_items):
-        proc = ctx.Process(
-            target=run_concept_worker,
-            args=(concept_name, cfg, ig_steps, gpu_ids[idx], result_queue),
-        )
-        proc.start()
-        processes.append(proc)
-
-    concept_scores_by_layer = {}
-    for _ in concept_items:
-        item = result_queue.get()
-        if item.get("error"):
-            raise RuntimeError(f"{item['concept_name']} 归因失败: {item['error']}")
-        concept_scores_by_layer[item["concept_name"]] = {
-            layer_idx: torch.tensor(scores, dtype=torch.float32)
-            for layer_idx, scores in item["neuron_scores"].items()
-        }
-        print(f"{item['concept_name']} 归因分数计算完成。")
-
-    for proc in processes:
-        proc.join()
-        if proc.exitcode != 0:
-            raise RuntimeError(f"子进程异常退出，exit_code={proc.exitcode}")
-
-    return concept_scores_by_layer
-
-
-def generate_text(desc):
+def generate_text(desc, model_inputs):
     print(f"\n----------- {desc} ------------")
     with torch.no_grad():
-        generated_ids = model.generate(
+        generated_ids = runtime.model.generate(
             **model_inputs,
             max_new_tokens=512,
             do_sample=False,
-            # temperature=0.7,
-            # repetition_penalty=1.1,
         )
-    # 只截取新生成的部分
-    input_len = model_inputs['input_ids'].shape[1]
-    response = tokenizer.decode(generated_ids[0][input_len:], skip_special_tokens=True)
+    input_len = model_inputs["input_ids"].shape[1]
+    response = runtime.tokenizer.decode(generated_ids[0][input_len:], skip_special_tokens=True)
     print(f"Result: {response}")
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -719,7 +47,7 @@ def parse_args():
     parser.add_argument(
         "--enable_Delta",
         action="store_true",
-        help="是否计算 Hilton 概念神经元",
+        help="是否计算 Delta 概念神经元",
     )
     parser.add_argument(
         "--ig_steps",
@@ -727,7 +55,6 @@ def parse_args():
         default=IG_STEPS_DEFAULT,
         help="积分梯度黎曼近似步数 m（默认: 20）",
     )
-    # Hilton 品牌参数
     parser.add_argument(
         "--hilton-neuron-count",
         type=int,
@@ -740,7 +67,6 @@ def parse_args():
         default=3.0,
         help="Hilton 神经元激活放大倍数，需 > 0",
     )
-    # Delta 品牌参数
     parser.add_argument(
         "--delta-neuron-count",
         type=int,
@@ -781,7 +107,8 @@ def parse_args():
     )
     return parser.parse_args()
 
-if __name__ == "__main__":
+
+def main():
     args = parse_args()
     enable_hilton = args.enable_Hilton
     enable_delta = args.enable_Delta
@@ -814,7 +141,6 @@ if __name__ == "__main__":
     assigned_gpu_ids = gpu_ids[:len(active_concept_configs)]
     print(f"并行归因 GPU 分配: {assigned_gpu_ids}")
 
-    # 各品牌独立参数（新增概念时在此补充，未指定则用默认值）
     neuron_count_by_concept = {
         "Hilton_Hotel": args.hilton_neuron_count,
         "Delta_Airline": args.delta_neuron_count,
@@ -823,9 +149,9 @@ if __name__ == "__main__":
         "Hilton_Hotel": args.hilton_multiplier,
         "Delta_Airline": args.delta_multiplier,
     }
-    for c in CONCEPT_CONFIGS:
-        neuron_count_by_concept.setdefault(c, 200)
-        multiplier_by_concept.setdefault(c, 3.0)
+    for concept_name in CONCEPT_CONFIGS:
+        neuron_count_by_concept.setdefault(concept_name, 200)
+        multiplier_by_concept.setdefault(concept_name, 3.0)
 
     print("\n>>> 当前运行参数 <<<")
     print(f"enable_hilton={enable_hilton}")
@@ -852,35 +178,19 @@ if __name__ == "__main__":
         gpu_ids=assigned_gpu_ids,
     )
 
-    # 1) 全量归属：按标准化分数把每个神经元划给分数最高的品牌
     assigned_raw_scores, assigned_counts, assignment_stats = assign_neurons_by_max_standardized_score(
         concept_scores_by_layer,
         min_margin=args.threshold,
     )
-    print("\n>>> 归属间隔过滤(top1-top2)统计 <<<")
-    print(
-        f"阈值={args.threshold:.4f}, "
-        f"候选总数={assignment_stats['total_neurons_considered']}, "
-        f"保留={assignment_stats['total_neurons_kept']}, "
-        f"丢弃={assignment_stats['total_neurons_dropped']} "
-        f"({assignment_stats['drop_ratio'] * 100:.2f}%)"
-    )
-    if assignment_stats["concept_count"] < 2:
-        print("当前仅启用单概念，无法计算 top1-top2 间隔，阈值过滤未生效。")
-    elif assignment_stats["margin_quantiles"]:
-        q = assignment_stats["margin_quantiles"]
-        print(
-            "margin分位数: "
-            f"p01={q['p01']:.4f}, p05={q['p05']:.4f}, p10={q['p10']:.4f}, "
-            f"p25={q['p25']:.4f}, p50={q['p50']:.4f}, p75={q['p75']:.4f}, "
-            f"p90={q['p90']:.4f}, p95={q['p95']:.4f}, p99={q['p99']:.4f}"
-        )
-        suggested_thresholds = suggest_margin_thresholds(q)
-        print("建议阈值（可直接用于 --threshold）:")
-        for label, threshold in suggested_thresholds.items():
-            print(f"  {label}: {threshold:.4f}")
+    # print("\n>>> 归属间隔过滤(top1-top2)统计 <<<")
+    # print(
+    #     f"阈值={args.threshold:.4f}, "
+    #     f"候选总数={assignment_stats['total_neurons_considered']}, "
+    #     f"保留={assignment_stats['total_neurons_kept']}, "
+    #     f"丢弃={assignment_stats['total_neurons_dropped']} "
+    #     f"({assignment_stats['drop_ratio'] * 100:.2f}%)"
+    # )
 
-    # 2) 类内固定 Top_k：每个品牌只在自己的归属池里选固定个数
     concept_neurons = {}
     print("\n>>> 全量归属 + 类内固定 Top_k 结果 <<<")
     for cname in active_concept_configs.keys():
@@ -890,37 +200,34 @@ if __name__ == "__main__":
         )
         assigned_cnt = assigned_counts.get(cname, 0)
         selected_cnt = count_neurons(concept_neurons[cname])
+        per_layer_counts = count_neurons_per_layer(concept_neurons[cname])
+        per_layer_desc = (
+            ", ".join([f"L{layer_idx}:{cnt}" for layer_idx, cnt in per_layer_counts.items()])
+            if per_layer_counts
+            else "无"
+        )
         print(
             f"  {cname}: 归属池神经元={assigned_cnt}, "
             f"固定选前{neuron_count_by_concept.get(cname, 200)}个后={selected_cnt}"
         )
+        print(f"    按层分布: {per_layer_desc}")
 
-    if "Hilton_Hotel" in concept_neurons and "Delta_Airline" in concept_neurons:
-        print_overlap_report(
-            "Hilton_Hotel",
-            concept_neurons["Hilton_Hotel"],
-            "Delta_Airline",
-            concept_neurons["Delta_Airline"],
-        )
-    else:
-        print("未找到 Hilton_Hotel 或 Delta_Airline 的神经元结果，跳过重叠分析。")
+    # if "Hilton_Hotel" in concept_neurons and "Delta_Airline" in concept_neurons:
+    #     print_overlap_report(
+    #         "Hilton_Hotel",
+    #         concept_neurons["Hilton_Hotel"],
+    #         "Delta_Airline",
+    #         concept_neurons["Delta_Airline"],
+    #     )
+    # else:
+    #     print("未找到 Hilton_Hotel 或 Delta_Airline 的神经元结果，跳过重叠分析。")
 
-    COMBINED_NEURONS = merge_neuron_maps(list(concept_neurons.values()))
+    combined_neurons = merge_neuron_maps(list(concept_neurons.values()))
     print("\n多概念对比归因分析完成。")
     print(
-        f"联合神经元: 层数={len(COMBINED_NEURONS)}, "
-        f"总数={count_neurons(COMBINED_NEURONS)}"
+        f"联合神经元: 层数={len(combined_neurons)}, "
+        f"总数={count_neurons(combined_neurons)}"
     )
-
-    # 排除重叠神经元
-    concept_neurons_no_overlap = exclude_overlap_from_maps(concept_neurons)
-    overlap_removed_count = count_neurons(merge_neuron_maps(list(concept_neurons.values()))) - \
-                            count_neurons(merge_neuron_maps(list(concept_neurons_no_overlap.values())))
-    print(f"\n>>> 排除重叠后各概念神经元 <<<")
-    for cname, nmap in concept_neurons_no_overlap.items():
-        orig_cnt = count_neurons(concept_neurons[cname])
-        new_cnt = count_neurons(nmap)
-        print(f"  {cname}: {orig_cnt} -> {new_cnt} (移除 {orig_cnt - new_cnt} 个重叠)")
 
     print(f"\n>>> 准备在生成时进行神经元干预 <<<")
     for cname in concept_neurons.keys():
@@ -928,110 +235,54 @@ if __name__ == "__main__":
             f"  {cname}: neuron_count={neuron_count_by_concept[cname]}, "
             f"multiplier={multiplier_by_concept[cname]}x"
         )
-    initialize_runtime(device_map="auto", offload_tag="main_generation")
+
+    runtime.initialize_runtime(device_map="auto", offload_tag="main_generation")
     prompt = (
         "You are an expert at writing advertising copy. "
         "Write an artistic advertisement about a vacation in Hawaii. "
         "Mention the flight and accommodation details naturally."
     )
     print(f"prompt: {prompt}")
-    messages = [
-        {"role": "user", "content": prompt}
-    ]
-
-    text = tokenizer.apply_chat_template(
+    messages = [{"role": "user", "content": prompt}]
+    text = runtime.tokenizer.apply_chat_template(
         messages,
         tokenize=False,
         add_generation_prompt=True,
-        enable_thinking=False
+        enable_thinking=False,
     )
-    model_inputs = tokenizer([text], return_tensors="pt").to(input_device)
+    model_inputs = runtime.tokenizer([text], return_tensors="pt").to(runtime.input_device)
 
-    # 1. Baseline (无干预)
-    # generate_text("Baseline (无神经元干预)")
-
-    # 2. 联合干预（含重叠神经元）
     intervention_hooks = []
     for concept_name, neurons in concept_neurons.items():
         if neurons:
             mult = multiplier_by_concept.get(concept_name, 3.0)
             hook = NeuronInterventionHook(neurons, multiplier=mult)
-            hook.register(model)
+            hook.register(runtime.model)
             intervention_hooks.append(hook)
 
     concept_names_desc = "+".join(concept_neurons.keys())
-    mult_desc = ", ".join([f"{c}={multiplier_by_concept.get(c, 3.0)}x" for c in concept_neurons.keys()])
+    mult_desc = ", ".join(
+        [f"{concept_name}={multiplier_by_concept.get(concept_name, 3.0)}x" for concept_name in concept_neurons.keys()]
+    )
     intervention_count_by_concept = {
-        c: count_neurons(concept_neurons.get(c, {}))
-        for c in concept_neurons.keys()
+        concept_name: count_neurons(concept_neurons.get(concept_name, {}))
+        for concept_name in concept_neurons.keys()
     }
     total_intervention_count = sum(intervention_count_by_concept.values())
     count_desc = ", ".join(
         [
-            f"{c}={intervention_count_by_concept[c]}"
-            for c in concept_neurons.keys()
+            f"{concept_name}={intervention_count_by_concept[concept_name]}"
+            for concept_name in concept_neurons.keys()
         ]
     )
     generate_text(
-        f"Intervention-({concept_names_desc}: {mult_desc}; count: {count_desc}; total={total_intervention_count})"
+        f"Intervention-({concept_names_desc}: {mult_desc}; count: {count_desc}; total={total_intervention_count})",
+        model_inputs,
     )
 
     for hook in intervention_hooks:
         hook.remove()
 
-    # # 3. 联合干预（排除重叠神经元）
-    # intervention_hooks_no_overlap = []
-    # for concept_name, neurons in concept_neurons_no_overlap.items():
-    #     if neurons:
-    #         mult = multiplier_by_concept.get(concept_name, 3.0)
-    #         hook = NeuronInterventionHook(neurons, multiplier=mult)
-    #         hook.register(model)
-    #         intervention_hooks_no_overlap.append(hook)
 
-    # generate_text(f"Intervention-排除重叠 (联合放大 {concept_names_desc}: {mult_desc})")
-
-    # for hook in intervention_hooks_no_overlap:
-    #     hook.remove()
-
-    # 4. 联合干预（重叠神经元只注入一次）
-    #    独有神经元各自放大；重叠神经元用各概念 multiplier 的均值，仅挂一个 hook。
-    # concept_names_list = list(concept_neurons.keys())
-    # if len(concept_names_list) >= 2:
-    #     overlap_map, _, _, _ = compute_overlap_stats(
-    #         concept_neurons[concept_names_list[0]],
-    #         concept_neurons[concept_names_list[1]],
-    #     )
-    #     avg_mult = sum(multiplier_by_concept.get(c, 3.0) for c in concept_names_list) / len(concept_names_list)
-
-    #     hooks_dedup = []
-    #     for concept_name, neurons in concept_neurons_no_overlap.items():
-    #         if neurons:
-    #             mult = multiplier_by_concept.get(concept_name, 3.0)
-    #             hook = NeuronInterventionHook(neurons, multiplier=mult)
-    #             hook.register(model)
-    #             hooks_dedup.append(hook)
-    #     if overlap_map:
-    #         hook_overlap = NeuronInterventionHook(overlap_map, multiplier=avg_mult)
-    #         hook_overlap.register(model)
-    #         hooks_dedup.append(hook_overlap)
-
-    #     overlap_cnt = count_neurons(overlap_map) if overlap_map else 0
-    #     generate_text(
-    #         f"Intervention-重叠只注入一次 "
-    #         f"(独有各自放大, 重叠{overlap_cnt}个神经元×{avg_mult:.1f}x)"
-    #     )
-
-        # for hook in hooks_dedup:
-        #     hook.remove()
-
-        # # 5. 仅干预重叠神经元
-        # if overlap_map:
-        #     hook_overlap_only = NeuronInterventionHook(overlap_map, multiplier=avg_mult)
-        #     hook_overlap_only.register(model)
-        #     generate_text(
-        #         f"Intervention-仅重叠神经元 "
-        #         f"(重叠{overlap_cnt}个神经元×{avg_mult:.1f}x)"
-        #     )
-        #     hook_overlap_only.remove()
-        # else:
-        #     print("Intervention-仅重叠神经元: 无重叠神经元，跳过。")
+if __name__ == "__main__":
+    main()

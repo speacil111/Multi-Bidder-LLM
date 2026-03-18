@@ -1,3 +1,9 @@
+
+
+SEED = 42
+MODEL_NAME = "./Qwen3"
+OFFLOAD_FOLDER = "./offload"
+
 HILTON_CLOZE_PROMPTS = [
     "For a comfortable upscale hotel stay, I would choose",
     "When travelers want a dependable premium hotel brand, I usually recommend",
@@ -44,3 +50,26 @@ DELTA_CLOZE_PROMPTS = [
     "If the description calls for a major US airline with strong domestic presence, hub strength, loyalty advantages, and a polished mainstream reputation, I would go with",
     "When naming a flight brand that should sound broadly familiar, professionally run, connection-friendly, and suitable for travelers who care about reliability and network depth, the most fitting airline is",
 ]
+
+NEG_BRANDS_DELTA=['United', 'American', 'Southwest', 'Spirit']
+NEG_BRANDS_HILTON=['Marriott', 'Conrad', 'Omni', 'Peninsula']
+
+CONCEPT_CONFIGS = {
+    "Hilton_Hotel": {
+        "positive_word": "Hilton",
+        "negative_words": ["Marriott", "Conrad", "Omni", "Peninsula"],
+        "prompts": HILTON_CLOZE_PROMPTS,
+        "score_mode": "contrastive",
+    },
+    "Delta_Airline": {
+        "positive_word": "Delta",
+        "negative_words": ["United", "American", "Southwest", "Spirit"],
+        "prompts": DELTA_CLOZE_PROMPTS,
+        "score_mode": "contrastive",
+    },
+}
+
+PRINT_TOP_K = 10
+ATTRIBUTION_LAYER_CHUNK_SIZE = 8
+IG_STEPS_DEFAULT = 20
+

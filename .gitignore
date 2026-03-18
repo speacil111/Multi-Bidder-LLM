@@ -3,3 +3,5 @@
 Qwen3/
 __pycache__/
 cache/
+*.txt
+*.log
