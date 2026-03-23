@@ -35,6 +35,14 @@ run_dir="hilton_sweep_output"
 mkdir -p "${run_dir}/logs"
 rm -f "${run_dir}/logs/"*.log
 
+# Freeze code snapshot for the whole sweep so later edits
+# to neuron_test.py/src do not affect in-flight runs.
+snapshot_dir="${run_dir}/code_snapshot"
+mkdir -p "${snapshot_dir}"
+cp "${SCRIPT_PATH}" "${snapshot_dir}/$(basename "${SCRIPT_PATH}")"
+cp -r "src" "${snapshot_dir}/src"
+SCRIPT_PATH="${snapshot_dir}/$(basename "${SCRIPT_PATH}")"
+
 report_txt="${run_dir}/hilton_sweep_report.txt"
 summary_tsv="${run_dir}/hilton_sweep_summary.tsv"
 
@@ -42,6 +50,7 @@ cat > "${report_txt}" <<EOF
 Fixed Delta params:
   delta_neuron_count=${DELTA_NEURON_COUNT}
   delta_multiplier=${DELTA_MULTIPLIER}
+  code_snapshot=${snapshot_dir}
 EOF
 
 printf "run_id\thilton_neuron_count\thilton_multiplier\thit_delta\thit_hilton\thit_four_seasons\thit_hawaiian\traw_log\n" > "${summary_tsv}"
@@ -67,6 +76,7 @@ for hilton_count in "${HILTON_NEURON_COUNTS[@]}"; do
       --delta-score-mode contrastive
       --hilton-score-mode contrastive
       --threshold "${THRESHOLD}"
+      --intervention_layer -1
     )
 
     # Save full stdout/stderr for each run

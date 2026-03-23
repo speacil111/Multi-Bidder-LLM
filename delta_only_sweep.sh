@@ -5,7 +5,7 @@ set -euo pipefail
 # =======================
 # Delta sweep parameters
 # =======================
-DELTA_NEURON_COUNTS=(750 1000 1250 1500 1750 2000 2250 2500)
+DELTA_NEURON_COUNTS=(250 500 750 1000 1250 1500 1750 2000 2250 2500)
 DELTA_MULTIPLIERS=(1.5 1.75 2.0 2.25 2.5 2.75 3.0 3.25 3.5 3.75 4.0)
 
 # =======================
@@ -26,9 +26,17 @@ export CUDA_VISIBLE_DEVICES=0,1
 export http_proxy=http://u-cEoRwn:EDvFuZTe@172.16.4.9:8888
 export https_proxy=http://u-cEoRwn:EDvFuZTe@172.16.4.9:8888
 
-run_dir="delta_only_sweep_output"
+run_dir="delta_only_last_token"
 mkdir -p "${run_dir}/logs"
 rm -f "${run_dir}/logs/"*.log
+
+# Freeze code snapshot for the whole sweep so later edits
+# to neuron_test.py/src do not affect in-flight runs.
+snapshot_dir="${run_dir}/code_snapshot"
+mkdir -p "${snapshot_dir}"
+cp "${SCRIPT_PATH}" "${snapshot_dir}/$(basename "${SCRIPT_PATH}")"
+cp -r "src" "${snapshot_dir}/src"
+SCRIPT_PATH="${snapshot_dir}/$(basename "${SCRIPT_PATH}")"
 
 report_txt="${run_dir}/2delta_only_sweep_report.txt"
 summary_tsv="${run_dir}/2delta_only_sweep_summary.tsv"
@@ -39,6 +47,7 @@ Delta-only sweep (Hilton concept disabled):
   enable_Hilton=false
   ig_steps=${IG_STEPS}
   threshold=${THRESHOLD}
+  code_snapshot=${snapshot_dir}
 EOF
 
 printf "run_id\tdelta_neuron_count\tdelta_multiplier\thit_delta\thit_united\thit_american\thit_southwest\thit_spirit\thit_hilton\thit_hawaiian\traw_log\n" > "${summary_tsv}"

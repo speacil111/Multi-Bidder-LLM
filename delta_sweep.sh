@@ -5,15 +5,15 @@ set -euo pipefail
 # =======================
 # Fixed Hilton parameters
 # =======================
-HILTON_NEURON_COUNT=1500
-HILTON_MULTIPLIER=2.0
+HILTON_NEURON_COUNT=500
+HILTON_MULTIPLIER=3.0
 
 # =======================
 # Delta sweep parameters
 # =======================
 
-DELTA_NEURON_COUNTS=(250 500 750 1000 1250 1500 1750 2000 2250 2500)
-DELTA_MULTIPLIERS=(1.5 1.75 2.0 2.25 2.5 2.75 3.0 3.25 3.5 3.75 4.0)
+DELTA_NEURON_COUNTS=(250)
+DELTA_MULTIPLIERS=(2.5 2.75 3.0 3.25 3.5 3.75 4.0)
 
 # =======================
 # Shared runtime arguments
@@ -33,17 +33,28 @@ export CUDA_VISIBLE_DEVICES=0,1
 export http_proxy=http://u-cEoRwn:EDvFuZTe@172.16.4.9:8888
 export https_proxy=http://u-cEoRwn:EDvFuZTe@172.16.4.9:8888
 
-run_dir="delta_new_neg_output"
+run_dir="delta_fix_norm"
 mkdir -p "${run_dir}/logs"
 rm -f "${run_dir}/logs/"*.log
 
-report_txt="${run_dir}/delta_sweep_report.txt"
-summary_tsv="${run_dir}/delta_sweep_summary.tsv"
+# Freeze code snapshot for the whole sweep so later edits
+# to neuron_test.py/src do not affect in-flight runs.
+snapshot_dir="${run_dir}/code_snapshot"
+mkdir -p "${snapshot_dir}"
+cp "${SCRIPT_PATH}" "${snapshot_dir}/$(basename "${SCRIPT_PATH}")"
+cp -r "src" "${snapshot_dir}/src"
+SCRIPT_PATH="${snapshot_dir}/$(basename "${SCRIPT_PATH}")"
+
+report_txt="${run_dir}/3delta_sweep_report.txt"
+summary_tsv="${run_dir}/3delta_sweep_summary.tsv"
+
+
 
 cat > "${report_txt}" <<EOF
 Fixed Hilton params:
   hilton_neuron_count=${HILTON_NEURON_COUNT}
   hilton_multiplier=${HILTON_MULTIPLIER}
+  code_snapshot=${snapshot_dir}
 EOF
 
 printf "run_id\tdelta_neuron_count\tdelta_multiplier\thit_delta\thit_hilton\thit_four_seasons\thit_hawaiian\traw_log\n" > "${summary_tsv}"
@@ -69,6 +80,7 @@ for delta_count in "${DELTA_NEURON_COUNTS[@]}"; do
       --delta-score-mode contrastive
       --hilton-score-mode contrastive
       --threshold "${THRESHOLD}"
+      --intervention_layer -1
     )
 
     # Save full stdout/stderr for each run

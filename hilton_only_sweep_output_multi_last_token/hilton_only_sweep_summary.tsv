@@ -1,0 +1,15 @@
+run_id	hilton_neuron_count	hilton_multiplier	hit_hilton	hit_marriott	hit_delta	hit_united	hit_four_seasons	hit_hawaiian	raw_log
+1	1000	1.50	1	0	0	0	0	1	hilton_only_sweep_output_multi_last_token/logs/run_1_hc1000_hm1.5.log
+2	1000	1.75	0	0	0	0	1	1	hilton_only_sweep_output_multi_last_token/logs/run_2_hc1000_hm1.75.log
+3	1000	2.00	1	0	0	0	0	1	hilton_only_sweep_output_multi_last_token/logs/run_3_hc1000_hm2.0.log
+4	1000	2.25	1	0	0	0	0	1	hilton_only_sweep_output_multi_last_token/logs/run_4_hc1000_hm2.25.log
+5	1000	2.50	1	0	0	0	0	1	hilton_only_sweep_output_multi_last_token/logs/run_5_hc1000_hm2.5.log
+6	1000	2.75	1	0	0	0	0	1	hilton_only_sweep_output_multi_last_token/logs/run_6_hc1000_hm2.75.log
+7	1000	3.00	1	0	0	0	0	1	hilton_only_sweep_output_multi_last_token/logs/run_7_hc1000_hm3.0.log
+8	1000	3.25	1	0	0	0	0	1	hilton_only_sweep_output_multi_last_token/logs/run_8_hc1000_hm3.25.log
+9	1000	3.50	1	0	0	0	0	1	hilton_only_sweep_output_multi_last_token/logs/run_9_hc1000_hm3.5.log
+10	1000	3.75	1	0	0	0	0	1	hilton_only_sweep_output_multi_last_token/logs/run_10_hc1000_hm3.75.log
+11	1000	4.00	1	0	1	0	0	0	hilton_only_sweep_output_multi_last_token/logs/run_11_hc1000_hm4.0.log
+12	1250	1.50	1	0	0	0	0	1	hilton_only_sweep_output_multi_last_token/logs/run_12_hc1250_hm1.5.log
+13	1250	1.75	1	0	0	0	0	1	hilton_only_sweep_output_multi_last_token/logs/run_13_hc1250_hm1.75.log
+14	1250	2.00	1	0	0	0	0	1	hilton_only_sweep_output_multi_last_token/logs/run_14_hc1250_hm2.0.log

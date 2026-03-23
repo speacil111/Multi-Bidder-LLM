@@ -1,3 +1,6 @@
+import torch
+
+
 class MLPIntegratedGradientsHook:
     """在 down_proj 前按 alpha 缩放激活，并保存缩放后激活用于 IG 求导。"""
 
@@ -32,6 +35,10 @@ class MLPIntegratedGradientsHook:
         self.layer_activations = {}
 
 
+
+
+
+
 class NeuronInterventionHook:
     """用于在生成过程中放大特定神经元激活值的 Hook。"""
 
@@ -47,8 +54,22 @@ class NeuronInterventionHook:
             def make_pre_hook(indices):
                 def down_proj_pre_hook(module, inputs):
                     hidden_states = inputs[0].clone()
+
+                    # 仅干预最后一个 token，并约束该 token 向量 L2 norm 不变。
+                    last_token = hidden_states[:, -1, :]
+                    pre_norm = torch.linalg.vector_norm(last_token, ord=2, dim=-1, keepdim=True)
+
                     for n_idx in indices:
-                        hidden_states[:, :, n_idx] = hidden_states[:, :, n_idx] * self.multiplier
+                        last_token[:, n_idx] = last_token[:, n_idx] * self.multiplier
+
+                    post_norm = torch.linalg.vector_norm(last_token, ord=2, dim=-1, keepdim=True)
+                    scale = torch.where(
+                        post_norm > 0,
+                        pre_norm / post_norm.clamp_min(1e-12),
+                        torch.ones_like(post_norm),
+                    )
+                    last_token = last_token * scale
+                    hidden_states[:, -1, :] = last_token
                     return (hidden_states,)
 
                 return down_proj_pre_hook

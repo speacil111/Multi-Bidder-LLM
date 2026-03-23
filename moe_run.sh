@@ -9,14 +9,15 @@ export CUDA_VISIBLE_DEVICES=0,1
 export http_proxy=http://u-cEoRwn:EDvFuZTe@172.16.4.9:8888
 export https_proxy=http://u-cEoRwn:EDvFuZTe@172.16.4.9:8888
 
-python neuron_test.py --hilton-neuron-count 500 \
-                     --hilton-multiplier 3.0 \
-                     --delta-neuron-count 250 \
-                     --delta-multiplier 2.0 \
-                     --parallel-gpus 0,1 --enable_Hilton \
-                     --enable_Delta \
+python neuron_moe.py --hilton-neuron-count 1500 \
+                     --hilton-multiplier 2.5 \
+                     --delta-neuron-count 1500 \
+                     --delta-multiplier 2.5 \
+                     --parallel-gpus 0,1 --enable_Hilton --enable_Delta \
                      --ig_steps 5 \
                      --delta-score-mode contrastive \
                      --hilton-score-mode contrastive \
                      --threshold 0.000 \
-                     --intervention_layer -1
+                     --intervention_layer -1 \
+                     --hilton-fusion-weight 0.5 \
+                     --delta-fusion-weight 0.5

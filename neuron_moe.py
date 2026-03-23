@@ -16,7 +16,7 @@ from src.selection import (
     select_top_count_from_assigned_scores,
 )
 
-
+print("Using MOE--mixed of Experts Methods!!!!")
 print("Using long CLOZE")
 print(CONCEPT_CONFIGS["Hilton_Hotel"]["prompts"][0])
 print("开始运行寻找特定概念 Neuron 的实验")
@@ -39,6 +39,82 @@ def generate_text(desc, model_inputs, monitor_keywords=None):
             max_new_tokens=512,
             do_sample=False,
         )
+    input_len = model_inputs["input_ids"].shape[1]
+    response = runtime.tokenizer.decode(generated_ids[0][input_len:], skip_special_tokens=True)
+    print(f"Result: {response}")
+    if monitor_keywords:
+        report_keyword_presence(response, monitor_keywords)
+    return response
+
+
+def _get_last_token_logits(input_ids, attention_mask):
+    outputs = runtime.model(
+        input_ids=input_ids,
+        attention_mask=attention_mask,
+        use_cache=False,
+    )
+    return outputs.logits[:, -1, :]
+
+
+def _get_last_token_logits_with_single_hook(
+    input_ids,
+    attention_mask,
+    target_neurons,
+    hook_multiplier,
+):
+    hook = NeuronInterventionHook(target_neurons, multiplier=hook_multiplier)
+    hook.register(runtime.model)
+    try:
+        return _get_last_token_logits(input_ids, attention_mask)
+    finally:
+        hook.remove()
+
+
+def generate_text_with_logit_fusion(
+    desc,
+    model_inputs,
+    concept_neurons,
+    hook_multiplier_by_concept,
+    fusion_weight_by_concept,
+    monitor_keywords=None,
+    max_new_tokens=512,
+):
+    print(f"\n----------- {desc} ------------")
+    generated_ids = model_inputs["input_ids"]
+    attention_mask = model_inputs.get("attention_mask")
+    if attention_mask is None:
+        attention_mask = torch.ones_like(generated_ids)
+
+    active_concepts = [
+        concept_name
+        for concept_name, neurons in concept_neurons.items()
+        if neurons
+    ]
+    print(f"logit_fusion_active_concepts={active_concepts}")
+
+    eos_token_id = runtime.tokenizer.eos_token_id
+    with torch.no_grad():
+        for _ in range(max_new_tokens):
+            logits_orig = _get_last_token_logits(generated_ids, attention_mask)
+            logits_final = logits_orig.clone()
+
+            for concept_name in active_concepts:
+                concept_logits = _get_last_token_logits_with_single_hook(
+                    generated_ids,
+                    attention_mask,
+                    concept_neurons[concept_name],
+                    hook_multiplier_by_concept.get(concept_name, 3.0),
+                )
+                fusion_weight = fusion_weight_by_concept.get(concept_name, 1.0)
+                logits_final = logits_final + fusion_weight * (concept_logits - logits_orig)
+
+            next_token_id = torch.argmax(logits_final, dim=-1, keepdim=True)
+            generated_ids = torch.cat([generated_ids, next_token_id], dim=1)
+            attention_mask = torch.cat([attention_mask, torch.ones_like(next_token_id)], dim=1)
+
+            if eos_token_id is not None and torch.all(next_token_id.squeeze(-1) == eos_token_id):
+                break
+
     input_len = model_inputs["input_ids"].shape[1]
     response = runtime.tokenizer.decode(generated_ids[0][input_len:], skip_special_tokens=True)
     print(f"Result: {response}")
@@ -124,6 +200,18 @@ def parse_args():
         help="Delta 神经元激活放大倍数，需 > 0",
     )
     parser.add_argument(
+        "--hilton-fusion-weight",
+        type=float,
+        default=1.0,
+        help="Hilton logit 融合权重 alpha（对应公式中的 α）",
+    )
+    parser.add_argument(
+        "--delta-fusion-weight",
+        type=float,
+        default=1.0,
+        help="Delta logit 融合权重 beta（对应公式中的 β）",
+    )
+    parser.add_argument(
         "--parallel-gpus",
         type=str,
         default="0,1",
@@ -200,9 +288,14 @@ def main():
         "Hilton_Hotel": args.hilton_multiplier,
         "Delta_Airline": args.delta_multiplier,
     }
+    fusion_weight_by_concept = {
+        "Hilton_Hotel": args.hilton_fusion_weight,
+        "Delta_Airline": args.delta_fusion_weight,
+    }
     for concept_name in CONCEPT_CONFIGS:
         neuron_count_by_concept.setdefault(concept_name, 200)
         multiplier_by_concept.setdefault(concept_name, 3.0)
+        fusion_weight_by_concept.setdefault(concept_name, 1.0)
 
     print("\n>>> 当前运行参数 <<<")
     print(f"enable_hilton={enable_hilton}")
@@ -212,6 +305,8 @@ def main():
     print(f"hilton_multiplier={args.hilton_multiplier}")
     print(f"delta_neuron_count={args.delta_neuron_count}")
     print(f"delta_multiplier={args.delta_multiplier}")
+    print(f"hilton_fusion_weight={args.hilton_fusion_weight}")
+    print(f"delta_fusion_weight={args.delta_fusion_weight}")
     print(f"threshold={args.threshold}")
     print(f"intervention_layers={intervention_layers if intervention_layers is not None else 'ALL'}")
     print(f"parallel_gpus={gpu_ids}")
@@ -317,17 +412,12 @@ def main():
     )
     model_inputs = runtime.tokenizer([text], return_tensors="pt").to(runtime.input_device)
 
-    intervention_hooks = []
-    for concept_name, neurons in concept_neurons.items():
-        if neurons:
-            mult = multiplier_by_concept.get(concept_name, 3.0)
-            hook = NeuronInterventionHook(neurons, multiplier=mult)
-            hook.register(runtime.model)
-            intervention_hooks.append(hook)
-
     concept_names_desc = "+".join(concept_neurons.keys())
-    mult_desc = ", ".join(
+    hook_mult_desc = ", ".join(
         [f"{concept_name}={multiplier_by_concept.get(concept_name, 3.0)}x" for concept_name in concept_neurons.keys()]
+    )
+    fusion_weight_desc = ", ".join(
+        [f"{concept_name}={fusion_weight_by_concept.get(concept_name, 1.0)}" for concept_name in concept_neurons.keys()]
     )
     intervention_count_by_concept = {
         concept_name: count_neurons(concept_neurons.get(concept_name, {}))
@@ -340,14 +430,14 @@ def main():
             for concept_name in concept_neurons.keys()
         ]
     )
-    generate_text(
-        f"Intervention-({concept_names_desc}: {mult_desc}; count: {count_desc}; total={total_intervention_count})",
+    generate_text_with_logit_fusion(
+        f"LogitFusion-({concept_names_desc}; hook_mult: {hook_mult_desc}; fusion_weight: {fusion_weight_desc}; count: {count_desc}; total={total_intervention_count})",
         model_inputs,
-        # monitor_keywords=["Delta", "Hilton"],
+        concept_neurons=concept_neurons,
+        hook_multiplier_by_concept=multiplier_by_concept,
+        fusion_weight_by_concept=fusion_weight_by_concept,
+        monitor_keywords=["Delta", "Hilton"],
     )
-
-    for hook in intervention_hooks:
-        hook.remove()
 
 
 if __name__ == "__main__":
