@@ -3,3 +3,9 @@
 Qwen3/
 __pycache__/
 cache/
+*.txt
+*.log
+code_snapshot/
+attr_score_cache/
+*.png
+*.csv

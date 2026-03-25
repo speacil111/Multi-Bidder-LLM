@@ -1,15 +1,12 @@
 import argparse
-import hashlib
-import json
 import re
-from pathlib import Path
 
 import torch
 
 import src.runtime as runtime
 from src.attribution import run_parallel_attribution
 from src.config import CONCEPT_CONFIGS, IG_STEPS_DEFAULT, SEED
-from src.hooks import NeuronInterventionHook, UnifiedInterventionHook
+from src.hooks import NeuronInterventionHook
 from src.selection import (
     assign_neurons_by_max_standardized_score,
     count_neurons,
@@ -19,7 +16,7 @@ from src.selection import (
     select_top_count_from_assigned_scores,
 )
 
-
+print("Using MOE--mixed of Experts Methods!!!!")
 print("Using long CLOZE")
 print(CONCEPT_CONFIGS["Hilton_Hotel"]["prompts"][0])
 print("开始运行寻找特定概念 Neuron 的实验")
@@ -34,7 +31,7 @@ def report_keyword_presence(text, keywords):
         print(f"  {keyword}: {'命中' if matches else '未命中'} (count={len(matches)})")
 
 
-def generate_text(desc, model_inputs, monitor=False, monitor_keywords=None):
+def generate_text(desc, model_inputs, monitor_keywords=None):
     print(f"\n----------- {desc} ------------")
     with torch.no_grad():
         generated_ids = runtime.model.generate(
@@ -45,7 +42,83 @@ def generate_text(desc, model_inputs, monitor=False, monitor_keywords=None):
     input_len = model_inputs["input_ids"].shape[1]
     response = runtime.tokenizer.decode(generated_ids[0][input_len:], skip_special_tokens=True)
     print(f"Result: {response}")
-    if monitor_keywords and monitor:
+    if monitor_keywords:
+        report_keyword_presence(response, monitor_keywords)
+    return response
+
+
+def _get_last_token_logits(input_ids, attention_mask):
+    outputs = runtime.model(
+        input_ids=input_ids,
+        attention_mask=attention_mask,
+        use_cache=False,
+    )
+    return outputs.logits[:, -1, :]
+
+
+def _get_last_token_logits_with_single_hook(
+    input_ids,
+    attention_mask,
+    target_neurons,
+    hook_multiplier,
+):
+    hook = NeuronInterventionHook(target_neurons, multiplier=hook_multiplier)
+    hook.register(runtime.model)
+    try:
+        return _get_last_token_logits(input_ids, attention_mask)
+    finally:
+        hook.remove()
+
+
+def generate_text_with_logit_fusion(
+    desc,
+    model_inputs,
+    concept_neurons,
+    hook_multiplier_by_concept,
+    fusion_weight_by_concept,
+    monitor_keywords=None,
+    max_new_tokens=512,
+):
+    print(f"\n----------- {desc} ------------")
+    generated_ids = model_inputs["input_ids"]
+    attention_mask = model_inputs.get("attention_mask")
+    if attention_mask is None:
+        attention_mask = torch.ones_like(generated_ids)
+
+    active_concepts = [
+        concept_name
+        for concept_name, neurons in concept_neurons.items()
+        if neurons
+    ]
+    print(f"logit_fusion_active_concepts={active_concepts}")
+
+    eos_token_id = runtime.tokenizer.eos_token_id
+    with torch.no_grad():
+        for _ in range(max_new_tokens):
+            logits_orig = _get_last_token_logits(generated_ids, attention_mask)
+            logits_final = logits_orig.clone()
+
+            for concept_name in active_concepts:
+                concept_logits = _get_last_token_logits_with_single_hook(
+                    generated_ids,
+                    attention_mask,
+                    concept_neurons[concept_name],
+                    hook_multiplier_by_concept.get(concept_name, 3.0),
+                )
+                fusion_weight = fusion_weight_by_concept.get(concept_name, 1.0)
+                logits_final = logits_final + fusion_weight * (concept_logits - logits_orig)
+
+            next_token_id = torch.argmax(logits_final, dim=-1, keepdim=True)
+            generated_ids = torch.cat([generated_ids, next_token_id], dim=1)
+            attention_mask = torch.cat([attention_mask, torch.ones_like(next_token_id)], dim=1)
+
+            if eos_token_id is not None and torch.all(next_token_id.squeeze(-1) == eos_token_id):
+                break
+
+    input_len = model_inputs["input_ids"].shape[1]
+    response = runtime.tokenizer.decode(generated_ids[0][input_len:], skip_special_tokens=True)
+    print(f"Result: {response}")
+    if monitor_keywords:
         report_keyword_presence(response, monitor_keywords)
     return response
 
@@ -80,21 +153,6 @@ def filter_neurons_by_layers(neuron_map, layer_indices):
         for layer_idx in layer_indices
         if layer_idx in neuron_map
     }
-
-
-def _build_attribution_cache_path(active_concept_configs, ig_steps, cache_dir):
-    cache_key_source = {
-        "active_concept_configs": active_concept_configs,
-        "ig_steps": ig_steps,
-    }
-    cache_key = hashlib.sha256(
-        json.dumps(cache_key_source, sort_keys=True, ensure_ascii=False).encode("utf-8")
-    ).hexdigest()[:16]
-    concept_names = "-".join(active_concept_configs.keys())
-    safe_concept_names = re.sub(r"[^A-Za-z0-9_-]", "_", concept_names)
-    cache_dir_path = Path(cache_dir)
-    cache_dir_path.mkdir(parents=True, exist_ok=True)
-    return cache_dir_path / f"attribution_{safe_concept_names}_ig{ig_steps}_{cache_key}.pt"
 
 
 def parse_args():
@@ -142,6 +200,18 @@ def parse_args():
         help="Delta 神经元激活放大倍数，需 > 0",
     )
     parser.add_argument(
+        "--hilton-fusion-weight",
+        type=float,
+        default=1.0,
+        help="Hilton logit 融合权重 alpha（对应公式中的 α）",
+    )
+    parser.add_argument(
+        "--delta-fusion-weight",
+        type=float,
+        default=1.0,
+        help="Delta logit 融合权重 beta（对应公式中的 β）",
+    )
+    parser.add_argument(
         "--parallel-gpus",
         type=str,
         default="0,1",
@@ -172,27 +242,6 @@ def parse_args():
         type=str,
         default="-1",
         help="仅在指定层注入神经元，支持逗号分隔多层，例如 32,33,34；默认 -1 表示干预所有层（0-based）",
-    )
-    parser.add_argument(
-        "--monitor",
-        action="store_true",
-        help="是否监控关键词出现次数",
-    )
-    parser.add_argument(
-        "--attribution-cache-dir",
-        type=str,
-        default="cache/attribution_scores",
-        help="归因分数缓存目录；首次计算后会保存，后续同配置可直接加载",
-    )
-    parser.add_argument(
-        "--force-recompute-attribution",
-        action="store_true",
-        help="强制重算归因分数并覆盖缓存（默认: 优先读取已有缓存）",
-    )
-    parser.add_argument(
-        "--unified-hook",
-        action="store_true",
-        help="使用联合干预 Hook（所有品牌先放大再统一 norm 压缩）；不传则各品牌独立 Hook",
     )
     return parser.parse_args()
 
@@ -239,9 +288,14 @@ def main():
         "Hilton_Hotel": args.hilton_multiplier,
         "Delta_Airline": args.delta_multiplier,
     }
+    fusion_weight_by_concept = {
+        "Hilton_Hotel": args.hilton_fusion_weight,
+        "Delta_Airline": args.delta_fusion_weight,
+    }
     for concept_name in CONCEPT_CONFIGS:
         neuron_count_by_concept.setdefault(concept_name, 200)
         multiplier_by_concept.setdefault(concept_name, 3.0)
+        fusion_weight_by_concept.setdefault(concept_name, 1.0)
 
     print("\n>>> 当前运行参数 <<<")
     print(f"enable_hilton={enable_hilton}")
@@ -251,6 +305,8 @@ def main():
     print(f"hilton_multiplier={args.hilton_multiplier}")
     print(f"delta_neuron_count={args.delta_neuron_count}")
     print(f"delta_multiplier={args.delta_multiplier}")
+    print(f"hilton_fusion_weight={args.hilton_fusion_weight}")
+    print(f"delta_fusion_weight={args.delta_fusion_weight}")
     print(f"threshold={args.threshold}")
     print(f"intervention_layers={intervention_layers if intervention_layers is not None else 'ALL'}")
     print(f"parallel_gpus={gpu_ids}")
@@ -263,42 +319,11 @@ def main():
     }
     print(f"concept_gpu_map={concept_gpu_map}")
 
-    cache_path = _build_attribution_cache_path(
-        active_concept_configs=active_concept_configs,
+    concept_scores_by_layer = run_parallel_attribution(
+        active_concept_configs,
         ig_steps=args.ig_steps,
-        cache_dir=args.attribution_cache_dir,
+        gpu_ids=assigned_gpu_ids,
     )
-    print(f"attribution_cache_path={cache_path}")
-
-    concept_scores_by_layer = None
-    if cache_path.exists() and not args.force_recompute_attribution:
-        print("检测到归因缓存，直接加载...")
-        loaded_obj = torch.load(cache_path, map_location="cpu")
-        if isinstance(loaded_obj, dict) and "concept_scores_by_layer" in loaded_obj:
-            concept_scores_by_layer = loaded_obj["concept_scores_by_layer"]
-        else:
-            # 兼容早期仅保存 scores 字典的格式
-            concept_scores_by_layer = loaded_obj
-        print("归因缓存加载完成，跳过重算。")
-    else:
-        if args.force_recompute_attribution:
-            print("已启用强制重算归因，忽略已有缓存。")
-        concept_scores_by_layer = run_parallel_attribution(
-            active_concept_configs,
-            ig_steps=args.ig_steps,
-            gpu_ids=assigned_gpu_ids,
-        )
-        torch.save(
-            {
-                "concept_scores_by_layer": concept_scores_by_layer,
-                "meta": {
-                    "ig_steps": args.ig_steps,
-                    "active_concepts": list(active_concept_configs.keys()),
-                },
-            },
-            cache_path,
-        )
-        print("归因分数已保存到缓存。")
 
     assigned_raw_scores, assigned_counts, assignment_stats = assign_neurons_by_max_standardized_score(
         concept_scores_by_layer,
@@ -387,29 +412,12 @@ def main():
     )
     model_inputs = runtime.tokenizer([text], return_tensors="pt").to(runtime.input_device)
 
-    hooks_to_remove = []
-    if args.unified_hook:
-        concept_interventions = [
-            (neurons, multiplier_by_concept.get(concept_name, 3.0))
-            for concept_name, neurons in concept_neurons.items()
-            if neurons
-        ]
-        hook = UnifiedInterventionHook(concept_interventions)
-        hook.register(runtime.model)
-        hooks_to_remove.append(hook)
-        print("  [hook mode] unified (所有品牌统一 norm 压缩)")
-    else:
-        for concept_name, neurons in concept_neurons.items():
-            if neurons:
-                mult = multiplier_by_concept.get(concept_name, 3.0)
-                hook = NeuronInterventionHook(neurons, multiplier=mult)
-                hook.register(runtime.model)
-                hooks_to_remove.append(hook)
-        print("  [hook mode] independent (各品牌独立 norm 压缩)")
-
     concept_names_desc = "+".join(concept_neurons.keys())
-    mult_desc = ", ".join(
+    hook_mult_desc = ", ".join(
         [f"{concept_name}={multiplier_by_concept.get(concept_name, 3.0)}x" for concept_name in concept_neurons.keys()]
+    )
+    fusion_weight_desc = ", ".join(
+        [f"{concept_name}={fusion_weight_by_concept.get(concept_name, 1.0)}" for concept_name in concept_neurons.keys()]
     )
     intervention_count_by_concept = {
         concept_name: count_neurons(concept_neurons.get(concept_name, {}))
@@ -422,15 +430,14 @@ def main():
             for concept_name in concept_neurons.keys()
         ]
     )
-    generate_text(
-        f"Intervention-({concept_names_desc}: {mult_desc}; count: {count_desc}; total={total_intervention_count})",
+    generate_text_with_logit_fusion(
+        f"LogitFusion-({concept_names_desc}; hook_mult: {hook_mult_desc}; fusion_weight: {fusion_weight_desc}; count: {count_desc}; total={total_intervention_count})",
         model_inputs,
-        monitor=args.monitor,
+        concept_neurons=concept_neurons,
+        hook_multiplier_by_concept=multiplier_by_concept,
+        fusion_weight_by_concept=fusion_weight_by_concept,
         monitor_keywords=["Delta", "Hilton"],
     )
-
-    for hook in hooks_to_remove:
-        hook.remove()
 
 
 if __name__ == "__main__":
