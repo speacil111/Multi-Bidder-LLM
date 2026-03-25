@@ -52,7 +52,7 @@ DELTA_CLOZE_PROMPTS = [
 ]
 
 NEG_BRANDS_DELTA=['United', 'American', 'Southwest', 'Spirit']
-NEG_BRANDS_HILTON=['Marriott', 'Conrad', 'Omni', 'Peninsula']
+NEG_BRANDS_HILTON=['Marriott', 'Hyatt', 'Omni', 'Peninsula']
 
 CONCEPT_CONFIGS = {
     "Hilton_Hotel": {

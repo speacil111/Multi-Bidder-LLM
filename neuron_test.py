@@ -1,12 +1,15 @@
 import argparse
+import hashlib
+import json
 import re
+from pathlib import Path
 
 import torch
 
 import src.runtime as runtime
 from src.attribution import run_parallel_attribution
 from src.config import CONCEPT_CONFIGS, IG_STEPS_DEFAULT, SEED
-from src.hooks import NeuronInterventionHook
+from src.hooks import NeuronInterventionHook, UnifiedInterventionHook
 from src.selection import (
     assign_neurons_by_max_standardized_score,
     count_neurons,
@@ -31,7 +34,7 @@ def report_keyword_presence(text, keywords):
         print(f"  {keyword}: {'命中' if matches else '未命中'} (count={len(matches)})")
 
 
-def generate_text(desc, model_inputs, monitor_keywords=None):
+def generate_text(desc, model_inputs, monitor=False, monitor_keywords=None):
     print(f"\n----------- {desc} ------------")
     with torch.no_grad():
         generated_ids = runtime.model.generate(
@@ -42,7 +45,7 @@ def generate_text(desc, model_inputs, monitor_keywords=None):
     input_len = model_inputs["input_ids"].shape[1]
     response = runtime.tokenizer.decode(generated_ids[0][input_len:], skip_special_tokens=True)
     print(f"Result: {response}")
-    if monitor_keywords:
+    if monitor_keywords and monitor:
         report_keyword_presence(response, monitor_keywords)
     return response
 
@@ -77,6 +80,21 @@ def filter_neurons_by_layers(neuron_map, layer_indices):
         for layer_idx in layer_indices
         if layer_idx in neuron_map
     }
+
+
+def _build_attribution_cache_path(active_concept_configs, ig_steps, cache_dir):
+    cache_key_source = {
+        "active_concept_configs": active_concept_configs,
+        "ig_steps": ig_steps,
+    }
+    cache_key = hashlib.sha256(
+        json.dumps(cache_key_source, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    ).hexdigest()[:16]
+    concept_names = "-".join(active_concept_configs.keys())
+    safe_concept_names = re.sub(r"[^A-Za-z0-9_-]", "_", concept_names)
+    cache_dir_path = Path(cache_dir)
+    cache_dir_path.mkdir(parents=True, exist_ok=True)
+    return cache_dir_path / f"attribution_{safe_concept_names}_ig{ig_steps}_{cache_key}.pt"
 
 
 def parse_args():
@@ -155,6 +173,27 @@ def parse_args():
         default="-1",
         help="仅在指定层注入神经元，支持逗号分隔多层，例如 32,33,34；默认 -1 表示干预所有层（0-based）",
     )
+    parser.add_argument(
+        "--monitor",
+        action="store_true",
+        help="是否监控关键词出现次数",
+    )
+    parser.add_argument(
+        "--attribution-cache-dir",
+        type=str,
+        default="cache/attribution_scores",
+        help="归因分数缓存目录；首次计算后会保存，后续同配置可直接加载",
+    )
+    parser.add_argument(
+        "--force-recompute-attribution",
+        action="store_true",
+        help="强制重算归因分数并覆盖缓存（默认: 优先读取已有缓存）",
+    )
+    parser.add_argument(
+        "--unified-hook",
+        action="store_true",
+        help="使用联合干预 Hook（所有品牌先放大再统一 norm 压缩）；不传则各品牌独立 Hook",
+    )
     return parser.parse_args()
 
 
@@ -224,11 +263,42 @@ def main():
     }
     print(f"concept_gpu_map={concept_gpu_map}")
 
-    concept_scores_by_layer = run_parallel_attribution(
-        active_concept_configs,
+    cache_path = _build_attribution_cache_path(
+        active_concept_configs=active_concept_configs,
         ig_steps=args.ig_steps,
-        gpu_ids=assigned_gpu_ids,
+        cache_dir=args.attribution_cache_dir,
     )
+    print(f"attribution_cache_path={cache_path}")
+
+    concept_scores_by_layer = None
+    if cache_path.exists() and not args.force_recompute_attribution:
+        print("检测到归因缓存，直接加载...")
+        loaded_obj = torch.load(cache_path, map_location="cpu")
+        if isinstance(loaded_obj, dict) and "concept_scores_by_layer" in loaded_obj:
+            concept_scores_by_layer = loaded_obj["concept_scores_by_layer"]
+        else:
+            # 兼容早期仅保存 scores 字典的格式
+            concept_scores_by_layer = loaded_obj
+        print("归因缓存加载完成，跳过重算。")
+    else:
+        if args.force_recompute_attribution:
+            print("已启用强制重算归因，忽略已有缓存。")
+        concept_scores_by_layer = run_parallel_attribution(
+            active_concept_configs,
+            ig_steps=args.ig_steps,
+            gpu_ids=assigned_gpu_ids,
+        )
+        torch.save(
+            {
+                "concept_scores_by_layer": concept_scores_by_layer,
+                "meta": {
+                    "ig_steps": args.ig_steps,
+                    "active_concepts": list(active_concept_configs.keys()),
+                },
+            },
+            cache_path,
+        )
+        print("归因分数已保存到缓存。")
 
     assigned_raw_scores, assigned_counts, assignment_stats = assign_neurons_by_max_standardized_score(
         concept_scores_by_layer,
@@ -317,13 +387,25 @@ def main():
     )
     model_inputs = runtime.tokenizer([text], return_tensors="pt").to(runtime.input_device)
 
-    intervention_hooks = []
-    for concept_name, neurons in concept_neurons.items():
-        if neurons:
-            mult = multiplier_by_concept.get(concept_name, 3.0)
-            hook = NeuronInterventionHook(neurons, multiplier=mult)
-            hook.register(runtime.model)
-            intervention_hooks.append(hook)
+    hooks_to_remove = []
+    if args.unified_hook:
+        concept_interventions = [
+            (neurons, multiplier_by_concept.get(concept_name, 3.0))
+            for concept_name, neurons in concept_neurons.items()
+            if neurons
+        ]
+        hook = UnifiedInterventionHook(concept_interventions)
+        hook.register(runtime.model)
+        hooks_to_remove.append(hook)
+        print("  [hook mode] unified (所有品牌统一 norm 压缩)")
+    else:
+        for concept_name, neurons in concept_neurons.items():
+            if neurons:
+                mult = multiplier_by_concept.get(concept_name, 3.0)
+                hook = NeuronInterventionHook(neurons, multiplier=mult)
+                hook.register(runtime.model)
+                hooks_to_remove.append(hook)
+        print("  [hook mode] independent (各品牌独立 norm 压缩)")
 
     concept_names_desc = "+".join(concept_neurons.keys())
     mult_desc = ", ".join(
@@ -343,10 +425,11 @@ def main():
     generate_text(
         f"Intervention-({concept_names_desc}: {mult_desc}; count: {count_desc}; total={total_intervention_count})",
         model_inputs,
-        # monitor_keywords=["Delta", "Hilton"],
+        monitor=args.monitor,
+        monitor_keywords=["Delta", "Hilton"],
     )
 
-    for hook in intervention_hooks:
+    for hook in hooks_to_remove:
         hook.remove()
 
 

@@ -1,22 +1,18 @@
 #!/bin/bash
-#SBATCH -x paraai-n32-h-01-agent-[1,4,7-8,16-17,25,27-31] --gpus=2 
-module load compilers/cuda/12.1   compilers/gcc/11.3.0   cudnn/8.8.1.3_cuda12.x
-
-source activate SVD
-
 export CUDA_VISIBLE_DEVICES=0,1
+LOG_FILE="logs/run_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
-export http_proxy=http://u-cEoRwn:EDvFuZTe@172.16.4.9:8888
-export https_proxy=http://u-cEoRwn:EDvFuZTe@172.16.4.9:8888
-
-python neuron_test.py --hilton-neuron-count 500 \
-                     --hilton-multiplier 3.0 \
+python neuron_test.py --hilton-neuron-count 250 \
+                     --hilton-multiplier 3.5 \
                      --delta-neuron-count 250 \
-                     --delta-multiplier 2.0 \
+                     --delta-multiplier 2.5 \
                      --parallel-gpus 0,1 --enable_Hilton \
                      --enable_Delta \
-                     --ig_steps 5 \
+                     --ig_steps 20 \
+                     --force-recompute-attribution \
+                     --monitor \
                      --delta-score-mode contrastive \
                      --hilton-score-mode contrastive \
                      --threshold 0.000 \
-                     --intervention_layer -1
+                     --attribution-cache-dir "attr_score_cache" \
+                     --intervention_layer -1 2>&1 | tee "$LOG_FILE"
