@@ -10,6 +10,7 @@ import src.runtime as runtime
 from src.attribution import run_parallel_attribution
 from src.config import CONCEPT_CONFIGS, IG_STEPS_DEFAULT, SEED
 from src.hooks import NeuronInterventionHook, UnifiedInterventionHook
+from src.new_prompts import NEW_PROMPTS
 from src.selection import (
     assign_neurons_by_max_standardized_score,
     count_neurons,
@@ -34,13 +35,14 @@ def report_keyword_presence(text, keywords):
         print(f"  {keyword}: {'命中' if matches else '未命中'} (count={len(matches)})")
 
 
-def generate_text(desc, model_inputs, monitor=False, monitor_keywords=None):
+def generate_text(desc, model_inputs, max_new_tokens=512, monitor=False, monitor_keywords=None):
     print(f"\n----------- {desc} ------------")
     with torch.no_grad():
         generated_ids = runtime.model.generate(
             **model_inputs,
-            max_new_tokens=512,
+            max_new_tokens=max_new_tokens,
             do_sample=False,
+            repetition_penalty=1.2,
         )
     input_len = model_inputs["input_ids"].shape[1]
     response = runtime.tokenizer.decode(generated_ids[0][input_len:], skip_special_tokens=True)
@@ -179,13 +181,25 @@ def parse_args():
         help="是否监控关键词出现次数",
     )
     parser.add_argument(
+        "--max-new-tokens",
+        type=int,
+        default=512,
+        help="生成最大新 token 数（用于 baseline/intervention 对比时建议与其他脚本保持一致）",
+    )
+    parser.add_argument(
+        "--prompt-index",
+        type=int,
+        default=0,
+        help="使用 src.new_prompts.NEW_PROMPTS 中的第几个 prompt（0-based）",
+    )
+    parser.add_argument(
         "--attribution-cache-dir",
         type=str,
         default="cache/attribution_scores",
         help="归因分数缓存目录；首次计算后会保存，后续同配置可直接加载",
     )
     parser.add_argument(
-        "--force-recompute-attribution",
+        "--force_recmp",
         action="store_true",
         help="强制重算归因分数并覆盖缓存（默认: 优先读取已有缓存）",
     )
@@ -224,12 +238,18 @@ def main():
         raise ValueError("至少需要启用一个概念：--enable_Hilton 或 --enable_Delta")
 
     gpu_ids = [int(x.strip()) for x in args.parallel_gpus.split(",") if x.strip()]
-    if len(gpu_ids) < len(active_concept_configs):
-        raise ValueError(
-            f"parallel-gpus 数量不足，需要至少 {len(active_concept_configs)} 张卡，当前传入: {gpu_ids}"
+    if not gpu_ids:
+        raise ValueError("parallel-gpus 不能为空，至少需要提供 1 张 GPU，例如 --parallel-gpus 0")
+
+    sequential_attribution = len(gpu_ids) < len(active_concept_configs)
+    if sequential_attribution:
+        assigned_gpu_ids = [gpu_ids[0]] * len(active_concept_configs)
+        print(
+            "[提示] parallel-gpus 数量少于启用概念数，将自动退化为单卡顺序归因模式。"
         )
-    assigned_gpu_ids = gpu_ids[:len(active_concept_configs)]
-    print(f"并行归因 GPU 分配: {assigned_gpu_ids}")
+    else:
+        assigned_gpu_ids = gpu_ids[:len(active_concept_configs)]
+    print(f"归因 GPU 分配: {assigned_gpu_ids}")
 
     neuron_count_by_concept = {
         "Hilton_Hotel": args.hilton_neuron_count,
@@ -254,6 +274,7 @@ def main():
     print(f"threshold={args.threshold}")
     print(f"intervention_layers={intervention_layers if intervention_layers is not None else 'ALL'}")
     print(f"parallel_gpus={gpu_ids}")
+    print(f"prompt_index={args.prompt_index}")
     for cname, cfg in active_concept_configs.items():
         print(f"  {cname}: score_mode={cfg['score_mode']}, negative_words={cfg.get('negative_words', [])}")
     print(f"active_concepts={list(active_concept_configs.keys())}")
@@ -271,7 +292,7 @@ def main():
     print(f"attribution_cache_path={cache_path}")
 
     concept_scores_by_layer = None
-    if cache_path.exists() and not args.force_recompute_attribution:
+    if cache_path.exists() and not args.force_recmp:
         print("检测到归因缓存，直接加载...")
         loaded_obj = torch.load(cache_path, map_location="cpu")
         if isinstance(loaded_obj, dict) and "concept_scores_by_layer" in loaded_obj:
@@ -281,13 +302,26 @@ def main():
             concept_scores_by_layer = loaded_obj
         print("归因缓存加载完成，跳过重算。")
     else:
-        if args.force_recompute_attribution:
+        if args.force_recmp:
             print("已启用强制重算归因，忽略已有缓存。")
-        concept_scores_by_layer = run_parallel_attribution(
-            active_concept_configs,
-            ig_steps=args.ig_steps,
-            gpu_ids=assigned_gpu_ids,
-        )
+        if sequential_attribution:
+            primary_gpu = assigned_gpu_ids[0]
+            print(f"开始顺序归因（single GPU: {primary_gpu}）...")
+            concept_scores_by_layer = {}
+            for concept_name, cfg in active_concept_configs.items():
+                print(f"[顺序归因] 正在计算: {concept_name}")
+                single_result = run_parallel_attribution(
+                    {concept_name: cfg},
+                    ig_steps=args.ig_steps,
+                    gpu_ids=[primary_gpu],
+                )
+                concept_scores_by_layer.update(single_result)
+        else:
+            concept_scores_by_layer = run_parallel_attribution(
+                active_concept_configs,
+                ig_steps=args.ig_steps,
+                gpu_ids=assigned_gpu_ids,
+            )
         torch.save(
             {
                 "concept_scores_by_layer": concept_scores_by_layer,
@@ -370,13 +404,13 @@ def main():
             f"multiplier={multiplier_by_concept[cname]}x"
         )
 
+    if args.prompt_index < 0 or args.prompt_index >= len(NEW_PROMPTS):
+        raise ValueError(
+            f"prompt-index 越界: {args.prompt_index}，可用范围是 [0, {len(NEW_PROMPTS) - 1}]"
+        )
+
     runtime.initialize_runtime(device_map="auto", offload_tag="main_generation")
-    prompt = (
-        "You are an expert at writing advertising copy. "
-        "Write an artistic advertisement about a vacation in Hawaii. "
-        "Mention the flight and accommodation details naturally."
-    )
-    # prompt="I am going to Hawaii, do you have any recommendations?"
+    prompt = NEW_PROMPTS[args.prompt_index]
     print(f"prompt: {prompt}")
     messages = [{"role": "user", "content": prompt}]
     text = runtime.tokenizer.apply_chat_template(
@@ -386,6 +420,15 @@ def main():
         enable_thinking=False,
     )
     model_inputs = runtime.tokenizer([text], return_tensors="pt").to(runtime.input_device)
+
+    # 先输出无干预 baseline，避免与 intervention 结果混淆。
+    generate_text(
+        "Baseline-(No intervention)",
+        model_inputs,
+        max_new_tokens=args.max_new_tokens,
+        monitor=args.monitor,
+        monitor_keywords=["Delta", "Hilton"],
+    )
 
     hooks_to_remove = []
     if args.unified_hook:
@@ -425,6 +468,7 @@ def main():
     generate_text(
         f"Intervention-({concept_names_desc}: {mult_desc}; count: {count_desc}; total={total_intervention_count})",
         model_inputs,
+        max_new_tokens=args.max_new_tokens,
         monitor=args.monitor,
         monitor_keywords=["Delta", "Hilton"],
     )

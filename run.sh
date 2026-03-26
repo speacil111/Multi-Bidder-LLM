@@ -3,14 +3,13 @@ export CUDA_VISIBLE_DEVICES=0,1
 LOG_FILE="logs/run_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
 python neuron_test.py --hilton-neuron-count 250 \
-                     --hilton-multiplier 3.5 \
-                     --delta-neuron-count 250 \
+                     --hilton-multiplier 2.5 \
+                     --delta-neuron-count 500 \
                      --delta-multiplier 2.5 \
-                     --parallel-gpus 0,1 --enable_Hilton \
-                     --enable_Delta \
+                     --parallel-gpus 0,1 --enable_Delta --enable_Hilton \
                      --ig_steps 20 \
-                     --force-recompute-attribution \
                      --monitor \
+                     --max-new-tokens 1024 \
                      --delta-score-mode contrastive \
                      --hilton-score-mode contrastive \
                      --threshold 0.000 \

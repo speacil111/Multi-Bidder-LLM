@@ -40,6 +40,26 @@ def parse_args():
         default="500_neuron Score Matrix (Delta/Hilton)",
         help="Plot title.",
     )
+    parser.add_argument(
+        "--x-key",
+        default="delta_multiplier",
+        help="X-axis key in summary TSV (e.g., delta_multiplier or delta_neuron_count).",
+    )
+    parser.add_argument(
+        "--y-key",
+        default="hilton_multiplier",
+        help="Y-axis key in summary TSV (e.g., hilton_multiplier or hilton_neuron_count).",
+    )
+    parser.add_argument(
+        "--x-label",
+        default="Delta multiplier",
+        help="X-axis label.",
+    )
+    parser.add_argument(
+        "--y-label",
+        default="Hilton multiplier",
+        help="Y-axis label.",
+    )
     return parser.parse_args()
 
 
@@ -50,17 +70,32 @@ def _get_value(row, keys):
     raise KeyError(f"Missing keys {keys} in row: {list(row.keys())}")
 
 
-def load_summary(summary_tsv: Path):
-    run_to_mult = {}
+def _parse_number(text: str):
+    value = float(text)
+    if value.is_integer():
+        return int(value)
+    return value
+
+
+def _format_tick(value):
+    if isinstance(value, int):
+        return str(value)
+    if float(value).is_integer():
+        return str(int(value))
+    return f"{float(value):.2f}"
+
+
+def load_summary(summary_tsv: Path, x_key: str, y_key: str):
+    run_to_xy = {}
     with summary_tsv.open("r", encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
             run_id = int(_get_value(row, ["run_id", "Run_ID", "run", "Run"]))
-            run_to_mult[run_id] = (
-                float(_get_value(row, ["delta_multiplier", "Delta_Multiplier"])),
-                float(_get_value(row, ["hilton_multiplier", "Hilton_Multiplier"])),
+            run_to_xy[run_id] = (
+                _parse_number(_get_value(row, [x_key])),
+                _parse_number(_get_value(row, [y_key])),
             )
-    return run_to_mult
+    return run_to_xy
 
 
 def load_scores(score_csv: Path):
@@ -69,20 +104,20 @@ def load_scores(score_csv: Path):
         reader = csv.DictReader(f)
         for row in reader:
             run_id = int(_get_value(row, ["Run_ID", "Run", "run_id", "run"]))
-            delta_score = int(float(_get_value(row, ["Delta_Score", "delta_score"])))
-            hilton_score = int(float(_get_value(row, ["Hilton_Score", "hilton_score"])))
+            delta_score = float(_get_value(row, ["Delta_Score", "delta_score"]))
+            hilton_score = float(_get_value(row, ["Hilton_Score", "hilton_score"]))
             run_to_score[run_id] = (delta_score, hilton_score)
     return run_to_score
 
 
-def build_rows(run_to_mult, run_to_score):
+def build_rows(run_to_xy, run_to_score):
     rows = []
-    for run_id, (delta_mult, hilton_mult) in run_to_mult.items():
+    for run_id, (x_value, y_value) in run_to_xy.items():
         delta_score, hilton_score = run_to_score.get(run_id, (0, 0))
         rows.append(
             {
-                "delta_multiplier": delta_mult,
-                "hilton_multiplier": hilton_mult,
+                "x_value": x_value,
+                "y_value": y_value,
                 "delta_score": delta_score,
                 "hilton_score": hilton_score,
             }
@@ -96,18 +131,18 @@ def get_max_score(rows):
     return max(max(row["delta_score"], row["hilton_score"]) for row in rows) or 1
 
 
-def make_plot(rows, output_path: Path, title: str):
+def make_plot(rows, output_path: Path, title: str, x_label: str, y_label: str):
     if not rows:
         raise ValueError("No rows loaded for plotting.")
 
-    delta_levels = sorted({r["delta_multiplier"] for r in rows})
-    hilton_levels = sorted({r["hilton_multiplier"] for r in rows})
-    delta_index = {v: i for i, v in enumerate(delta_levels)}
-    hilton_index = {v: i for i, v in enumerate(hilton_levels)}
+    x_levels = sorted({r["x_value"] for r in rows})
+    y_levels = sorted({r["y_value"] for r in rows})
+    x_index = {v: i for i, v in enumerate(x_levels)}
+    y_index = {v: i for i, v in enumerate(y_levels)}
 
     cell_map = {}
     for row in rows:
-        key = (row["delta_multiplier"], row["hilton_multiplier"])
+        key = (row["x_value"], row["y_value"])
         cell_map[key] = (row["delta_score"], row["hilton_score"])
 
     max_score = get_max_score(rows)
@@ -118,11 +153,11 @@ def make_plot(rows, output_path: Path, title: str):
 
     fig, ax = plt.subplots(figsize=(12, 10))
 
-    for h in hilton_levels:
-        for d in delta_levels:
-            x = delta_index[d]
-            y = hilton_index[h]
-            delta_score, hilton_score = cell_map.get((d, h), (0, 0))
+    for y_val in y_levels:
+        for x_val in x_levels:
+            x = x_index[x_val]
+            y = y_index[y_val]
+            delta_score, hilton_score = cell_map.get((x_val, y_val), (0, 0))
 
             ax.add_patch(
                 Rectangle(
@@ -153,15 +188,15 @@ def make_plot(rows, output_path: Path, title: str):
                 )
             )
 
-    ax.set_xlim(0, len(delta_levels))
-    ax.set_ylim(0, len(hilton_levels))
+    ax.set_xlim(0, len(x_levels))
+    ax.set_ylim(0, len(y_levels))
     ax.set_aspect("equal", adjustable="box")
-    ax.set_xticks([i + 0.5 for i in range(len(delta_levels))])
-    ax.set_xticklabels([f"{v:.2f}" for v in delta_levels], rotation=45, ha="right")
-    ax.set_yticks([i + 0.5 for i in range(len(hilton_levels))])
-    ax.set_yticklabels([f"{v:.2f}" for v in hilton_levels])
-    ax.set_xlabel("Delta multiplier")
-    ax.set_ylabel("Hilton multiplier")
+    ax.set_xticks([i + 0.5 for i in range(len(x_levels))])
+    ax.set_xticklabels([_format_tick(v) for v in x_levels], rotation=45, ha="right")
+    ax.set_yticks([i + 0.5 for i in range(len(y_levels))])
+    ax.set_yticklabels([_format_tick(v) for v in y_levels])
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
     ax.set_title(title)
     ax.grid(False)
 
@@ -200,10 +235,16 @@ def main():
     if not score_csv.exists():
         raise FileNotFoundError(f"Score CSV not found: {score_csv}")
 
-    run_to_mult = load_summary(summary_tsv)
+    run_to_xy = load_summary(summary_tsv, x_key=args.x_key, y_key=args.y_key)
     run_to_score = load_scores(score_csv)
-    rows = build_rows(run_to_mult, run_to_score)
-    make_plot(rows, output_path=output_path, title=args.title)
+    rows = build_rows(run_to_xy, run_to_score)
+    make_plot(
+        rows,
+        output_path=output_path,
+        title=args.title,
+        x_label=args.x_label,
+        y_label=args.y_label,
+    )
     print(f"Saved plot to: {output_path}")
 
 
