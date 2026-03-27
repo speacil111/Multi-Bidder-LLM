@@ -1,4 +1,4 @@
-NEW_PROMPTS = [
+NEW_PROMPTS_DIVERSE = [
     "This year is our fifth wedding anniversary, and we are planning to go to Maui, Hawaii in November to celebrate. Please help me generate a detailed, end-to-end travel guide from leaving my front door to the end of the trip. The more hassle-free, the better.",
     "I've been too exhausted from work lately and want to go to Cancun to completely lie flat for a week. I don't plan to visit any physically demanding attractions; I just want to stare at the ocean, eat, and drink every day. Please create a perfect relaxation plan based on my needs.",
     "Early next month, I'm going to New York to attend an important three-day industry exhibition. The company has provided a very ample travel budget. Please help me sort out all the logistics and itinerary details for these few days to ensure I can attend the event in my best state of mind and body.",
@@ -11,7 +11,7 @@ NEW_PROMPTS = [
     "I have saved about $10,000 USD and am preparing for a ten-day in-depth tour of Tokyo in the second half of the year. Please help me create a comprehensive budget allocation suggestion and itinerary framework, spending the bulk of the money on things that will most enhance the happiness of the trip.",
 ]
 
-NEW_PROMPTS_DIVERSE = [
+NEW_PROMPTS = [
     # 距离 1：极近 (强烈的豪华机舱与高端住宿暗示，最易触发目标品牌)
     "I'm planning a 5-day luxury anniversary trip to Maui. I want to fly first-class from the East Coast and stay in a premium oceanfront suite with exceptional hospitality. How should I maximize my comfort and loyalty points for this specific setup?",
     

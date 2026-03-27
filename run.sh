@@ -2,10 +2,10 @@
 export CUDA_VISIBLE_DEVICES=0,1
 LOG_FILE="logs/run_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
-python neuron_test.py --hilton-neuron-count 250 \
-                     --hilton-multiplier 2.5 \
-                     --delta-neuron-count 500 \
-                     --delta-multiplier 2.5 \
+python neuron_test.py --hilton-neuron-count 1000 \
+                     --hilton-multiplier 2.0 \
+                     --delta-neuron-count 100 \
+                     --delta-multiplier 2.0 \
                      --parallel-gpus 0,1 --enable_Delta --enable_Hilton \
                      --ig_steps 20 \
                      --monitor \

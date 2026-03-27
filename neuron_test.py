@@ -10,7 +10,7 @@ import src.runtime as runtime
 from src.attribution import run_parallel_attribution
 from src.config import CONCEPT_CONFIGS, IG_STEPS_DEFAULT, SEED
 from src.hooks import NeuronInterventionHook, UnifiedInterventionHook
-from src.new_prompts import NEW_PROMPTS
+from src.new_prompts import NEW_PROMPTS_DIVERSE
 from src.selection import (
     assign_neurons_by_max_standardized_score,
     count_neurons,
@@ -404,13 +404,13 @@ def main():
             f"multiplier={multiplier_by_concept[cname]}x"
         )
 
-    if args.prompt_index < 0 or args.prompt_index >= len(NEW_PROMPTS):
+    if args.prompt_index < 0 or args.prompt_index >= len(NEW_PROMPTS_DIVERSE):
         raise ValueError(
-            f"prompt-index 越界: {args.prompt_index}，可用范围是 [0, {len(NEW_PROMPTS) - 1}]"
+            f"prompt-index 越界: {args.prompt_index}，可用范围是 [0, {len(NEW_PROMPTS_DIVERSE) - 1}]"
         )
 
     runtime.initialize_runtime(device_map="auto", offload_tag="main_generation")
-    prompt = NEW_PROMPTS[args.prompt_index]
+    prompt = NEW_PROMPTS_DIVERSE[args.prompt_index]
     print(f"prompt: {prompt}")
     messages = [{"role": "user", "content": prompt}]
     text = runtime.tokenizer.apply_chat_template(

@@ -4,8 +4,8 @@ set -euo pipefail
 # =======================
 # Fixed multiplier settings
 # =======================
-HILTON_MULTIPLIER=2.5
-DELTA_MULTIPLIER=2.5
+HILTON_MULTIPLIER=2.0
+DELTA_MULTIPLIER=2.0
 
 # =======================
 # Neuron-count sweep parameters 
@@ -22,11 +22,12 @@ PARALLEL_GPUS="0"
 PYTHON_BIN="python"
 SCRIPT_PATH="neuron_test.py"
 ATTR_CACHE_DIR="attr_score_cache"
-PROMPT_INDEX=2
+PROMPT_INDEX=0
+GPU_ID=0
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES="${GPU_ID}"
 
-run_dir="prompt${PROMPT_INDEX}_m2.5_output"
+run_dir="prompt_old${PROMPT_INDEX}_m2.0_output"
 mkdir -p "${run_dir}/logs"
 rm -f "${run_dir}/logs/"*.log
 
@@ -46,6 +47,7 @@ Fixed params:
   hilton_multiplier=${HILTON_MULTIPLIER}
   delta_multiplier=${DELTA_MULTIPLIER}
   prompt_index=${PROMPT_INDEX}
+  gpu_id=${GPU_ID}
   hilton_neuron_counts=${HILTON_NEURON_COUNTS[*]}
   delta_neuron_counts=${DELTA_NEURON_COUNTS[*]}
   attribution_cache_dir=${ATTR_CACHE_DIR}
@@ -138,6 +140,7 @@ PY
       echo "hilton_multiplier=${HILTON_MULTIPLIER}"
       echo "delta_multiplier=${DELTA_MULTIPLIER}"
       echo "prompt_index=${PROMPT_INDEX}"
+      echo "gpu_id=${GPU_ID}"
       echo "${result_block}"
       echo "hit_hilton=${hit_hilton}, hit_delta=${hit_delta}"
       echo "------------------------------------------------------------"
@@ -159,8 +162,7 @@ echo "Sweep finished at: $(date)"
 echo "Report: ${report_txt}"
 echo "Summary TSV: ${summary_tsv}"
 echo ""
-echo "Recommended candidates (hit_delta>0 and hit_hilton>0):"
-awk -F'\t' 'NR==1 || ($6>0 && $7>0)' "${summary_tsv}"
+
 
 echo "Done. Please check:"
 echo "  ${report_txt}"
