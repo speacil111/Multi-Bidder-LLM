@@ -21,18 +21,45 @@ def parse_args():
     )
     parser.add_argument(
         "--input_csv",
-        default="/home/research/yunpeiran/Multi-Bidder-LLM/prompt0_prompt1_m2.5_scores_avg.csv",
+        default="./newp6_m2.5_uni_new_cache/ad_eva_scores6.csv",
         help="Input CSV path containing Run/Hilton_Score/Delta_Score and neuron_count columns.",
     )
     parser.add_argument(
         "--output_png",
-        default="double_neuron_plot/avg.png",
+        default="double_neuron_plot/newp6_m2.5_uni_new_cache.png",
         help="Output image path.",
     )
     parser.add_argument(
         "--title",
-        default="Prompt0_1 Score Matrix (Delta top / Hilton bottom)",
+        default="Prompt6 Score Matrix (Delta top / Hilton bottom)",
         help="Figure title.",
+    )
+    parser.add_argument(
+        "--neuron_min",
+        type=float,
+        default=None,
+        help=(
+            "Optional lower bound for both hilton_neuron_count and "
+            "delta_neuron_count (inclusive)."
+        ),
+    )
+    parser.add_argument(
+        "--neuron_max",
+        type=float,
+        default=None,
+        help=(
+            "Optional upper bound for both hilton_neuron_count and "
+            "delta_neuron_count (inclusive)."
+        ),
+    )
+    parser.add_argument(
+        "--neuron_interval",
+        type=int,
+        default=50,
+        help=(
+            "Keep only rows where both neuron counts align to this interval. "
+            "For example, 100 keeps 100/200/300... (anchored at min count in data)."
+        ),
     )
     return parser.parse_args()
 
@@ -66,17 +93,49 @@ def load_rows(csv_path: Path):
         for row in reader:
             rows.append(
                 {
-                    "hilton_score": float(_get_value(row, ["Hilton_Score", "hilton_score"])),
-                    "delta_score": float(_get_value(row, ["Delta_Score", "delta_score"])),
+                    "hilton_score": float(_get_value(row, ["Hilton_Score", "hilton_score","Hilton_score"])),
+                    "delta_score": float(_get_value(row, ["Delta_Score", "delta_score","Delta_score"])),
                     "hilton_neuron_count": _to_number(
-                        _get_value(row, ["hilton_neuron_count", "Hilton_neuron_count"])
+                        _get_value(row, ["hilton_neuron_count", "Hilton_neuron_count","Hilton_neurons"])
                     ),
                     "delta_neuron_count": _to_number(
-                        _get_value(row, ["delta_neuron_count", "Delta_neuron_count"])
+                        _get_value(row, ["delta_neuron_count", "Delta_neuron_count","Delta_neurons"])
                     ),
                 }
             )
     return rows
+
+
+def filter_rows_by_neuron_range(rows, neuron_min=None, neuron_max=None, neuron_interval=50):
+    if neuron_interval <= 0:
+        raise ValueError("neuron_interval must be a positive integer.")
+
+    if neuron_min is None and neuron_max is None and neuron_interval == 50:
+        return rows
+
+    all_counts = [
+        float(row["hilton_neuron_count"]) for row in rows
+    ] + [
+        float(row["delta_neuron_count"]) for row in rows
+    ]
+    interval_anchor = min(all_counts) if all_counts else 0.0
+
+    filtered = []
+    for row in rows:
+        h_count = float(row["hilton_neuron_count"])
+        d_count = float(row["delta_neuron_count"])
+
+        if neuron_min is not None and (h_count < neuron_min or d_count < neuron_min):
+            continue
+        if neuron_max is not None and (h_count > neuron_max or d_count > neuron_max):
+            continue
+
+        if ((h_count - interval_anchor) % neuron_interval != 0) or (
+            (d_count - interval_anchor) % neuron_interval != 0
+        ):
+            continue
+        filtered.append(row)
+    return filtered
 
 
 def get_max_score(rows):
@@ -188,6 +247,17 @@ def main():
         raise FileNotFoundError(f"Input CSV not found: {input_csv}")
 
     rows = load_rows(input_csv)
+    rows = filter_rows_by_neuron_range(
+        rows,
+        neuron_min=args.neuron_min,
+        neuron_max=args.neuron_max,
+        neuron_interval=args.neuron_interval,
+    )
+    if not rows:
+        raise ValueError(
+            "No rows left after neuron range filtering. "
+            "Please check --neuron_min/--neuron_max."
+        )
     make_plot(rows, output_png, title=args.title)
     print(f"Saved plot to: {output_png}")
 

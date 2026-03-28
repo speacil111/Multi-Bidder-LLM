@@ -1,6 +1,0 @@
-run_id	delta_neuron_count	delta_multiplier	hit_delta	hit_hilton	hit_four_seasons	hit_hawaiian	raw_log
-1	250	1.50	0	1	0	1	delta_fix_norm/logs/run_1_dc250_dm1.5.log
-2	250	1.75	0	1	0	1	delta_fix_norm/logs/run_2_dc250_dm1.75.log
-3	250	2.00	0	1	0	1	delta_fix_norm/logs/run_3_dc250_dm2.0.log
-4	250	2.25	0	1	0	1	delta_fix_norm/logs/run_4_dc250_dm2.25.log
-5	250	2.50	0	1	0	1	delta_fix_norm/logs/run_5_dc250_dm2.5.log

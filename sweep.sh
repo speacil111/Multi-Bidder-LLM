@@ -4,14 +4,15 @@ set -euo pipefail
 # =======================
 # Fixed multiplier settings
 # =======================
-HILTON_MULTIPLIER=2.0
-DELTA_MULTIPLIER=2.0
+HILTON_MULTIPLIER=2.5
+DELTA_MULTIPLIER=2.5
 
 # =======================
 # Neuron-count sweep parameters 
 # =======================
 DELTA_NEURON_COUNTS=(100 150 200 250 300 350 400 450 500 550 600 650 700 750 800 850 900 950 1000)
-HILTON_NEURON_COUNTS=(100 150 200 250 300 350 400 450 500 550 600 650 700 750 800 850 900 950 1000)
+
+HILTON_NEURON_COUNTS=(1000)
 
 # =======================
 # Shared runtime arguments
@@ -22,12 +23,14 @@ PARALLEL_GPUS="0"
 PYTHON_BIN="python"
 SCRIPT_PATH="neuron_test.py"
 ATTR_CACHE_DIR="attr_score_cache"
-PROMPT_INDEX=0
+PROMPT_INDEX=6
 GPU_ID=0
+MAX_NEW_TOKENS=1536
+ATTR_CACHE_PATH="attr_score_cache/attribution_Hilton_Hotel-Delta_Airline_ig20_new.pt"
 
 export CUDA_VISIBLE_DEVICES="${GPU_ID}"
 
-run_dir="prompt_old${PROMPT_INDEX}_m2.0_output"
+run_dir="new2p${PROMPT_INDEX}_m2.5_uni_new_cache"
 mkdir -p "${run_dir}/logs"
 rm -f "${run_dir}/logs/"*.log
 
@@ -77,9 +80,12 @@ for hilton_count in "${HILTON_NEURON_COUNTS[@]}"; do
       --delta-score-mode contrastive
       --hilton-score-mode contrastive
       --threshold "${THRESHOLD}"
+      --attribution-cache-path "${ATTR_CACHE_PATH}"
       --attribution-cache-dir "${ATTR_CACHE_DIR}"
       --intervention_layer -1
       --prompt-index "${PROMPT_INDEX}"
+      --unified-hook
+      --max-new-tokens "${MAX_NEW_TOKENS}"
     )
 
     # Save full stdout/stderr for each run
@@ -119,6 +125,13 @@ result_lower = result_block.lower()
 hit_delta = len(re.findall(r"\bdelta\b", result_lower))
 hit_hilton = len(re.findall(r"\bhilton\b", result_lower))
 
+prompt_text = ""
+for line in lines:
+    if line.startswith("prompt:"):
+        prompt_text = line.split("prompt:", 1)[1].strip()
+        break
+
+print(f"PROMPT_TEXT={prompt_text}")
 print(f"HIT_DELTA={hit_delta}")
 print(f"HIT_HILTON={hit_hilton}")
 print("RESULT_BLOCK_BEGIN")
@@ -127,6 +140,7 @@ print("RESULT_BLOCK_END")
 PY
     )"
 
+    prompt_text="$(printf '%s\n' "${parse_output}" | awk -F= '/^PROMPT_TEXT=/{sub(/^PROMPT_TEXT=/, ""); print; exit}')"
     hit_delta="$(printf '%s\n' "${parse_output}" | awk -F= '/^HIT_DELTA=/{print $2}')"
     hit_hilton="$(printf '%s\n' "${parse_output}" | awk -F= '/^HIT_HILTON=/{print $2}')"
     result_block="$(printf '%s\n' "${parse_output}" | awk '/^RESULT_BLOCK_BEGIN$/{flag=1;next}/^RESULT_BLOCK_END$/{flag=0}flag')"
@@ -140,6 +154,7 @@ PY
       echo "hilton_multiplier=${HILTON_MULTIPLIER}"
       echo "delta_multiplier=${DELTA_MULTIPLIER}"
       echo "prompt_index=${PROMPT_INDEX}"
+      echo "prompt=${prompt_text}"
       echo "gpu_id=${GPU_ID}"
       echo "${result_block}"
       echo "hit_hilton=${hit_hilton}, hit_delta=${hit_delta}"

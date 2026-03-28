@@ -8,9 +8,9 @@ import torch
 
 import src.runtime as runtime
 from src.attribution import run_parallel_attribution
-from src.config import CONCEPT_CONFIGS, IG_STEPS_DEFAULT, SEED
+from src.config import COMBO_PRESETS, CONCEPT_CONFIGS, IG_STEPS_DEFAULT, SEED
 from src.hooks import NeuronInterventionHook, UnifiedInterventionHook
-from src.new_prompts import NEW_PROMPTS_DIVERSE
+from src.new_prompts import NEW_PROMPTS_DIVERSE ,NEW_PROMPTS
 from src.selection import (
     assign_neurons_by_max_standardized_score,
     count_neurons,
@@ -20,7 +20,7 @@ from src.selection import (
     select_top_count_from_assigned_scores,
 )
 
-
+PROMPT = NEW_PROMPTS
 print("Using long CLOZE")
 print(CONCEPT_CONFIGS["Hilton_Hotel"]["prompts"][0])
 print("开始运行寻找特定概念 Neuron 的实验")
@@ -84,6 +84,17 @@ def filter_neurons_by_layers(neuron_map, layer_indices):
     }
 
 
+def parse_concept_list(raw_value):
+    if raw_value is None:
+        return []
+    concept_names = []
+    for part in str(raw_value).split(","):
+        name = part.strip()
+        if name:
+            concept_names.append(name)
+    return concept_names
+
+
 def _build_attribution_cache_path(active_concept_configs, ig_steps, cache_dir):
     cache_key_source = {
         "active_concept_configs": active_concept_configs,
@@ -104,14 +115,27 @@ def parse_args():
         description="多样本对比归因 + 神经元干预实验"
     )
     parser.add_argument(
-        "--enable_Hilton",
+        "--enable_1",
         action="store_true",
-        help="是否计算 Hilton 概念神经元",
+        help="是否启用候选概念列表中的第 1 个概念",
     )
     parser.add_argument(
-        "--enable_Delta",
+        "--enable_2",
         action="store_true",
-        help="是否计算 Delta 概念神经元",
+        help="是否启用候选概念列表中的第 2 个概念",
+    )
+    parser.add_argument(
+        "--combo-preset",
+        type=str,
+        default=None,
+        choices=sorted(COMBO_PRESETS.keys()),
+        help="按 src.config.COMBO_PRESETS 选择品牌组合（例如: delta_hilton）",
+    )
+    parser.add_argument(
+        "--concepts",
+        type=str,
+        default=None,
+        help="手动指定概念名（逗号分隔），概念名需来自 src.config.CONCEPT_CONFIGS",
     )
     parser.add_argument(
         "--ig_steps",
@@ -120,28 +144,28 @@ def parse_args():
         help="积分梯度黎曼近似步数 m（默认: 20）",
     )
     parser.add_argument(
-        "--hilton-neuron-count",
+        "--neuron_count_1",
         type=int,
         default=200,
-        help="Hilton 固定干预神经元个数，需为正整数",
+        help="候选概念第 1 项的固定干预神经元个数，需为正整数",
     )
     parser.add_argument(
-        "--hilton-multiplier",
+        "--multiplier_1",
         type=float,
         default=3.0,
-        help="Hilton 神经元激活放大倍数，需 > 0",
+        help="候选概念第 1 项神经元激活放大倍数，需 > 0",
     )
     parser.add_argument(
-        "--delta-neuron-count",
+        "--neuron_count_2",
         type=int,
         default=200,
-        help="Delta 固定干预神经元个数，需为正整数",
+        help="候选概念第 2 项的固定干预神经元个数，需为正整数",
     )
     parser.add_argument(
-        "--delta-multiplier",
+        "--multiplier_2",
         type=float,
         default=3.0,
-        help="Delta 神经元激活放大倍数，需 > 0",
+        help="候选概念第 2 项神经元激活放大倍数，需 > 0",
     )
     parser.add_argument(
         "--parallel-gpus",
@@ -156,18 +180,18 @@ def parse_args():
         help="归属过滤阈值（标准化分数空间）：top1-top2 小于该值的神经元将被丢弃",
     )
     parser.add_argument(
-        "--hilton-score-mode",
+        "--score_mode_1",
         type=str,
         default=None,
         choices=["direct", "contrastive"],
-        help="覆盖 Hilton 归因模式: direct=仅正向, contrastive=减去负样本（排除假阳性）",
+        help="覆盖候选概念第 1 项的归因模式: direct=仅正向, contrastive=减去负样本",
     )
     parser.add_argument(
-        "--delta-score-mode",
+        "--score_mode_2",
         type=str,
         default=None,
         choices=["direct", "contrastive"],
-        help="覆盖 Delta 归因模式: direct=仅正向, contrastive=减去负样本（排除假阳性）",
+        help="覆盖候选概念第 2 项的归因模式: direct=仅正向, contrastive=减去负样本",
     )
     parser.add_argument(
         "--intervention_layer",
@@ -199,6 +223,12 @@ def parse_args():
         help="归因分数缓存目录；首次计算后会保存，后续同配置可直接加载",
     )
     parser.add_argument(
+        "--attribution-cache-path",
+        type=str,
+        default="attr_score_cache/attribution_Hilton_Hotel-Delta_Airline_ig20_new.pt",
+        help="显式指定归因缓存文件路径；设置后将优先使用该路径，不再按配置自动生成文件名",
+    )
+    parser.add_argument(
         "--force_recmp",
         action="store_true",
         help="强制重算归因分数并覆盖缓存（默认: 优先读取已有缓存）",
@@ -214,28 +244,62 @@ def parse_args():
 def main():
     args = parse_args()
     intervention_layers = parse_intervention_layers(args.intervention_layer)
-    enable_hilton = args.enable_Hilton
-    enable_delta = args.enable_Delta
+    enable_1 = args.enable_1
+    enable_2 = args.enable_2
+
+    if args.combo_preset and args.concepts:
+        raise ValueError("--combo-preset 与 --concepts 不能同时使用，请二选一")
+
+    if args.combo_preset:
+        candidate_concepts = list(COMBO_PRESETS[args.combo_preset])
+    elif args.concepts:
+        candidate_concepts = parse_concept_list(args.concepts)
+        if not candidate_concepts:
+            raise ValueError("--concepts 不能为空，请至少提供一个概念名")
+    else:
+        raise ValueError("请使用 --combo-preset 或 --concepts 指定概念")
+
+    if len(candidate_concepts) > 2:
+        raise ValueError(
+            "当前参数槽位仅支持 2 个概念，请将 --concepts 控制在 2 个以内，"
+            "或使用 --combo-preset"
+        )
 
     score_mode_overrides = {}
-    if args.hilton_score_mode:
-        score_mode_overrides["Hilton_Hotel"] = args.hilton_score_mode
-    if args.delta_score_mode:
-        score_mode_overrides["Delta_Airline"] = args.delta_score_mode
+    if len(candidate_concepts) >= 1 and args.score_mode_1:
+        score_mode_overrides[candidate_concepts[0]] = args.score_mode_1
+    if len(candidate_concepts) >= 2 and args.score_mode_2:
+        score_mode_overrides[candidate_concepts[1]] = args.score_mode_2
+
+    selected_concepts = []
+    if enable_1:
+        if len(candidate_concepts) < 1:
+            raise ValueError("未提供第 1 个候选概念，无法使用 --enable_1")
+        selected_concepts.append(candidate_concepts[0])
+    if enable_2:
+        if len(candidate_concepts) < 2:
+            raise ValueError("未提供第 2 个候选概念，无法使用 --enable_2")
+        selected_concepts.append(candidate_concepts[1])
+
+    unknown_concepts = [name for name in selected_concepts if name not in CONCEPT_CONFIGS]
+    if unknown_concepts:
+        available = ", ".join(sorted(CONCEPT_CONFIGS.keys()))
+        raise ValueError(
+            f"发现无效概念: {unknown_concepts}；可用概念: {available}"
+        )
+
+    if not selected_concepts:
+        raise ValueError(
+            "至少需要启用一个概念：可使用 --combo-preset、--concepts，"
+            "并通过 --enable_1/--enable_2 启用"
+        )
 
     active_concept_configs = {}
-    if enable_hilton:
-        cfg = dict(CONCEPT_CONFIGS["Hilton_Hotel"])
-        if "Hilton_Hotel" in score_mode_overrides:
-            cfg["score_mode"] = score_mode_overrides["Hilton_Hotel"]
-        active_concept_configs["Hilton_Hotel"] = cfg
-    if enable_delta:
-        cfg = dict(CONCEPT_CONFIGS["Delta_Airline"])
-        if "Delta_Airline" in score_mode_overrides:
-            cfg["score_mode"] = score_mode_overrides["Delta_Airline"]
-        active_concept_configs["Delta_Airline"] = cfg
-    if not active_concept_configs:
-        raise ValueError("至少需要启用一个概念：--enable_Hilton 或 --enable_Delta")
+    for concept_name in selected_concepts:
+        cfg = dict(CONCEPT_CONFIGS[concept_name])
+        if concept_name in score_mode_overrides:
+            cfg["score_mode"] = score_mode_overrides[concept_name]
+        active_concept_configs[concept_name] = cfg
 
     gpu_ids = [int(x.strip()) for x in args.parallel_gpus.split(",") if x.strip()]
     if not gpu_ids:
@@ -251,26 +315,30 @@ def main():
         assigned_gpu_ids = gpu_ids[:len(active_concept_configs)]
     print(f"归因 GPU 分配: {assigned_gpu_ids}")
 
-    neuron_count_by_concept = {
-        "Hilton_Hotel": args.hilton_neuron_count,
-        "Delta_Airline": args.delta_neuron_count,
-    }
-    multiplier_by_concept = {
-        "Hilton_Hotel": args.hilton_multiplier,
-        "Delta_Airline": args.delta_multiplier,
-    }
+    neuron_count_by_concept = {}
+    multiplier_by_concept = {}
+    if enable_1 and len(candidate_concepts) >= 1:
+        neuron_count_by_concept[candidate_concepts[0]] = args.neuron_count_1
+        multiplier_by_concept[candidate_concepts[0]] = args.multiplier_1
+    if enable_2 and len(candidate_concepts) >= 2:
+        neuron_count_by_concept[candidate_concepts[1]] = args.neuron_count_2
+        multiplier_by_concept[candidate_concepts[1]] = args.multiplier_2
     for concept_name in CONCEPT_CONFIGS:
         neuron_count_by_concept.setdefault(concept_name, 200)
         multiplier_by_concept.setdefault(concept_name, 3.0)
 
     print("\n>>> 当前运行参数 <<<")
-    print(f"enable_hilton={enable_hilton}")
-    print(f"enable_delta={enable_delta}")
+    print(f"enable_1={enable_1}")
+    print(f"enable_2={enable_2}")
+    print(f"combo_preset={args.combo_preset}")
+    print(f"concepts={args.concepts}")
+    print(f"candidate_concepts={candidate_concepts}")
+    print(f"selected_concepts={selected_concepts}")
     print(f"ig_steps={args.ig_steps}")
-    print(f"hilton_neuron_count={args.hilton_neuron_count}")
-    print(f"hilton_multiplier={args.hilton_multiplier}")
-    print(f"delta_neuron_count={args.delta_neuron_count}")
-    print(f"delta_multiplier={args.delta_multiplier}")
+    print(f"neuron_count_1={args.neuron_count_1}")
+    print(f"multiplier_1={args.multiplier_1}")
+    print(f"neuron_count_2={args.neuron_count_2}")
+    print(f"multiplier_2={args.multiplier_2}")
     print(f"threshold={args.threshold}")
     print(f"intervention_layers={intervention_layers if intervention_layers is not None else 'ALL'}")
     print(f"parallel_gpus={gpu_ids}")
@@ -284,11 +352,15 @@ def main():
     }
     print(f"concept_gpu_map={concept_gpu_map}")
 
-    cache_path = _build_attribution_cache_path(
-        active_concept_configs=active_concept_configs,
-        ig_steps=args.ig_steps,
-        cache_dir=args.attribution_cache_dir,
-    )
+    if args.attribution_cache_path:
+        cache_path = Path(args.attribution_cache_path)
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        cache_path = _build_attribution_cache_path(
+            active_concept_configs=active_concept_configs,
+            ig_steps=args.ig_steps,
+            cache_dir=args.attribution_cache_dir,
+        )
     print(f"attribution_cache_path={cache_path}")
 
     concept_scores_by_layer = None
@@ -404,13 +476,13 @@ def main():
             f"multiplier={multiplier_by_concept[cname]}x"
         )
 
-    if args.prompt_index < 0 or args.prompt_index >= len(NEW_PROMPTS_DIVERSE):
+    if args.prompt_index < 0 or args.prompt_index >= len(PROMPT):
         raise ValueError(
-            f"prompt-index 越界: {args.prompt_index}，可用范围是 [0, {len(NEW_PROMPTS_DIVERSE) - 1}]"
+            f"prompt-index 越界: {args.prompt_index}，可用范围是 [0, {len(PROMPT) - 1}]"
         )
 
     runtime.initialize_runtime(device_map="auto", offload_tag="main_generation")
-    prompt = NEW_PROMPTS_DIVERSE[args.prompt_index]
+    prompt = PROMPT[args.prompt_index]
     print(f"prompt: {prompt}")
     messages = [{"role": "user", "content": prompt}]
     text = runtime.tokenizer.apply_chat_template(
@@ -422,13 +494,13 @@ def main():
     model_inputs = runtime.tokenizer([text], return_tensors="pt").to(runtime.input_device)
 
     # 先输出无干预 baseline，避免与 intervention 结果混淆。
-    generate_text(
-        "Baseline-(No intervention)",
-        model_inputs,
-        max_new_tokens=args.max_new_tokens,
-        monitor=args.monitor,
-        monitor_keywords=["Delta", "Hilton"],
-    )
+    # generate_text(
+    #     "Baseline-(No intervention)",
+    #     model_inputs,
+    #     max_new_tokens=args.max_new_tokens,
+    #     monitor=args.monitor,
+    #     monitor_keywords=["Delta", "Hilton"],
+    # )
 
     hooks_to_remove = []
     if args.unified_hook:
@@ -470,7 +542,11 @@ def main():
         model_inputs,
         max_new_tokens=args.max_new_tokens,
         monitor=args.monitor,
-        monitor_keywords=["Delta", "Hilton"],
+        monitor_keywords=[
+            cfg["positive_word"]
+            for cfg in active_concept_configs.values()
+            if cfg.get("positive_word")
+        ],
     )
 
     for hook in hooks_to_remove:
