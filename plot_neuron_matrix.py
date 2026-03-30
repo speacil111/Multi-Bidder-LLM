@@ -15,32 +15,51 @@ from matplotlib.patches import Patch, Rectangle
 def parse_args():
     parser = argparse.ArgumentParser(
         description=(
-            "Plot neuron-count score matrix from score_0.csv. "
-            "Top half of each square is Delta score; bottom half is Hilton score."
+            "Plot neuron-count score matrix from CTR score CSV. "
+            "Top half of each square is Brand-1 score; bottom half is Brand-2 score."
         )
     )
     parser.add_argument(
         "--input_csv",
-        default="./newp6_m2.5_uni_new_cache/ad_eva_scores6.csv",
-        help="Input CSV path containing Run/Hilton_Score/Delta_Score and neuron_count columns.",
+        default="./run_ctr_scores.csv",
+        help="Input CSV path containing Uber/Starbucks score and neuron_count columns.",
     )
     parser.add_argument(
         "--output_png",
-        default="double_neuron_plot/newp6_m2.5_uni_new_cache.png",
+        default="double_neuron_plot/run_ctr_scores_matrix.png",
         help="Output image path.",
     )
     parser.add_argument(
         "--title",
-        default="Prompt6 Score Matrix (Delta top / Hilton bottom)",
+        default="CTR Score Matrix (Uber top / Starbucks bottom)",
         help="Figure title.",
+    )
+    parser.add_argument(
+        "--x-label",
+        default="Uber neuron count",
+        help="X-axis label.",
+    )
+    parser.add_argument(
+        "--y-label",
+        default="Starbucks neuron count",
+        help="Y-axis label.",
+    )
+    parser.add_argument(
+        "--top-label",
+        default="Uber score",
+        help="Label for top half + top colorbar.",
+    )
+    parser.add_argument(
+        "--bottom-label",
+        default="Starbucks score",
+        help="Label for bottom half + bottom colorbar.",
     )
     parser.add_argument(
         "--neuron_min",
         type=float,
         default=None,
         help=(
-            "Optional lower bound for both hilton_neuron_count and "
-            "delta_neuron_count (inclusive)."
+            "Optional lower bound for both brand neuron counts (inclusive)."
         ),
     )
     parser.add_argument(
@@ -48,8 +67,7 @@ def parse_args():
         type=float,
         default=None,
         help=(
-            "Optional upper bound for both hilton_neuron_count and "
-            "delta_neuron_count (inclusive)."
+            "Optional upper bound for both brand neuron counts (inclusive)."
         ),
     )
     parser.add_argument(
@@ -93,13 +111,65 @@ def load_rows(csv_path: Path):
         for row in reader:
             rows.append(
                 {
-                    "hilton_score": float(_get_value(row, ["Hilton_Score", "hilton_score","Hilton_score"])),
-                    "delta_score": float(_get_value(row, ["Delta_Score", "delta_score","Delta_score"])),
-                    "hilton_neuron_count": _to_number(
-                        _get_value(row, ["hilton_neuron_count", "Hilton_neuron_count","Hilton_neurons"])
+                    "brand1_score": float(
+                        _get_value(
+                            row,
+                            [
+                                "BMW_score",
+                                "Uber_score",
+                                "Uber_ctr_score",
+                                "Nike_score",
+                                "Delta_Score",
+                                "delta_score",
+                                "Delta_score",
+                            ],
+                        )
                     ),
-                    "delta_neuron_count": _to_number(
-                        _get_value(row, ["delta_neuron_count", "Delta_neuron_count","Delta_neurons"])
+                    "brand2_score": float(
+                        _get_value(
+                            row,
+                            [
+                                "Rolex_score",
+                                "Starbucks_score",
+                                "Starbucks_ctr_score",
+                                "Spotify_score",
+                                "Hilton_Score",
+                                "hilton_score",
+                                "Hilton_score",
+                            ],
+                        )
+                    ),
+                    "brand1_neuron_count": _to_number(
+                        _get_value(
+                            row,
+                            [
+                                "BMW_neuron_count",
+                                "BMW_Auto_neuron_count",
+                                "Uber_neuron_count",
+                                "Uber_Rideshare_neuron_count",
+                                "Nike_neuron_count",
+                                "Nike_Sportswear_neuron_count",
+                                "delta_neuron_count",
+                                "Delta_neuron_count",
+                                "Delta_neurons",
+                            ],
+                        )
+                    ),
+                    "brand2_neuron_count": _to_number(
+                        _get_value(
+                            row,
+                            [
+                                "Rolex_neuron_count",
+                                "Rolex_Watch_neuron_count",
+                                "Starbucks_neuron_count",
+                                "Starbucks_Coffee_neuron_count",
+                                "Spotify_neuron_count",
+                                "Spotify_Music_neuron_count",
+                                "hilton_neuron_count",
+                                "Hilton_neuron_count",
+                                "Hilton_neurons",
+                            ],
+                        )
                     ),
                 }
             )
@@ -114,24 +184,24 @@ def filter_rows_by_neuron_range(rows, neuron_min=None, neuron_max=None, neuron_i
         return rows
 
     all_counts = [
-        float(row["hilton_neuron_count"]) for row in rows
+        float(row["brand1_neuron_count"]) for row in rows
     ] + [
-        float(row["delta_neuron_count"]) for row in rows
+        float(row["brand2_neuron_count"]) for row in rows
     ]
     interval_anchor = min(all_counts) if all_counts else 0.0
 
     filtered = []
     for row in rows:
-        h_count = float(row["hilton_neuron_count"])
-        d_count = float(row["delta_neuron_count"])
+        b1_count = float(row["brand1_neuron_count"])
+        b2_count = float(row["brand2_neuron_count"])
 
-        if neuron_min is not None and (h_count < neuron_min or d_count < neuron_min):
+        if neuron_min is not None and (b1_count < neuron_min or b2_count < neuron_min):
             continue
-        if neuron_max is not None and (h_count > neuron_max or d_count > neuron_max):
+        if neuron_max is not None and (b1_count > neuron_max or b2_count > neuron_max):
             continue
 
-        if ((h_count - interval_anchor) % neuron_interval != 0) or (
-            (d_count - interval_anchor) % neuron_interval != 0
+        if ((b1_count - interval_anchor) % neuron_interval != 0) or (
+            (b2_count - interval_anchor) % neuron_interval != 0
         ):
             continue
         filtered.append(row)
@@ -141,27 +211,35 @@ def filter_rows_by_neuron_range(rows, neuron_min=None, neuron_max=None, neuron_i
 def get_max_score(rows):
     if not rows:
         return 1.0
-    return max(max(r["delta_score"], r["hilton_score"]) for r in rows) or 1.0
+    return max(max(r["brand1_score"], r["brand2_score"]) for r in rows) or 1.0
 
 
-def make_plot(rows, output_path: Path, title: str):
+def make_plot(
+    rows,
+    output_path: Path,
+    title: str,
+    x_label: str,
+    y_label: str,
+    top_label: str,
+    bottom_label: str,
+):
     if not rows:
         raise ValueError("No rows loaded from CSV.")
 
-    x_levels = sorted({r["delta_neuron_count"] for r in rows})
-    y_levels = sorted({r["hilton_neuron_count"] for r in rows})
+    x_levels = sorted({r["brand1_neuron_count"] for r in rows})
+    y_levels = sorted({r["brand2_neuron_count"] for r in rows})
     x_index = {v: i for i, v in enumerate(x_levels)}
     y_index = {v: i for i, v in enumerate(y_levels)}
 
     cell_map = {}
     for row in rows:
-        key = (row["delta_neuron_count"], row["hilton_neuron_count"])
-        cell_map[key] = (row["delta_score"], row["hilton_score"])
+        key = (row["brand1_neuron_count"], row["brand2_neuron_count"])
+        cell_map[key] = (row["brand1_score"], row["brand2_score"])
 
     max_score = get_max_score(rows)
     norm = colors.Normalize(vmin=0, vmax=max_score)
-    delta_cmap = colormaps["Blues"]
-    hilton_cmap = colormaps["Reds"]
+    brand1_cmap = colormaps["Blues"]
+    brand2_cmap = colormaps["Reds"]
     border_color = "#444444"
 
     fig, ax = plt.subplots(figsize=(13, 11))
@@ -170,25 +248,25 @@ def make_plot(rows, output_path: Path, title: str):
         for x_val in x_levels:
             x = x_index[x_val]
             y = y_index[y_val]
-            delta_score, hilton_score = cell_map.get((x_val, y_val), (0.0, 0.0))
+            brand1_score, brand2_score = cell_map.get((x_val, y_val), (0.0, 0.0))
 
-            # Bottom half: Hilton
+            # Bottom half: brand-2
             ax.add_patch(
                 Rectangle(
                     (x, y),
                     1.0,
                     0.5,
-                    facecolor=hilton_cmap(norm(hilton_score)),
+                    facecolor=brand2_cmap(norm(brand2_score)),
                     edgecolor="none",
                 )
             )
-            # Top half: Delta
+            # Top half: brand-1
             ax.add_patch(
                 Rectangle(
                     (x, y + 0.5),
                     1.0,
                     0.5,
-                    facecolor=delta_cmap(norm(delta_score)),
+                    facecolor=brand1_cmap(norm(brand1_score)),
                     edgecolor="none",
                 )
             )
@@ -210,29 +288,29 @@ def make_plot(rows, output_path: Path, title: str):
     ax.set_xticklabels([_format_tick(v) for v in x_levels], rotation=45, ha="right")
     ax.set_yticks([i + 0.5 for i in range(len(y_levels))])
     ax.set_yticklabels([_format_tick(v) for v in y_levels])
-    ax.set_xlabel("delta_neuron_count")
-    ax.set_ylabel("hilton_neuron_count")
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
     ax.set_title(title)
     ax.grid(False)
 
     role_items = [
-        Patch(facecolor="#c6dbef", edgecolor=border_color, label="Top half: Delta score"),
-        Patch(facecolor="#fcbba1", edgecolor=border_color, label="Bottom half: Hilton score"),
+        Patch(facecolor="#c6dbef", edgecolor=border_color, label=f"Top half: {top_label}"),
+        Patch(facecolor="#fcbba1", edgecolor=border_color, label=f"Bottom half: {bottom_label}"),
     ]
     ax.legend(handles=role_items, loc="upper left", bbox_to_anchor=(1.02, 1.0))
     fig.subplots_adjust(right=0.84)
 
-    delta_sm = cm.ScalarMappable(norm=norm, cmap=delta_cmap)
-    delta_sm.set_array([])
-    delta_cax = fig.add_axes([0.87, 0.55, 0.025, 0.28])
-    delta_cbar = fig.colorbar(delta_sm, cax=delta_cax)
-    delta_cbar.set_label("Delta score")
+    brand1_sm = cm.ScalarMappable(norm=norm, cmap=brand1_cmap)
+    brand1_sm.set_array([])
+    brand1_cax = fig.add_axes([0.87, 0.55, 0.025, 0.28])
+    brand1_cbar = fig.colorbar(brand1_sm, cax=brand1_cax)
+    brand1_cbar.set_label(top_label)
 
-    hilton_sm = cm.ScalarMappable(norm=norm, cmap=hilton_cmap)
-    hilton_sm.set_array([])
-    hilton_cax = fig.add_axes([0.87, 0.16, 0.025, 0.28])
-    hilton_cbar = fig.colorbar(hilton_sm, cax=hilton_cax)
-    hilton_cbar.set_label("Hilton score")
+    brand2_sm = cm.ScalarMappable(norm=norm, cmap=brand2_cmap)
+    brand2_sm.set_array([])
+    brand2_cax = fig.add_axes([0.87, 0.16, 0.025, 0.28])
+    brand2_cbar = fig.colorbar(brand2_sm, cax=brand2_cax)
+    brand2_cbar.set_label(bottom_label)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=220, bbox_inches="tight")
@@ -258,7 +336,15 @@ def main():
             "No rows left after neuron range filtering. "
             "Please check --neuron_min/--neuron_max."
         )
-    make_plot(rows, output_png, title=args.title)
+    make_plot(
+        rows,
+        output_png,
+        title=args.title,
+        x_label=args.x_label,
+        y_label=args.y_label,
+        top_label=args.top_label,
+        bottom_label=args.bottom_label,
+    )
     print(f"Saved plot to: {output_png}")
 
 

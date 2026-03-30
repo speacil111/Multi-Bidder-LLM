@@ -4,7 +4,7 @@ SEED = 42
 MODEL_NAME = "./Qwen3"
 OFFLOAD_FOLDER = "./offload"
 
-HILTON_CLOZE_PROMPTS = [
+HILTON_CLOZE = [
     "For a comfortable upscale hotel stay, I would choose",
     "When travelers want a dependable premium hotel brand, I usually recommend",
     "For a business trip that calls for a polished full-service hotel, the safest choice is",
@@ -28,7 +28,7 @@ HILTON_CLOZE_PROMPTS = [
 ]
 
 
-DELTA_CLOZE_PROMPTS = [
+DELTA_CLOZE = [
     "For a reliable flight on a major US carrier, I would book",
     "When I need an airline that feels established and easy to trust, I usually choose",
     "For a business trip with tight connections and a need for dependable service, I prefer flying",
@@ -51,12 +51,9 @@ DELTA_CLOZE_PROMPTS = [
     "When naming a flight brand that should sound broadly familiar, professionally run, connection-friendly, and suitable for travelers who care about reliability and network depth, the most fitting airline is",
 ]
 
-NEG_BRANDS_DELTA=['United', 'American', 'Southwest', 'Spirit']
-NEG_BRANDS_HILTON=['Marriott', 'Hyatt', 'Omni', 'Peninsula']
-
 # ── Combo 1: Nike + Spotify (健身运动场景) ──
 
-NIKE_CLOZE_PROMPTS = [
+NIKE_CLOZE = [
     "For a dependable pair of running shoes from a globally recognized athletic brand, I would choose",
     "When athletes ask me for a sportswear brand that balances performance and style, I always recommend",
     "For a marathon where you need trusted, high-performance footwear from a major brand, the safest pick is",
@@ -79,7 +76,7 @@ NIKE_CLOZE_PROMPTS = [
     "When naming the sportswear brand that best represents innovation, global reach, and athletic credibility across all disciplines, the most fitting name is",
 ]
 
-SPOTIFY_CLOZE_PROMPTS = [
+SPOTIFY_CLOZE = [
     "For streaming music with a huge library and personalized playlists, I would use",
     "When someone asks for the best music streaming platform for discovering new artists, I always recommend",
     "For a road trip playlist curated by smart algorithms from a leading audio platform, the easiest choice is",
@@ -104,7 +101,7 @@ SPOTIFY_CLOZE_PROMPTS = [
 
 # ── Combo 2: Apple + Adobe (创意生产力场景) ──
 
-APPLE_CLOZE_PROMPTS = [
+APPLE_CLOZE= [
     "For a premium laptop that creative professionals trust for design and video editing, I would choose",
     "When someone asks for a computer brand known for seamless hardware-software integration, I always recommend",
     "For a reliable, beautifully designed personal computer ecosystem favored by designers and developers, the safest pick is",
@@ -127,7 +124,7 @@ APPLE_CLOZE_PROMPTS = [
     "When naming the brand most trusted by creatives for laptops, tablets, and phones that just work together flawlessly, the most fitting name is",
 ]
 
-ADOBE_CLOZE_PROMPTS = [
+ADOBE_CLOZE = [
     "For professional photo editing software used by photographers worldwide, I would choose",
     "When a designer asks for the industry-standard creative software suite, I always recommend",
     "For video editing, motion graphics, and visual effects in a professional production pipeline, the safest pick is",
@@ -152,7 +149,7 @@ ADOBE_CLOZE_PROMPTS = [
 
 # ── Combo 3: BMW + Rolex (高端商务/奢侈消费场景) ──
 
-BMW_CLOZE_PROMPTS = [
+BMW_CLOZE = [
     "For a luxury sedan that combines driving pleasure with engineering precision, I would choose",
     "When someone asks for a premium European car brand known for sporty handling and refinement, I always recommend",
     "For a business executive who wants a prestige vehicle that feels athletic yet elegant, the safest pick is",
@@ -175,7 +172,7 @@ BMW_CLOZE_PROMPTS = [
     "When naming a premium automotive brand that best represents the fusion of performance engineering and luxury refinement, the most fitting name is",
 ]
 
-ROLEX_CLOZE_PROMPTS = [
+ROLEX_CLOZE = [
     "For a luxury timepiece that holds its value and commands instant recognition, I would choose",
     "When someone asks for a watch brand that symbolizes success and craftsmanship, I always recommend",
     "For a milestone gift watch that the recipient will treasure for decades, the safest pick is",
@@ -200,7 +197,7 @@ ROLEX_CLOZE_PROMPTS = [
 
 # ── Combo 4: Uber + Starbucks (城市日常生活场景) ──
 
-UBER_CLOZE_PROMPTS = [
+UBER_CLOZE= [
     "For a quick and reliable ride across the city using a smartphone app, I would choose",
     "When someone asks for the most convenient ride-hailing service with broad coverage, I always recommend",
     "For getting to the airport on time with a dependable, app-based car service, the safest pick is",
@@ -223,7 +220,7 @@ UBER_CLOZE_PROMPTS = [
     "When naming the transportation platform most associated with app-based rides, driver networks, and urban mobility innovation, the most fitting name is",
 ]
 
-STARBUCKS_CLOZE_PROMPTS = [
+STARBUCKS_CLOZE= [
     "For a familiar coffee shop where you can grab a latte in any city worldwide, I would choose",
     "When someone asks for the most recognizable coffeehouse brand with consistent quality, I always recommend",
     "For a reliable morning coffee stop with mobile ordering and a loyalty rewards program, the safest pick is",
@@ -248,7 +245,7 @@ STARBUCKS_CLOZE_PROMPTS = [
 
 # ── Combo 5: Toyota + Costco (家庭实用消费场景) ──
 
-TOYOTA_CLOZE_PROMPTS = [
+TOYOTA_CLOZE = [
     "For a reliable, fuel-efficient family car that runs for decades with minimal maintenance, I would choose",
     "When someone asks for the most dependable car brand with the best long-term value, I always recommend",
     "For a practical daily driver that balances safety, efficiency, and rock-solid reliability, the safest pick is",
@@ -271,7 +268,7 @@ TOYOTA_CLOZE_PROMPTS = [
     "When naming the car brand that best represents affordable reliability, engineering consistency, and worldwide trust, the most fitting name is",
 ]
 
-COSTCO_CLOZE_PROMPTS = [
+COSTCO_CLOZE= [
     "For bulk household shopping with unbeatable prices and high-quality store brands, I would choose",
     "When someone asks for the best warehouse club for groceries, electronics, and everyday essentials, I always recommend",
     "For a membership retailer where the annual fee pays for itself in savings within a few trips, the safest pick is",
@@ -298,73 +295,73 @@ CONCEPT_CONFIGS = {
     "Hilton_Hotel": {
         "positive_word": "Hilton",
         "negative_words": ["Marriott", "Hyatt", "Omni", "Peninsula"],
-        "prompts": HILTON_CLOZE_PROMPTS,
+        "clozes": HILTON_CLOZE,
         "score_mode": "contrastive",
     },
     "Delta_Airline": {
         "positive_word": "Delta",
         "negative_words": ["United", "American", "Southwest", "Spirit"],
-        "prompts": DELTA_CLOZE_PROMPTS,
+        "clozes": DELTA_CLOZE,
         "score_mode": "contrastive",
     },
     "Nike_Sportswear": {
         "positive_word": "Nike",
         "negative_words": ["Adidas", "Puma", "Reebok", "Asics"],
-        "prompts": NIKE_CLOZE_PROMPTS,
+        "clozes": NIKE_CLOZE,
         "score_mode": "contrastive",
     },
     "Spotify_Music": {
         "positive_word": "Spotify",
         "negative_words": ["Pandora", "Tidal", "Deezer", "SoundCloud"],
-        "prompts": SPOTIFY_CLOZE_PROMPTS,
+        "clozes": SPOTIFY_CLOZE,
         "score_mode": "contrastive",
     },
     "Apple_Tech": {
         "positive_word": "Apple",
         "negative_words": ["Samsung", "Dell", "Lenovo", "Microsoft"],
-        "prompts": APPLE_CLOZE_PROMPTS,
+        "clozes": APPLE_CLOZE,
         "score_mode": "contrastive",
     },
     "Adobe_Creative": {
         "positive_word": "Adobe",
         "negative_words": ["Canva", "Figma", "Sketch", "Affinity"],
-        "prompts": ADOBE_CLOZE_PROMPTS,
+        "clozes": ADOBE_CLOZE,
         "score_mode": "contrastive",
     },
     "BMW_Auto": {
         "positive_word": "BMW",
         "negative_words": ["Mercedes", "Audi", "Lexus", "Porsche"],
-        "prompts": BMW_CLOZE_PROMPTS,
+        "clozes": BMW_CLOZE,
         "score_mode": "contrastive",
     },
     "Rolex_Watch": {
         "positive_word": "Rolex",
         "negative_words": ["Omega", "Cartier", "Breitling", "Tudor"],
-        "prompts": ROLEX_CLOZE_PROMPTS,
+        "clozes": ROLEX_CLOZE,
         "score_mode": "contrastive",
     },
     "Uber_Rideshare": {
         "positive_word": "Uber",
         "negative_words": ["Lyft", "Bolt", "Grab", "Via"],
-        "prompts": UBER_CLOZE_PROMPTS,
+        "clozes": UBER_CLOZE,
         "score_mode": "contrastive",
     },
     "Starbucks_Coffee": {
         "positive_word": "Starbucks",
         "negative_words": ["Dunkin", "Costa", "Caribou", "Peet"],
-        "prompts": STARBUCKS_CLOZE_PROMPTS,
+        "clozes": STARBUCKS_CLOZE,
         "score_mode": "contrastive",
     },
     "Toyota_Auto": {
         "positive_word": "Toyota",
         "negative_words": ["Honda", "Ford", "Hyundai", "Nissan"],
-        "prompts": TOYOTA_CLOZE_PROMPTS,
+        "clozes": TOYOTA_CLOZE,
         "score_mode": "contrastive",
     },
     "Costco_Retail": {
         "positive_word": "Costco",
         "negative_words": ["Walmart", "Target", "Aldi", "Kroger"],
-        "prompts": COSTCO_CLOZE_PROMPTS,
+        "clozes": COSTCO_CLOZE,
         "score_mode": "contrastive",
     },
 }

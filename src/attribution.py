@@ -217,14 +217,14 @@ def run_concept_worker(concept_name, cfg, ig_steps, gpu_id, result_queue):
         score_mode = cfg.get("score_mode", "contrastive")
         if score_mode == "direct":
             neuron_scores = aggregate_positive_attribution(
-                prompts=cfg["prompts"],
+                prompts=cfg["clozes"],
                 positive_word=cfg["positive_word"],
                 layers=runtime.target_layers,
                 ig_steps=ig_steps,
             )
         elif score_mode == "contrastive":
             neuron_scores = aggregate_contrastive_attribution(
-                prompts=cfg["prompts"],
+                prompts=cfg["clozes"],
                 positive_word=cfg["positive_word"],
                 negative_words=cfg["negative_words"],
                 layers=runtime.target_layers,

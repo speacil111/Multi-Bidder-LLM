@@ -136,6 +136,46 @@ def select_top_count_from_assigned_scores(assigned_raw_scores, top_count=1):
     return selected
 
 
+def select_top_by_score_sum_from_assigned_scores(assigned_raw_scores, target_sum=1.0):
+    if target_sum <= 0:
+        raise ValueError(f"target_sum 必须为正数，当前: {target_sum}")
+
+    candidates = []
+    for layer_idx, neuron_score_map in assigned_raw_scores.items():
+        for neuron_idx, score in neuron_score_map.items():
+            if score > 0:
+                candidates.append((layer_idx, neuron_idx, score))
+
+    if len(candidates) == 0:
+        return {}, 0, 0.0, False, 0.0
+
+    candidates.sort(key=lambda x: x[2], reverse=True)
+    total_positive_sum = float(sum(score for _, _, score in candidates))
+
+    selected_triplets = []
+    cumulative_sum = 0.0
+    for layer_idx, neuron_idx, score in candidates:
+        selected_triplets.append((layer_idx, neuron_idx, score))
+        cumulative_sum += float(score)
+        if cumulative_sum >= float(target_sum):
+            break
+
+    reached_target = cumulative_sum >= float(target_sum)
+    selected = {}
+    for layer_idx, neuron_idx, _ in selected_triplets:
+        if layer_idx not in selected:
+            selected[layer_idx] = []
+        selected[layer_idx].append(neuron_idx)
+
+    return (
+        selected,
+        len(selected_triplets),
+        float(cumulative_sum),
+        bool(reached_target),
+        total_positive_sum,
+    )
+
+
 def merge_neuron_maps(neuron_maps):
     merged = {}
     for neuron_map in neuron_maps:
