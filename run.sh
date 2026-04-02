@@ -1,13 +1,13 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=4,5
+export CUDA_VISIBLE_DEVICES=3,5
 LOG_FILE="run_logs/run_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
-python neuron_test.py --combo-preset 0 \
+python neuron_test.py --concepts Toyota,Costco \
                      --enable_1 --enable_2 \
-                     --attr_sum_1 10.0\
-                     --multiplier_1 2.25 \
-                     --attr_sum_2 10.0 \
-                     --multiplier_2 2.25 \
+                     --top_k_1 500 \
+                     --multiplier_1 3.0 \
+                     --top_k_2 500 \
+                     --multiplier_2 3.0 \
                      --parallel-gpus 0,1 \
                      --ig_steps 20 \
                      --monitor \
@@ -19,5 +19,4 @@ python neuron_test.py --combo-preset 0 \
                      --threshold 0.000 \
                      --unified-hook \
                      --attribution-cache-dir "attr_score_cache" \
-                     --intervention_layer -1 \
-                     2>&1 | tee "$LOG_FILE"
+                     --intervention_layer -1 2>&1 | tee "$LOG_FILE"

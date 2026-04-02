@@ -292,73 +292,73 @@ COSTCO_CLOZE= [
 ]
 
 CONCEPT_CONFIGS = {
-    "Hilton_Hotel": {
+    "Hilton": {
         "positive_word": "Hilton",
         "negative_words": ["Marriott", "Hyatt", "Omni", "Peninsula"],
         "clozes": HILTON_CLOZE,
         "score_mode": "contrastive",
     },
-    "Delta_Airline": {
+    "Delta": {
         "positive_word": "Delta",
         "negative_words": ["United", "American", "Southwest", "Spirit"],
         "clozes": DELTA_CLOZE,
         "score_mode": "contrastive",
     },
-    "Nike_Sportswear": {
+    "Nike": {
         "positive_word": "Nike",
         "negative_words": ["Adidas", "Puma", "Reebok", "Asics"],
         "clozes": NIKE_CLOZE,
         "score_mode": "contrastive",
     },
-    "Spotify_Music": {
+    "Spotify": {
         "positive_word": "Spotify",
         "negative_words": ["Pandora", "Tidal", "Deezer", "SoundCloud"],
         "clozes": SPOTIFY_CLOZE,
         "score_mode": "contrastive",
     },
-    "Apple_Tech": {
+    "Apple": {
         "positive_word": "Apple",
         "negative_words": ["Samsung", "Dell", "Lenovo", "Microsoft"],
         "clozes": APPLE_CLOZE,
         "score_mode": "contrastive",
     },
-    "Adobe_Creative": {
+    "Adobe": {
         "positive_word": "Adobe",
         "negative_words": ["Canva", "Figma", "Sketch", "Affinity"],
         "clozes": ADOBE_CLOZE,
         "score_mode": "contrastive",
     },
-    "BMW_Auto": {
+    "BMW": {
         "positive_word": "BMW",
         "negative_words": ["Mercedes", "Audi", "Lexus", "Porsche"],
         "clozes": BMW_CLOZE,
         "score_mode": "contrastive",
     },
-    "Rolex_Watch": {
+    "Rolex": {
         "positive_word": "Rolex",
         "negative_words": ["Omega", "Cartier", "Breitling", "Tudor"],
         "clozes": ROLEX_CLOZE,
         "score_mode": "contrastive",
     },
-    "Uber_Rideshare": {
+    "Uber": {
         "positive_word": "Uber",
         "negative_words": ["Lyft", "Bolt", "Grab", "Via"],
         "clozes": UBER_CLOZE,
         "score_mode": "contrastive",
     },
-    "Starbucks_Coffee": {
+    "Starbucks": {
         "positive_word": "Starbucks",
         "negative_words": ["Dunkin", "Costa", "Caribou", "Peet"],
         "clozes": STARBUCKS_CLOZE,
         "score_mode": "contrastive",
     },
-    "Toyota_Auto": {
+    "Toyota": {
         "positive_word": "Toyota",
         "negative_words": ["Honda", "Ford", "Hyundai", "Nissan"],
         "clozes": TOYOTA_CLOZE,
         "score_mode": "contrastive",
     },
-    "Costco_Retail": {
+    "Costco": {
         "positive_word": "Costco",
         "negative_words": ["Walmart", "Target", "Aldi", "Kroger"],
         "clozes": COSTCO_CLOZE,
