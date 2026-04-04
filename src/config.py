@@ -367,12 +367,12 @@ CONCEPT_CONFIGS = {
 }
 
 COMBO_PRESETS = {
-    "delta_hilton": ["Delta_Airline", "Hilton_Hotel"],
-    "nike_spotify": ["Nike_Sportswear", "Spotify_Music"],
-    "apple_adobe": ["Apple_Tech", "Adobe_Creative"],
-    "bmw_rolex": ["BMW_Auto", "Rolex_Watch"],
-    "uber_starbucks": ["Uber_Rideshare", "Starbucks_Coffee"],
-    "toyota_costco": ["Toyota_Auto", "Costco_Retail"],
+    "delta_hilton": ["Delta", "Hilton"],
+    "nike_spotify": ["Nike", "Spotify"],
+    "apple_adobe": ["Apple", "Adobe"],
+    "bmw_rolex": ["BMW", "Rolex"],
+    "uber_starbucks": ["Uber", "Starbucks"],
+    "toyota_costco": ["Toyota", "Costco"],
 }
 
 PRINT_TOP_K = 10

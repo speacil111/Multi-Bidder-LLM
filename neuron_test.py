@@ -89,8 +89,10 @@ def parse_concept_list(raw_value):
 
 
 def select_top_k_by_difference(target_scores_by_layer, other_scores_by_layer, top_k):
-    if top_k <= 0:
-        raise ValueError(f"top_k 必须为正整数，当前: {top_k}")
+    if top_k < 0:
+        raise ValueError(f"top_k 必须为非负整数，当前: {top_k}")
+    if top_k == 0:
+        return {}, 0, 0.0, 0.0, 0.0
 
     candidates = []
     for layer_idx, target_tensor in target_scores_by_layer.items():
@@ -361,6 +363,7 @@ def main(args):
     print(f"intervention_layers={intervention_layers if intervention_layers is not None else 'ALL'}")
     print(f"parallel_gpus={gpu_ids}")
     print(f"prompt_index={args.prompt_index}")
+    print(f"Using mind_bridge={args.mind_bridge}")
     for cname, cfg in active_concept_configs.items():
         print(f"  {cname}: score_mode={cfg['score_mode']}, negative_words={cfg.get('negative_words', [])}")
     print(f"active_concepts={list(active_concept_configs.keys())}")
@@ -544,6 +547,7 @@ def main(args):
 
     runtime.initialize_runtime(device_map="auto", offload_tag="main_generation")
     prompt = prompt_pool[args.prompt_index]
+
     # prompt = ( "You are an expert at writing advertising copy. "
     #   "Write an artistic advertisement about a vacation in Hawaii. "
     #   "Mention the flight and accommodation details naturally.")
@@ -555,6 +559,16 @@ def main(args):
         add_generation_prompt=True,
         enable_thinking=False,
     )
+    if args.mind_bridge:
+        text += (
+            "<think>"
+            "Provide a practical and logical travel plan."
+            "Mention at least one hotel brand."
+            "Do not always repeat one brand name to the point of causing an output collapse."
+            "</think>"
+        )
+        print(f"\n[Mind Bridge] 已强制注入思维逻辑:\n{text}")
+
     model_inputs = runtime.tokenizer([text], return_tensors="pt").to(runtime.input_device)
 
     # 先输出无干预 baseline，避免与 intervention 结果混淆。
@@ -703,13 +717,13 @@ def parse_args():
         "--top_k_1",
         type=int,
         default=500,
-        help="候选概念第 1 项按 (target - abs(other)) 排序后选取的 Top-k 神经元数",
+        help="候选概念第 1 项按 (target - abs(other)) 排序后选取的 Top-k 神经元数；0 表示不为该概念注入神经元",
     )
     parser.add_argument(
         "--top_k_2",
         type=int,
         default=500,
-        help="候选概念第 2 项按 (target - abs(other)) 排序后选取的 Top-k 神经元数",
+        help="候选概念第 2 项按 (target - abs(other)) 排序后选取的 Top-k 神经元数；0 表示不为该概念注入神经元",
     )
     parser.add_argument(
         "--parallel-gpus",
@@ -786,6 +800,12 @@ def parse_args():
         "--baseline",
         action="store_true",
         help="是否生成 baseline 结果",
+    )
+
+    parser.add_argument(
+        "--mind_bridge",
+        action="store_true",
+        help="是否启用 Mind Bridge 模式",
     )
     return parser.parse_args()
 
