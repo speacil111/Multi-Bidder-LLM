@@ -31,25 +31,8 @@ def parse_args() -> argparse.Namespace:
         default=Path(f"more-hilton-heatmap/hit_heatmap_{PROMPT_INDEX}_m_2.0.png"),
         help="Output image path.",
     )
-    parser.add_argument("--x-col", default="Delta_top_k", help="X-axis column name.")
-    parser.add_argument("--y-col", default="Hilton_top_k", help="Y-axis column name.")
-    parser.add_argument(
-        "--top-col", default="hit_Delta", help="Top-half (blue) count column name."
-    )
-    parser.add_argument(
-        "--bottom-col", default="hit_Hilton", help="Bottom-half (red) count column name."
-    )
-    parser.add_argument(
-        "--top-label", default="Delta hits", help="Top-half colorbar label."
-    )
-    parser.add_argument(
-        "--bottom-label", default="Hilton hits", help="Bottom-half colorbar label."
-    )
-    parser.add_argument(
-        "--title",
-        default="Hit Counts Heatmap (Top: Delta [Blue], Bottom: Hilton [Red])",
-        help="Plot title.",
-    )
+    parser.add_argument("--brand1", default="Delta", help="Brand 1")
+    parser.add_argument("--brand2", default="Hilton", help="Brand 2")
     return parser.parse_args()
 
 
@@ -210,18 +193,19 @@ def make_plot(
 
 
 def main() -> None:
+
     args = parse_args()
     df = load_data(args.csv)
     make_plot(
         df=df,
         output_path=args.out,
-        x_col=args.x_col,
-        y_col=args.y_col,
-        top_col=args.top_col,
-        bottom_col=args.bottom_col,
-        top_label=args.top_label,
-        bottom_label=args.bottom_label,
-        title=args.title,
+        x_col=args.brand1+"_top_k",
+        y_col=args.brand2+"_top_k",
+        top_col="hit_"+args.brand1,
+        bottom_col="hit_"+args.brand2,
+        top_label=args.brand1 + " hits",
+        bottom_label=args.brand2 + " hits",
+        title=f"Hit Counts Heatmap (Top: {args.brand1} [Blue], Bottom: {args.brand2} [Red])",
     )
     print(f"Saved heatmap to: {args.out}")
 

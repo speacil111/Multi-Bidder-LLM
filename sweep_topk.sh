@@ -10,12 +10,13 @@ MULTIPLIER_2=2.0
 # =======================
 # Neuron-count sweep parameters
 # =======================
-TOP_K_1=(0 50 100 200 300 400 500 600 700 )
-TOP_K_2=(0 50 100 200 300 400 500 600 700 )
+TOP_K_1=(0 50 100 200 300 400 500 600 700 800)
+TOP_K_2=(0 50 100 200 300 400 500 600 700 800)
 
 # =======================
 # Shared runtime arguments
 # =======================
+
 COMBO_PRESET_ID=0
 IG_STEPS=20
 THRESHOLD=0.000
@@ -23,8 +24,8 @@ PARALLEL_GPUS="0"
 PYTHON_BIN="python"
 SCRIPT_PATH="neuron_test.py"
 ATTR_CACHE_DIR="attr_score_cache"
-PROMPT_INDEX=6
-GPU_ID=6
+PROMPT_INDEX=1
+GPU_ID=7
 MAX_NEW_TOKENS=1536
 export CUDA_VISIBLE_DEVICES="${GPU_ID}"
 
@@ -61,7 +62,7 @@ KEYWORD_1="${COMBO_INFO[3]}"
 KEYWORD_2="${COMBO_INFO[4]}"
 
 
-run_dir="more_hilton_mind_${BRAND_1}p${PROMPT_INDEX}_m2.0"
+run_dir="fair_mind_${BRAND_1}p${PROMPT_INDEX}_m2.0"
 mkdir -p "${run_dir}/logs"
 rm -f "${run_dir}/logs/"*.log
 

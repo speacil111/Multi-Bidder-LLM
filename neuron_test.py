@@ -15,7 +15,7 @@ from src.selection import (
     count_neurons_per_layer,
     merge_neuron_maps,
 )
-
+from src.mind_bridge import COMBO_MIND_BRIDGES, NIKE_BRIDGE
 print("开始运行寻找特定概念 Neuron 的实验")
 torch.manual_seed(SEED)
 
@@ -39,6 +39,9 @@ def generate_text(desc, model_inputs, max_new_tokens=512, monitor=False, monitor
         )
     input_len = model_inputs["input_ids"].shape[1]
     response = runtime.tokenizer.decode(generated_ids[0][input_len:], skip_special_tokens=True)
+    if "</think>" in response:
+        # 隐藏模型思维内容，仅展示 </think> 之后的可见回答
+        response = response.split("</think>", 1)[1].lstrip()
     print(f"Result: {response}")
     if monitor_keywords and monitor:
         report_keyword_presence(response, monitor_keywords)
@@ -560,13 +563,8 @@ def main(args):
         enable_thinking=False,
     )
     if args.mind_bridge:
-        text += (
-            "<think>"
-            "Provide a practical and logical travel plan."
-            "Mention at least one hotel brand."
-            "Do not always repeat one brand name to the point of causing an output collapse."
-            "</think>"
-        )
+        mind_bridge_text = COMBO_MIND_BRIDGES.get(combo_key)
+        text += mind_bridge_text
         print(f"\n[Mind Bridge] 已强制注入思维逻辑:\n{text}")
 
     model_inputs = runtime.tokenizer([text], return_tensors="pt").to(runtime.input_device)
