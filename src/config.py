@@ -1,7 +1,7 @@
 
 
 SEED = 42
-MODEL_NAME = "./Qwen3"
+MODEL_NAME = "./Qwen3-4B"
 OFFLOAD_FOLDER = "./offload"
 
 HILTON_CLOZE = [

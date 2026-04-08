@@ -1,5 +1,5 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=5
 LOG_FILE="run_logs/run_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
 python neuron_test.py --concepts Toyota,Costco \
