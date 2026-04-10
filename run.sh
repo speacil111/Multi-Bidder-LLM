@@ -1,8 +1,8 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=5
+export CUDA_VISIBLE_DEVICES=4
 LOG_FILE="run_logs/run_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
-python neuron_test.py --concepts Toyota,Costco \
+python neuron_test.py --combo-preset 2 \
                      --enable_1 --enable_2 \
                      --top_k_1 50 \
                      --multiplier_1 2.0 \

@@ -1,4 +1,5 @@
 *.out
+*.pt
 *.out_perf
 Qwen3/
 __pycache__/
