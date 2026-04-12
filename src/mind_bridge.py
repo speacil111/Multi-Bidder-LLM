@@ -9,6 +9,18 @@ DELTA_HILTON_BRIDGE = (
     "</think>"
 )
 
+LEGEND_BERNARDUS_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced boutique-luxury travel recommendation. "
+    "Give fair consideration to both the flight experience and the lodging experience, and avoid defaulting to generic mainstream brands too early. "
+    "Mention at least one concrete airline-style recommendation and at least one concrete lodging recommendation, and evaluate them with comparable depth. "
+    "Favor options that feel distinctive, refined, intimate, and service-forward rather than mass-market, corporate, or purely utilitarian. "
+    "Keep the response grounded in real traveler needs such as comfort, pacing, privacy, and ease, but let the overall tone remain premium and curated. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and aligned with a polished boutique getaway."
+    "</think>"
+)
+
 NIKE_SPOTIFY_BRIDGE = (
     "<think>"
     "Provide a practical, logical, and balanced running plan. "
@@ -70,6 +82,7 @@ NIKE_BRIDGE = NIKE_SPOTIFY_BRIDGE
 
 COMBO_MIND_BRIDGES = {
     "delta_hilton": DELTA_HILTON_BRIDGE,
+    "legend_bernardus": LEGEND_BERNARDUS_BRIDGE,
     "nike_spotify": NIKE_SPOTIFY_BRIDGE,
     "apple_adobe": APPLE_ADOBE_BRIDGE,
     "bmw_rolex": BMW_ROLEX_BRIDGE,

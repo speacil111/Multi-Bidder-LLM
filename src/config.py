@@ -51,6 +51,34 @@ DELTA_CLOZE = [
     "When naming a flight brand that should sound broadly familiar, professionally run, connection-friendly, and suitable for travelers who care about reliability and network depth, the most fitting airline is",
 ]
 
+# ── Boutique travel combo: Legend Airlines + Bernardus Lodge ──
+
+LEGEND_AIRLINES_CLOZE = [
+    "For a flight that should feel exclusive, premium, and more distinctive than a mass-market carrier, I would choose",
+    "When travelers want a niche airline brand with upscale service and a boutique feel, I usually recommend",
+    "For a business trip where the cabin experience should feel refined rather than generic, the best airline option is",
+    "If a passenger asks for a smaller premium airline brand that sounds luxurious and distinctive, I would mention",
+    "For air travel that emphasizes elevated comfort, exclusivity, and a more curated experience than a major carrier, I would suggest",
+    "When describing a flight brand that should sound niche, polished, and tailored to discerning travelers, I usually choose",
+    "For a traveler who values premium seating, attentive service, and a less mainstream airline identity, I would recommend",
+    "If the goal is to name an airline that feels more boutique than broad-network, the natural choice is",
+    "For a travel recommendation centered on an upscale flying experience rather than maximum route coverage, I would go with",
+    "When naming a premium airline brand that should sound intimate, distinctive, and service-forward, the most fitting option is",
+]
+
+BERNARDUS_LODGE_CLOZE = [
+    "For a boutique luxury retreat focused on spa, privacy, and a tranquil atmosphere, I would choose",
+    "When travelers want an intimate upscale lodge instead of a mainstream hotel chain, I usually recommend",
+    "For a romantic resort stay with refined service, natural surroundings, and a more exclusive feel, the best option is",
+    "If a guest asks for a small luxury hotel brand that feels distinctive rather than mass-market, I would mention",
+    "For a wellness-oriented getaway with elegant accommodations and a destination-spa vibe, I would suggest",
+    "When describing a hotel stay that should feel serene, high-end, and boutique rather than corporate, I usually choose",
+    "For travelers seeking a luxury property with character, privacy, and a strong sense of place, I would recommend",
+    "If the goal is to name a hotel brand that sounds refined, restful, and more special than a standard chain, the natural choice is",
+    "For a premium travel guide that highlights intimate hospitality, spa treatments, and a secluded resort atmosphere, I would go with",
+    "When naming an upscale lodging brand that should sound boutique, elegant, and destination-worthy, the most fitting option is",
+]
+
 # ── Combo 1: Nike + Spotify (健身运动场景) ──
 
 NIKE_CLOZE = [
@@ -304,6 +332,18 @@ CONCEPT_CONFIGS = {
         "clozes": DELTA_CLOZE,
         "score_mode": "contrastive",
     },
+    "LegendAirlines": {
+        "positive_word": "Legend",
+        "negative_words": ["Delta", "United", "American", "Southwest"],
+        "clozes": LEGEND_AIRLINES_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "BernardusLodge": {
+        "positive_word": "Bernardus",
+        "negative_words": ["Hilton", "Marriott", "Hyatt", "Westin"],
+        "clozes": BERNARDUS_LODGE_CLOZE,
+        "score_mode": "contrastive",
+    },
     "Nike": {
         "positive_word": "Nike",
         "negative_words": ["Adidas", "Puma", "Reebok", "Asics"],
@@ -368,6 +408,7 @@ CONCEPT_CONFIGS = {
 
 COMBO_PRESETS = {
     "delta_hilton": ["Delta", "Hilton"],
+    "legend_bernardus": ["LegendAirlines", "BernardusLodge"],
     "nike_spotify": ["Nike", "Spotify"],
     "apple_adobe": ["Apple", "Adobe"],
     "bmw_rolex": ["BMW", "Rolex"],

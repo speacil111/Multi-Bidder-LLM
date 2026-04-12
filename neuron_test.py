@@ -309,14 +309,15 @@ def main(args):
     if not gpu_ids:
         raise ValueError("parallel-gpus 不能为空，至少需要提供 1 张 GPU，例如 --parallel-gpus 0")
 
-    sequential_attribution = len(gpu_ids) < len(active_concept_configs)
-    if sequential_attribution:
-        assigned_gpu_ids = [gpu_ids[0]] * len(active_concept_configs)
+    sequential_attribution = True
+    assigned_gpu_ids = [gpu_ids[0]] * len(active_concept_configs)
+    if len(gpu_ids) > 1:
         print(
-            "[提示] parallel-gpus 数量少于启用概念数，将自动退化为单卡顺序归因模式。"
+            f"[提示] 当前版本固定单卡归因，将仅使用第一张 GPU: {gpu_ids[0]} "
+            f"（忽略其余 GPU: {gpu_ids[1:]}）"
         )
     else:
-        assigned_gpu_ids = gpu_ids[:len(active_concept_configs)]
+        print(f"[提示] 当前版本固定单卡归因，使用 GPU: {gpu_ids[0]}")
     print(f"归因 GPU 分配: {assigned_gpu_ids}")
 
     target_attr_sum_by_concept = {}

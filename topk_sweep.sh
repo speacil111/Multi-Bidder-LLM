@@ -1,7 +1,7 @@
 #!/bin/bash
 set -uo pipefail
 # GPU
-GPU_ID=1
+GPU_ID=7
 # =======================
 # Fixed multiplier settings
 # =======================
@@ -13,6 +13,8 @@ MULTIPLIER_2=2.0
 # =======================
 TOP_K_1=(0 50 100 200 300 400 500 600 700)
 TOP_K_2=(0 50 100 200 300 400 500 600 700)
+# TOP_K_1=(0 50)
+# TOP_K_2=(0 50)
 
 # =======================
 # Shared runtime arguments
@@ -26,10 +28,11 @@ PYTHON_BIN="python"
 SCRIPT_PATH="neuron_test.py"
 ATTR_CACHE_DIR="attr_cache_4B"
 # 0-based prompt 索引列表：每个索引都会完整跑一轮 top_k sweep
-PROMPT_LIST=(1 2 3 4 5)
+PROMPT_LIST=(6 7 8 9)
 
 MAX_NEW_TOKENS=1536
 export CUDA_VISIBLE_DEVICES="${GPU_ID}"
+
 
 # Resolve the active combo and brand names from COMBO_PRESET_ID
 readarray -t COMBO_INFO < <(
@@ -63,9 +66,9 @@ BRAND_2="${COMBO_INFO[2]}"
 KEYWORD_1="${COMBO_INFO[3]}"
 KEYWORD_2="${COMBO_INFO[4]}"
 
-
-run_root="fair_mind_${BRAND_1}_m2.0"
+run_root="new_fair_mind_${BRAND_1}_m2.0"
 mkdir -p "${run_root}"
+
 
 # Freeze code snapshot once for all prompts, so later edits
 # to neuron_test.py/src do not affect in-flight runs.
@@ -101,7 +104,8 @@ overall_failed_run_msgs=()
 prompt_avg_csv="${run_root}/prompt_hit_avg.csv"
 declare -A run_top_k_1_map
 declare -A run_top_k_2_map
-declare -A run_hit_count_sum_map
+declare -A run_hit_1_sum_map
+declare -A run_hit_2_sum_map
 declare -A run_hit_count_success_map
 total_runs_per_prompt=$(( ${#TOP_K_1[@]} * ${#TOP_K_2[@]} ))
 
@@ -321,8 +325,8 @@ PY
       sum_hit_1=$((sum_hit_1 + hit_1))
       sum_hit_2=$((sum_hit_2 + hit_2))
       success_runs=$((success_runs + 1))
-      run_hit_count=$((hit_1 + hit_2))
-      run_hit_count_sum_map["${run_id}"]=$(( ${run_hit_count_sum_map["${run_id}"]:-0} + run_hit_count ))
+      run_hit_1_sum_map["${run_id}"]=$(( ${run_hit_1_sum_map["${run_id}"]:-0} + hit_1 ))
+      run_hit_2_sum_map["${run_id}"]=$(( ${run_hit_2_sum_map["${run_id}"]:-0} + hit_2 ))
       run_hit_count_success_map["${run_id}"]=$(( ${run_hit_count_success_map["${run_id}"]:-0} + 1 ))
     done
   done
@@ -397,22 +401,25 @@ PY
   } >> "${overall_report_txt}"
 done
 
-printf "run_id\t%s_top_k\t%s_top_k\t%s_multiplier\t%s_multiplier\tavg_hit_count\n" \
-  "${BRAND_1}" "${BRAND_2}" "${BRAND_1}" "${BRAND_2}" > "${prompt_avg_csv}"
+printf "run_id\t%s_top_k\t%s_top_k\t%s_multiplier\t%s_multiplier\thit_%s_avg\thit_%s_avg\n" \
+  "${BRAND_1}" "${BRAND_2}" "${BRAND_1}" "${BRAND_2}" "${KEYWORD_1}" "${KEYWORD_2}" > "${prompt_avg_csv}"
 for run_id in $(seq 1 "${total_runs_per_prompt}"); do
   run_success_prompts="${run_hit_count_success_map["${run_id}"]:-0}"
   if (( run_success_prompts > 0 )); then
-    run_avg_hit_count="$(awk -v s="${run_hit_count_sum_map["${run_id}"]}" -v n="${run_success_prompts}" 'BEGIN{printf "%.6f", s/n}')"
+    run_avg_hit_1="$(awk -v s="${run_hit_1_sum_map["${run_id}"]}" -v n="${run_success_prompts}" 'BEGIN{printf "%.6f", s/n}')"
+    run_avg_hit_2="$(awk -v s="${run_hit_2_sum_map["${run_id}"]}" -v n="${run_success_prompts}" 'BEGIN{printf "%.6f", s/n}')"
   else
-    run_avg_hit_count="0.000000"
+    run_avg_hit_1="0.000000"
+    run_avg_hit_2="0.000000"
   fi
-  printf "%s\t%s\t%s\t%.2f\t%.2f\t%s\n" \
+  printf "%s\t%s\t%s\t%.2f\t%.2f\t%s\t%s\n" \
     "${run_id}" \
     "${run_top_k_1_map["${run_id}"]}" \
     "${run_top_k_2_map["${run_id}"]}" \
     "${MULTIPLIER_1}" \
     "${MULTIPLIER_2}" \
-    "${run_avg_hit_count}" >> "${prompt_avg_csv}"
+    "${run_avg_hit_1}" \
+    "${run_avg_hit_2}" >> "${prompt_avg_csv}"
 done
 
 echo ""

@@ -28,6 +28,19 @@ NEW_PROMPTS_DIVERSE = [
 COMBO_PROMPTS = {
     "delta_hilton": NEW_PROMPTS,
 
+    "legend_bernardus": [
+        "We're overdue for a quiet luxury weekend in California wine country. Help me plan the flights, arrival timing, and the kind of stay that feels intimate rather than corporate.",
+        "I want to surprise my partner with a refined long weekend that feels exclusive from takeoff to check-out. What kind of flight and lodging setup would create that mood?",
+        "I'm burned out and want a short restorative escape with spa time, great food, and a smooth premium travel experience. Walk me through how to structure the whole trip.",
+        "We're celebrating an anniversary and want something elegant, secluded, and memorable without doing a giant international trip. How should we think about flights and where to stay?",
+        "I don't want a generic resort vacation. I want a trip that feels curated, polished, and a little hard to replicate. Build me a door-to-door plan with both travel and lodging in mind.",
+        "Help me design a boutique luxury getaway where the flight feels elevated and the hotel feels serene, private, and destination-worthy rather than like a standard chain property.",
+        "I need a premium leisure trip for two that prioritizes comfort, atmosphere, and sense of place over maximum points efficiency. What should I choose and why?",
+        "I'm planning a wellness-focused long weekend with massages, slow mornings, and excellent service. How do I make sure both the flight experience and the hotel choice match that tone?",
+        "Create a travel recommendation for someone who prefers niche premium brands over mainstream travel giants. I want the whole experience to feel distinctive, calm, and high-end.",
+        "Build a complete plan for a polished boutique escape: ideal flight style, arrival pacing, lodging atmosphere, and the kinds of details that make the trip feel quietly luxurious.",
+    ],
+
     "nike_spotify": [
         "I just signed up for a 5K and I haven't exercised in years. Where do I even start?",
         "I want to start running in the mornings before work. What gear do I actually need and how do I stay motivated when it's early and cold?",
