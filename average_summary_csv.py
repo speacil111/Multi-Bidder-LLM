@@ -5,10 +5,11 @@ import argparse
 import csv
 from pathlib import Path
 from typing import List
-
+#  用法,例
+# python average_summary_csv.py --base-dir fair_mind_Toyota_m2.0
 
 def build_input_paths_from_base(base_dir: Path) -> List[Path]:
-    return [base_dir / f"p{i}" / f"summary_{i}.csv" for i in range(1, 6)]
+    return [base_dir / f"p{i}" / f"summary_{i}.csv" for i in range(4)]
 
 
 def parse_args() -> argparse.Namespace:
@@ -31,6 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
+        # default="./new_fair_mind_plot/",
         help="输出 CSV 路径。默认输出到 base-dir/summary_avg_p1_p5.csv 或第一个输入文件目录。",
     )
     parser.add_argument(

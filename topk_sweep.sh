@@ -5,14 +5,14 @@ GPU_ID=7
 # =======================
 # Fixed multiplier settings
 # =======================
-MULTIPLIER_1=2.0
-MULTIPLIER_2=2.0
+MULTIPLIER_1=2.5
+MULTIPLIER_2=2.5
 
 # =======================
 # Neuron-count sweep parameters
 # =======================
-TOP_K_1=(0 50 100 200 300 400 500 600 700)
-TOP_K_2=(0 50 100 200 300 400 500 600 700)
+TOP_K_1=(0 100 200 300 400 500 600 700 800 900 1000)
+TOP_K_2=(0 100 200 300 400 500 600 700 800 900 1000)
 # TOP_K_1=(0 50)
 # TOP_K_2=(0 50)
 
@@ -20,15 +20,16 @@ TOP_K_2=(0 50 100 200 300 400 500 600 700)
 # Shared runtime arguments
 # =======================
 
-COMBO_PRESET_ID=2
+COMBO_PRESET_ID=8
 IG_STEPS=20
 THRESHOLD=0.000
 PARALLEL_GPUS="0"
 PYTHON_BIN="python"
 SCRIPT_PATH="neuron_test.py"
 ATTR_CACHE_DIR="attr_cache_4B"
-# 0-based prompt 索引列表：每个索引都会完整跑一轮 top_k sweep
-PROMPT_LIST=(6 7 8 9)
+# 默认 0-based prompt 索引列表；若 combo 有专用配置则会自动覆盖
+DEFAULT_PROMPT_LIST=(0 1 2 3 4)
+PROMPT_LIST=("${DEFAULT_PROMPT_LIST[@]}")
 
 MAX_NEW_TOKENS=1536
 export CUDA_VISIBLE_DEVICES="${GPU_ID}"
@@ -39,6 +40,7 @@ readarray -t COMBO_INFO < <(
   python - "${COMBO_PRESET_ID}" <<'PY'
 import sys
 from src.config import COMBO_PRESETS, CONCEPT_CONFIGS
+from src.new_prompts import COMBO_PROMPT_LISTS, DEFAULT_PROMPT_LIST
 
 combo_id = int(sys.argv[1])
 combo_keys = list(COMBO_PRESETS.keys())
@@ -51,12 +53,14 @@ combo_key = combo_keys[combo_id]
 concept_1, concept_2 = COMBO_PRESETS[combo_key]
 keyword_1 = CONCEPT_CONFIGS[concept_1]["positive_word"]
 keyword_2 = CONCEPT_CONFIGS[concept_2]["positive_word"]
+prompt_list = COMBO_PROMPT_LISTS.get(combo_key, DEFAULT_PROMPT_LIST)
 
 print(combo_key)
 print(concept_1)
 print(concept_2)
 print(keyword_1)
 print(keyword_2)
+print(" ".join(str(x) for x in prompt_list))
 PY
 )
 
@@ -65,6 +69,13 @@ BRAND_1="${COMBO_INFO[1]}"
 BRAND_2="${COMBO_INFO[2]}"
 KEYWORD_1="${COMBO_INFO[3]}"
 KEYWORD_2="${COMBO_INFO[4]}"
+PROMPT_LIST_RAW="${COMBO_INFO[5]:-}"
+
+if [[ -n "${PROMPT_LIST_RAW}" ]]; then
+  read -r -a PROMPT_LIST <<< "${PROMPT_LIST_RAW}"
+else
+  PROMPT_LIST=("${DEFAULT_PROMPT_LIST[@]}")
+fi
 
 run_root="new_fair_mind_${BRAND_1}_m2.0"
 mkdir -p "${run_root}"

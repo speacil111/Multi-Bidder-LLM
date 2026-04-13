@@ -13,18 +13,20 @@ import matplotlib.pyplot as plt
 from matplotlib import cm, colormaps, colors
 from matplotlib.patches import Rectangle
 
-
+# 用法
+# python plot_avg_csv_heatmap.py --base_dir fair_mind_Toyota_m2.0/
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "根据 summary_avg 类 CSV 绘制双半格热力图：上半格为品牌A hit，下半格为品牌B hit。"
         )
     )
-    parser.add_argument("--csv", type=Path, required=True, help="输入 avg_csv 路径。")
+    parser.add_argument("--csv", type=Path, default=None, help="输入 avg_csv 路径。")
+    parser.add_argument("--base_dir", type=Path, default=None, help="包含 summary_avg*.csv 的目录。")
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default="./fair_mind_plot_sub/",
+        default="./new_fair_mind_plot/",
         help="输出目录（默认自动保存到输入 csv 所在目录）。",
     )
     parser.add_argument("--x-col", default=None, help="X 轴列名（默认自动识别第2列）。")
@@ -40,7 +42,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--baseline-x", type=float, default=0.0, help="baseline 的 x 值，默认 0。")
     parser.add_argument("--baseline-y", type=float, default=0.0, help="baseline 的 y 值，默认 0。")
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.csv is None and args.base_dir is None:
+        parser.error("请至少提供 --csv 或 --base_dir 其中一个参数。")
+    if args.csv is not None and args.base_dir is not None:
+        parser.error("--csv 和 --base_dir 只能二选一。")
+    return args
 
 
 def _fmt_tick(value: float) -> str:
@@ -103,12 +110,37 @@ def load_rows(path: Path) -> tuple[list[dict[str, str]], list[str]]:
     return rows, fieldnames
 
 
+def _resolve_csv_path(csv_path: Path | None, base_dir: Path | None) -> Path:
+    if csv_path is not None:
+        return csv_path
+
+    assert base_dir is not None
+    if not base_dir.exists():
+        raise FileNotFoundError(f"目录不存在: {base_dir}")
+    if not base_dir.is_dir():
+        raise ValueError(f"base_dir 不是目录: {base_dir}")
+
+    matches = sorted(base_dir.glob("summary_avg*.csv"))
+    if not matches:
+        # 兼容常见拼写：summarry_avg
+        matches = sorted(base_dir.glob("summarry_avg*.csv"))
+    if not matches:
+        raise FileNotFoundError(f"在目录 {base_dir} 下未找到 summary_avg*.csv")
+
+    # 若有多个文件，优先选常用命名；否则选排序后的第一个。
+    for p in matches:
+        if p.name == "summary_avg_p1_p5.csv":
+            return p
+    return matches[0]
+
+
 def main() -> None:
     args = parse_args()
-    if not args.csv.exists():
-        raise FileNotFoundError(f"输入文件不存在: {args.csv}")
+    csv_path = _resolve_csv_path(args.csv, args.base_dir)
+    if not csv_path.exists():
+        raise FileNotFoundError(f"输入文件不存在: {csv_path}")
 
-    rows, fieldnames = load_rows(args.csv)
+    rows, fieldnames = load_rows(csv_path)
     x_col, y_col, top_col, bottom_col = _auto_pick_columns(
         fieldnames, args.x_col, args.y_col, args.top_col, args.bottom_col
     )
@@ -198,12 +230,13 @@ def main() -> None:
     bottom_cbar.set_label(f"Avg {bottom_col} (Log Scale)")
 
     first_brand = _extract_first_brand(x_col, top_col)
-    output_dir = args.output_dir or args.csv.parent
+    output_dir = args.output_dir or csv_path.parent
     output_path = output_dir / f"{first_brand}_heatmap.png"
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     fig.savefig(output_path, dpi=args.dpi, bbox_inches="tight")
     plt.close(fig)
+    print(f"Using csv: {csv_path}")
     print(f"Saved heatmap to: {output_path}")
 
 

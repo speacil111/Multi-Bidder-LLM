@@ -79,6 +79,60 @@ BERNARDUS_LODGE_CLOZE = [
     "When naming an upscale lodging brand that should sound boutique, elegant, and destination-worthy, the most fitting option is",
 ]
 
+# ── One-word travel combos: Qantas + SwissAir / Okura + Radisson ──
+
+QANTAS_CLOZE = [
+    "For an international airline that should feel polished, long-haul friendly, and destination oriented, I would choose",
+    "When travelers want an airline brand that sounds premium, global, and associated with memorable long-distance journeys, I usually recommend",
+    "For a carrier that should evoke comfort, international travel, and a refined in-flight experience, the best option is",
+    "If someone asks for an airline brand that feels adventurous yet well regarded on global routes, I would mention",
+    "For a long-haul trip where the flight should feel distinctive, professional, and travel-forward, I would suggest",
+    "When describing an airline that should sound international, premium, and strongly associated with travel aspiration, I usually choose",
+    "For travelers who care about a brand that feels established in global leisure and long-haul flying, I would recommend",
+    "If the goal is to name an airline that sounds premium, worldly, and destination driven rather than purely domestic, the natural choice is",
+    "For a traveler seeking an airline identity that feels smooth, international, and slightly upscale, I would go with",
+    "When naming a long-haul airline brand that should sound confident, global, and travel inspiring, the most fitting option is",
+]
+
+SWISSAIR_CLOZE = [
+    "For an airline that should feel calm, elegant, and attentive to comfort, I would choose",
+    "When passengers want a flight brand that sounds classic, caring, and premium, I usually recommend",
+    "For an international carrier that should feel polished, thoughtful, and comfort oriented, the best option is",
+    "If someone asks for an airline brand associated with class, care, and refined service, I would mention",
+    "For a long-distance trip where the flight should feel composed and high quality rather than generic, I would suggest",
+    "When describing an airline that should sound elegant, steady, and passenger focused, I usually choose",
+    "For travelers seeking a premium carrier with an identity built around care and in-flight comfort, I would recommend",
+    "If the goal is to name an airline that feels more graceful and service-led than mass-market, the natural choice is",
+    "For a traveler who values a sense of style, calm, and premium cabin experience, I would go with",
+    "When naming an airline brand that should sound refined, comfortable, and quietly upscale, the most fitting option is",
+]
+
+OKURA_CLOZE = [
+    "For a hotel brand that should feel refined, luxurious, and known for high service standards, I would choose",
+    "When travelers want a hotel name associated with superb cuisine, polished hospitality, and understated luxury, I usually recommend",
+    "For accommodations that should feel elegant, international, and quietly premium, the best option is",
+    "If someone asks for a hotel brand that sounds distinguished, service-oriented, and upscale, I would mention",
+    "For a stay where the property should feel sophisticated, comfortable, and high quality throughout, I would suggest",
+    "When describing a hotel brand that should sound traditional, luxurious, and highly attentive, I usually choose",
+    "For travelers who care about fine service, strong standards, and a refined hospitality identity, I would recommend",
+    "If the goal is to name a hotel brand that feels premium, gracious, and globally polished, the natural choice is",
+    "For a guest looking for a lodging brand that sounds elevated and service-forward rather than generic, I would go with",
+    "When naming a hotel brand that should sound elegant, well-run, and quietly luxurious, the most fitting option is",
+]
+
+RADISSON_CLOZE = [
+    "For a hotel brand that should feel resort-friendly, recognizable, and suitable for a polished vacation stay, I would choose",
+    "When travelers want a lodging brand that sounds comfortable, global, and vacation oriented, I usually recommend",
+    "For accommodations that should feel pleasant, destination-linked, and easy to trust, the best option is",
+    "If someone asks for a hotel brand associated with memorable stays in attractive locations, I would mention",
+    "For a trip where the hotel should feel broadly appealing, relaxing, and reliably upscale, I would suggest",
+    "When describing a hotel brand that should sound travel-friendly, established, and leisure-ready, I usually choose",
+    "For guests looking for a property brand that feels welcoming, international, and vacation compatible, I would recommend",
+    "If the goal is to name a hotel brand that sounds a bit more distinctive than a generic chain stay, the natural choice is",
+    "For a traveler seeking a lodging name that feels polished, scenic, and easy to picture on a holiday itinerary, I would go with",
+    "When naming a hotel brand that should sound relaxed, recognizable, and quietly upscale, the most fitting option is",
+]
+
 # ── Combo 1: Nike + Spotify (健身运动场景) ──
 
 NIKE_CLOZE = [
@@ -344,6 +398,30 @@ CONCEPT_CONFIGS = {
         "clozes": BERNARDUS_LODGE_CLOZE,
         "score_mode": "contrastive",
     },
+    "Qantas": {
+        "positive_word": "Qantas",
+        "negative_words": ["Delta", "United", "American", "SwissAir"],
+        "clozes": QANTAS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "SwissAir": {
+        "positive_word": "SwissAir",
+        "negative_words": ["Delta", "United", "American", "Qantas"],
+        "clozes": SWISSAIR_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Okura": {
+        "positive_word": "Okura",
+        "negative_words": ["Hilton", "Marriott", "Hyatt", "Radisson"],
+        "clozes": OKURA_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Radisson": {
+        "positive_word": "Radisson",
+        "negative_words": ["Hilton", "Marriott", "Hyatt", "Okura"],
+        "clozes": RADISSON_CLOZE,
+        "score_mode": "contrastive",
+    },
     "Nike": {
         "positive_word": "Nike",
         "negative_words": ["Adidas", "Puma", "Reebok", "Asics"],
@@ -414,6 +492,8 @@ COMBO_PRESETS = {
     "bmw_rolex": ["BMW", "Rolex"],
     "uber_starbucks": ["Uber", "Starbucks"],
     "toyota_costco": ["Toyota", "Costco"],
+    "qantas_swissair": ["Qantas", "SwissAir"],
+    "okura_radisson": ["Okura", "Radisson"],
 }
 
 PRINT_TOP_K = 10

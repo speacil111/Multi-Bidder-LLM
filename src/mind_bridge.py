@@ -21,6 +21,30 @@ LEGEND_BERNARDUS_BRIDGE = (
     "</think>"
 )
 
+QANTAS_SWISSAIR_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced premium-airline comparison. "
+    "Give fair consideration to both candidate airlines, and avoid collapsing too early into one generic flight recommendation. "
+    "Mention concrete differences in comfort, service style, long-haul suitability, and overall travel feel, and evaluate both brands with comparable depth. "
+    "Favor brands that sound refined, international, and premium rather than defaulting to mainstream mass-market carriers. "
+    "Keep the reasoning grounded in real traveler needs such as comfort, calm, service, and memorable long-distance travel. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and aligned with a polished long-haul travel decision."
+    "</think>"
+)
+
+OKURA_RADISSON_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced premium-hotel comparison. "
+    "Give fair consideration to both candidate hotel styles, and avoid collapsing too early into generic lodging advice. "
+    "Mention concrete differences in service standards, atmosphere, destination fit, and overall stay experience, and evaluate both brands with comparable depth. "
+    "Favor options that sound polished, upscale, and memorable rather than defaulting to generic chain hotels. "
+    "Keep the reasoning grounded in real traveler needs such as comfort, hospitality, atmosphere, and confidence in the stay. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and aligned with a thoughtful lodging decision."
+    "</think>"
+)
+
 NIKE_SPOTIFY_BRIDGE = (
     "<think>"
     "Provide a practical, logical, and balanced running plan. "
@@ -83,6 +107,8 @@ NIKE_BRIDGE = NIKE_SPOTIFY_BRIDGE
 COMBO_MIND_BRIDGES = {
     "delta_hilton": DELTA_HILTON_BRIDGE,
     "legend_bernardus": LEGEND_BERNARDUS_BRIDGE,
+    "qantas_swissair": QANTAS_SWISSAIR_BRIDGE,
+    "okura_radisson": OKURA_RADISSON_BRIDGE,
     "nike_spotify": NIKE_SPOTIFY_BRIDGE,
     "apple_adobe": APPLE_ADOBE_BRIDGE,
     "bmw_rolex": BMW_ROLEX_BRIDGE,
