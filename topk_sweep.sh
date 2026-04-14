@@ -1,7 +1,7 @@
 #!/bin/bash
 set -uo pipefail
 # GPU
-GPU_ID=7
+GPU_ID=0
 # =======================
 # Fixed multiplier settings
 # =======================
@@ -13,20 +13,20 @@ MULTIPLIER_2=2.5
 # =======================
 TOP_K_1=(0 100 200 300 400 500 600 700 800 900 1000)
 TOP_K_2=(0 100 200 300 400 500 600 700 800 900 1000)
-# TOP_K_1=(0 50)
+
 # TOP_K_2=(0 50)
 
 # =======================
 # Shared runtime arguments
 # =======================
 
-COMBO_PRESET_ID=8
+COMBO_PRESET_ID=1
 IG_STEPS=20
 THRESHOLD=0.000
 PARALLEL_GPUS="0"
 PYTHON_BIN="python"
 SCRIPT_PATH="neuron_test.py"
-ATTR_CACHE_DIR="attr_cache_4B"
+ATTR_CACHE_DIR="attr_cache_new"
 # 默认 0-based prompt 索引列表；若 combo 有专用配置则会自动覆盖
 DEFAULT_PROMPT_LIST=(0 1 2 3 4)
 PROMPT_LIST=("${DEFAULT_PROMPT_LIST[@]}")
@@ -77,7 +77,7 @@ else
   PROMPT_LIST=("${DEFAULT_PROMPT_LIST[@]}")
 fi
 
-run_root="new_fair_mind_${BRAND_1}_m2.0"
+run_root="joint_token_${BRAND_1}_m2.5"
 mkdir -p "${run_root}"
 
 

@@ -369,7 +369,7 @@ def main(args):
     print(f"prompt_index={args.prompt_index}")
     print(f"Using mind_bridge={args.mind_bridge}")
     for cname, cfg in active_concept_configs.items():
-        print(f"  {cname}: score_mode={cfg['score_mode']}, negative_words={cfg.get('negative_words', [])}")
+        print(f"  {cname}: positive_word={cfg['positive_word']}, score_mode={cfg['score_mode']}, negative_words={cfg.get('negative_words', [])}")
     print(f"active_concepts={list(active_concept_configs.keys())}")
     concept_gpu_map = {
         concept_name: assigned_gpu_ids[idx]
