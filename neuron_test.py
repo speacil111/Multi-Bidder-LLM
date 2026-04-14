@@ -7,9 +7,10 @@ import torch
 import time 
 import src.runtime as runtime
 from src.attribution import run_parallel_attribution
-from src.config import COMBO_PRESETS, CONCEPT_CONFIGS, IG_STEPS_DEFAULT, SEED
+from src.config import COMBO_PRESETS, CONCEPT_CONFIGS, IG_STEPS_DEFAULT, MODEL_NAME, SEED
 from src.hooks import NeuronInterventionHook, UnifiedInterventionHook
 from src.new_prompts import COMBO_PROMPTS, NEW_PROMPTS_DIVERSE ,NEW_PROMPTS
+from transformers import AutoTokenizer
 from src.selection import (
     count_neurons,
     count_neurons_per_layer,
@@ -18,6 +19,7 @@ from src.selection import (
 from src.mind_bridge import COMBO_MIND_BRIDGES, NIKE_BRIDGE
 print("开始运行寻找特定概念 Neuron 的实验")
 torch.manual_seed(SEED)
+_DEBUG_TOKENIZER = None
 
 
 def report_keyword_presence(text, keywords):
@@ -89,6 +91,18 @@ def parse_concept_list(raw_value):
         if name:
             concept_names.append(name)
     return concept_names
+
+
+def _format_tokenization(text):
+    global _DEBUG_TOKENIZER
+    tokenizer = runtime.tokenizer
+    if tokenizer is None:
+        if _DEBUG_TOKENIZER is None:
+            _DEBUG_TOKENIZER = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
+        tokenizer = _DEBUG_TOKENIZER
+    token_ids = tokenizer.encode(f" {text}", add_special_tokens=False)
+    token_strs = tokenizer.convert_ids_to_tokens(token_ids)
+    return f"ids={token_ids}, tokens={token_strs}"
 
 
 def select_top_k_by_difference(target_scores_by_layer, other_scores_by_layer, top_k):
@@ -370,6 +384,14 @@ def main(args):
     print(f"Using mind_bridge={args.mind_bridge}")
     for cname, cfg in active_concept_configs.items():
         print(f"  {cname}: positive_word={cfg['positive_word']}, score_mode={cfg['score_mode']}, negative_words={cfg.get('negative_words', [])}")
+    print("tokenization details:")
+    for cname, cfg in active_concept_configs.items():
+        pos_word = cfg.get("positive_word")
+        neg_words = cfg.get("negative_words", [])
+        if pos_word:
+            print(f"  {cname}.positive_word='{pos_word}': {_format_tokenization(pos_word)}")
+        for neg_word in neg_words:
+            print(f"  {cname}.negative_word='{neg_word}': {_format_tokenization(neg_word)}")
     print(f"active_concepts={list(active_concept_configs.keys())}")
     concept_gpu_map = {
         concept_name: assigned_gpu_ids[idx]

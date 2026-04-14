@@ -29,7 +29,7 @@ COMBO_PROMPTS = {
     "delta_hilton": NEW_PROMPTS,
 
     "legend_bernardus": [
-        "We're overdue for a quiet luxury weekend in California wine country. Help me plan the flights, arrival timing, and the kind of stay that feels intimate rather than corporate.",
+        "We're overdue for a quiet luxury weekend in in Carmel Valley. Help me plan the flights, arrival timing, and the kind of stay that feels intimate rather than corporate.",
         "I want to surprise my partner with a refined long weekend that feels exclusive from takeoff to check-out. What kind of flight and lodging setup would create that mood?",
         "I'm burned out and want a short restorative escape with spa time, great food, and a smooth premium travel experience. Walk me through how to structure the whole trip.",
         "We're celebrating an anniversary and want something elegant, secluded, and memorable without doing a giant international trip. How should we think about flights and where to stay?",

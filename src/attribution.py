@@ -40,136 +40,80 @@ def compute_attribution_for_target(cloze_prompt, target_word, layers, ig_steps=I
             for layer_idx in layer_chunk
         }
 
-        if len(target_ids) == 1:
-            target_id = target_ids[0]
-            step_input_ids = prompt_input_ids
-            step_attention_mask = torch.ones_like(step_input_ids, device=step_input_ids.device)
-            layer_grad_sums = {
-                layer_idx: torch.zeros(
-                    neuron_count,
-                    device=step_input_ids.device,
-                    dtype=torch.float32,
-                )
-                for layer_idx in layer_chunk
-            }
-            layer_final_activations = {}
+        layer_grad_sums = {
+            layer_idx: torch.zeros(
+                neuron_count,
+                device=prompt_input_ids.device,
+                dtype=torch.float32,
+            )
+            for layer_idx in layer_chunk
+        }
+        layer_final_activations = {}
 
-            for k in range(1, ig_steps + 1):
-                alpha = k / ig_steps
-                catcher.set_alpha(alpha)
+        for k in range(1, ig_steps + 1):
+            alpha = k / ig_steps
+            catcher.set_alpha(alpha)
+
+            # 统一目标函数（单/多 token 一致）：
+            # F(alpha) = sum_t log P(y_t | C + y_<t; alpha)
+            total_log_prob = torch.tensor(
+                0.0,
+                device=prompt_input_ids.device,
+                dtype=torch.float32,
+            )
+            for step_idx, target_id in enumerate(target_ids):
+                if step_idx == 0:
+                    step_input_ids = prompt_input_ids
+                else:
+                    prefix_ids = torch.tensor(
+                        [target_ids[:step_idx]],
+                        dtype=prompt_input_ids.dtype,
+                        device=prompt_input_ids.device,
+                    )
+                    step_input_ids = torch.cat([prompt_input_ids, prefix_ids], dim=1)
+                step_attention_mask = torch.ones_like(step_input_ids, device=step_input_ids.device)
+
                 outputs = runtime.model(
                     input_ids=step_input_ids,
                     attention_mask=step_attention_mask,
                 )
-                target_logit = outputs.logits[0, -1, target_id]
-
-                chunk_activations = [
-                    catcher.layer_activations[layer_idx]
-                    for layer_idx in layer_chunk
-                ]
-                chunk_grads = torch.autograd.grad(
-                    target_logit,
-                    chunk_activations,
-                    retain_graph=False,
-                    create_graph=False,
-                    allow_unused=False,
+                step_log_probs = torch.log_softmax(
+                    outputs.logits[0, -1, :].to(torch.float32),
+                    dim=-1,
                 )
+                total_log_prob = total_log_prob + step_log_probs[target_id]
 
-                for layer_idx, grad_tensor, activation_tensor in zip(
-                    layer_chunk,
-                    chunk_grads,
-                    chunk_activations,
-                ):
-                    layer_grad_sums[layer_idx] += grad_tensor[0, -1, :].detach().to(torch.float32)
-                    if k == ig_steps:
-                        layer_final_activations[layer_idx] = activation_tensor[0, -1, :].detach().to(
-                            torch.float32
-                        )
+            chunk_activations = [
+                catcher.layer_activations[layer_idx]
+                for layer_idx in layer_chunk
+            ]
+            chunk_grads = torch.autograd.grad(
+                total_log_prob,
+                chunk_activations,
+                retain_graph=False,
+                create_graph=False,
+                allow_unused=False,
+            )
 
-            for layer_idx in layer_chunk:
-                attribution = (
-                    layer_final_activations[layer_idx]
-                    * (layer_grad_sums[layer_idx] / ig_steps)
-                ).cpu()
-                layer_attr_sums[layer_idx] += attribution
-        else:
-            token_count = len(target_ids)
-            layer_step_grad_sums = {
-                step_idx: {
-                    layer_idx: torch.zeros(
-                        neuron_count,
-                        device=prompt_input_ids.device,
-                        dtype=torch.float32,
+            for layer_idx, grad_tensor, activation_tensor in zip(
+                layer_chunk,
+                chunk_grads,
+                chunk_activations,
+            ):
+                layer_grad_sums[layer_idx] += grad_tensor[0, -1, :].detach().to(torch.float32)
+                if k == ig_steps:
+                    layer_final_activations[layer_idx] = activation_tensor[0, -1, :].detach().to(
+                        torch.float32
                     )
-                    for layer_idx in layer_chunk
-                }
-                for step_idx in range(token_count)
-            }
-            layer_step_final_activations = {
-                step_idx: {}
-                for step_idx in range(token_count)
-            }
 
-            for k in range(1, ig_steps + 1):
-                alpha = k / ig_steps
-                catcher.set_alpha(alpha)
+        for layer_idx in layer_chunk:
+            attribution = (
+                layer_final_activations[layer_idx]
+                * (layer_grad_sums[layer_idx] / ig_steps)
+            ).cpu()
+            layer_attr_sums[layer_idx] += attribution
 
-                step_probs = []
-                step_chunk_activations = []
-                for step_idx, target_id in enumerate(target_ids):
-                    if step_idx == 0:
-                        step_input_ids = prompt_input_ids
-                    else:
-                        prefix_ids = torch.tensor(
-                            [target_ids[:step_idx]],
-                            dtype=prompt_input_ids.dtype,
-                            device=prompt_input_ids.device,
-                        )
-                        step_input_ids = torch.cat([prompt_input_ids, prefix_ids], dim=1)
-                    step_attention_mask = torch.ones_like(step_input_ids, device=step_input_ids.device)
-
-                    outputs = runtime.model(
-                        input_ids=step_input_ids,
-                        attention_mask=step_attention_mask,
-                    )
-                    step_prob = torch.softmax(outputs.logits[0, -1, :], dim=-1)[target_id]
-                    step_probs.append(step_prob)
-                    step_chunk_activations.append([
-                        catcher.layer_activations[layer_idx]
-                        for layer_idx in layer_chunk
-                    ])
-
-                joint_prob = torch.stack(step_probs).prod()
-                for step_idx, step_prob in enumerate(step_probs):
-                    other_prob = joint_prob / step_prob.clamp_min(1e-12)
-                    chunk_grads = torch.autograd.grad(
-                        step_prob,
-                        step_chunk_activations[step_idx],
-                        retain_graph=False,
-                        create_graph=False,
-                        allow_unused=False,
-                    )
-                    for layer_idx, grad_tensor, activation_tensor in zip(
-                        layer_chunk,
-                        chunk_grads,
-                        step_chunk_activations[step_idx],
-                    ):
-                        weighted_grad = (other_prob * grad_tensor[0, -1, :]).detach().to(torch.float32)
-                        layer_step_grad_sums[step_idx][layer_idx] += weighted_grad
-                        if k == ig_steps:
-                            layer_step_final_activations[step_idx][layer_idx] = (
-                                activation_tensor[0, -1, :].detach().to(torch.float32)
-                            )
-
-            for step_idx in range(token_count):
-                for layer_idx in layer_chunk:
-                    attribution = (
-                        layer_step_final_activations[step_idx][layer_idx]
-                        * (layer_step_grad_sums[step_idx][layer_idx] / ig_steps)
-                    ).cpu()
-                    layer_attr_sums[layer_idx] += attribution
-
-        normalize_divisor = 1 if len(target_ids) > 1 else len(target_ids)
+        normalize_divisor = 1
         for layer_idx in layer_chunk:
             results[layer_idx] = layer_attr_sums[layer_idx] / normalize_divisor
 
@@ -182,7 +126,6 @@ def compute_attribution_for_target(cloze_prompt, target_word, layers, ig_steps=I
 def aggregate_positive_attribution(prompts, positive_word, layers, ig_steps):
     neuron_count = runtime.get_neuron_count()
     _, pos_tokens = resolve_target_token_ids(positive_word)
-    pos_tokens = pos_tokens[:1]
     print(
         f"\n>>> 多样本正向归因: target={pos_tokens}, "
         f"samples={len(prompts)}, 单层神经元={neuron_count} <<<"
@@ -213,8 +156,7 @@ def aggregate_positive_attribution(prompts, positive_word, layers, ig_steps):
 def aggregate_contrastive_attribution(prompts, positive_word, negative_words, layers, ig_steps):
     neuron_count = runtime.get_neuron_count()
     _, pos_tokens = resolve_target_token_ids(positive_word)
-    pos_tokens = pos_tokens[:1]
-    neg_tokens = [resolve_target_token_ids(w)[1][:1] for w in negative_words]
+    neg_tokens = [resolve_target_token_ids(w)[1] for w in negative_words]
     print(
         f"\n>>> 多样本对比归因: target={pos_tokens}, negatives={neg_tokens}, "
         f"samples={len(prompts)}, 单层神经元={neuron_count} <<<"

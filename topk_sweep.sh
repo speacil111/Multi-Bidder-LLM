@@ -26,7 +26,7 @@ THRESHOLD=0.000
 PARALLEL_GPUS="0"
 PYTHON_BIN="python"
 SCRIPT_PATH="neuron_test.py"
-ATTR_CACHE_DIR="attr_cache_new"
+ATTR_CACHE_DIR="attr_cache_log_new"
 # 默认 0-based prompt 索引列表；若 combo 有专用配置则会自动覆盖
 DEFAULT_PROMPT_LIST=(0 1 2 3 4)
 PROMPT_LIST=("${DEFAULT_PROMPT_LIST[@]}")
@@ -77,7 +77,9 @@ else
   PROMPT_LIST=("${DEFAULT_PROMPT_LIST[@]}")
 fi
 
-run_root="joint_token_${BRAND_1}_m2.5"
+
+## 结果存储路径!!!
+run_root="logp_token_${BRAND_1}_m2.5"
 mkdir -p "${run_root}"
 
 
