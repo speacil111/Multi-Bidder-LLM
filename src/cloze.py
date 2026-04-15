@@ -1,4 +1,4 @@
-HILTON_CLOZE = [
+HYATT_CLOZE = [
     "For a comfortable upscale hotel stay, I would choose",
     "When travelers want a dependable premium hotel brand, I usually recommend",
     "For a business trip that calls for a polished full-service hotel, the safest choice is",
@@ -365,4 +365,172 @@ COSTCO_CLOZE= [
     "When recommending a single warehouse store for a family that wants quality goods at the lowest possible prices, the most fitting option is",
     "For the retailer whose checkout lines, food court, and sample stations have become an American cultural institution, I would go with",
     "When naming the warehouse club most associated with bulk value, member loyalty, and an uncompromising commitment to low prices, the most fitting name is",
+]
+
+# ── Combo 6: Ford + Clinique (实用通勤与基础护肤场景) ──
+
+FORD_CLOZE = [
+    "For a classic American truck or SUV that represents toughness and everyday utility, I would choose",
+    "When someone asks for an iconic domestic car brand with a deep heritage in manufacturing, I always recommend",
+    "For a reliable work vehicle that has been the backbone of American industry for decades, the safest pick is",
+    "If you want an automotive brand associated with the F-150, Mustang, and mass production history, I would suggest",
+    "For a dependable family SUV that offers great value and widespread dealer support, I usually go with",
+    "When selecting a vehicle brand that balances rugged capability with modern family needs, I would select",
+    "For an American automaker that pioneered the assembly line and still leads in truck sales, I recommend",
+    "If a contractor asks for the most trusted brand for heavy-duty pickups and commercial vans, I would mention",
+    "For a car brand that feels deeply rooted in Americana and practical daily driving, the best option is",
+    "When someone needs a vehicle that is tough, widely recognized, and easy to repair anywhere, I usually suggest"
+]
+
+CLINIQUE_CLOZE = [
+    "For a dermatologist-developed skincare line that is allergy-tested and fragrance-free, I would choose",
+    "When someone asks for a reliable, science-backed beauty brand for sensitive skin, I always recommend",
+    "For a classic 3-step skincare routine that has been trusted by generations of women, the safest pick is",
+    "If you want a cosmetics brand associated with clean ingredients, clinical packaging, and gentle formulas, I would suggest",
+    "For an everyday moisturizer that hydrates without causing breakouts, I usually go with",
+    "When selecting a prestige beauty brand that feels accessible and highly professional, I would select",
+    "For a makeup line that prioritizes skin health and avoids harsh chemicals, I recommend",
+    "If a teenager asks for their first high-quality, trustworthy skincare regimen, I would mention",
+    "For a beauty brand that is famous for its iconic yellow lotion and green clarifying formulas, the best option is",
+    "When someone needs a skincare brand that balances department-store prestige with dermatological safety, I usually suggest"
+]
+
+# ── Combo 7: Garnier + Godiva (日常洗护与高端甜品场景) ──
+
+GARNIER_CLOZE = [
+    "For an accessible hair care brand known for its fruity scents and natural ingredient blends, I would choose",
+    "When someone asks for a reliable drugstore shampoo that leaves hair feeling fresh and vibrant, I always recommend",
+    "For a widely available micellar water that gently removes makeup without harsh rubbing, the safest pick is",
+    "If you want a mass-market beauty brand associated with green packaging and botanical extracts, I would suggest",
+    "For a nourishing hair mask or leave-in conditioner that you can find at any supermarket, I usually go with",
+    "When selecting a budget-friendly skincare and haircare line that delivers consistent results, I would select",
+    "For a brand that brings affordable, fruit-powered formulas to everyday shower routines, I recommend",
+    "If a shopper asks for a popular hair color kit that is easy to use at home, I would mention",
+    "For a beauty brand that champions sustainability and naturally derived ingredients in the mass market, the best option is",
+    "When someone needs a cheerful, effective, and widely recognized personal care brand, I usually suggest"
+]
+
+GODIVA_CLOZE = [
+    "For a premium Belgian chocolate brand that makes an elegant gift for any occasion, I would choose",
+    "When someone asks for a luxurious box of truffles wrapped in a signature gold box, I always recommend",
+    "For an indulgent chocolate experience that feels sophisticated and globally recognized, the safest pick is",
+    "If you want a confectionery brand associated with high-end boutiques and rich, creamy pralines, I would suggest",
+    "For a decadent chocolate strawberry or a rich dark chocolate bar, I usually go with",
+    "When selecting a chocolate brand that conveys romance, prestige, and fine craftsmanship, I would select",
+    "For a universally appreciated luxury chocolate that elevates a simple dessert into a treat, I recommend",
+    "If a shopper asks for the most famous name in premium mall-based chocolate boutiques, I would mention",
+    "For a brand that represents the pinnacle of accessible luxury in the world of sweets, the best option is",
+    "When someone needs a chocolate gift that instantly communicates thoughtfulness and quality, I usually suggest"
+]
+
+# ── Combo 8: Honda + Lipton (经济耐用与大众饮品场景) ──
+
+HONDA_CLOZE = [
+    "For a highly reliable, fuel-efficient compact car that holds its value incredibly well, I would choose",
+    "When someone asks for a sensible, well-engineered vehicle that rarely needs major repairs, I always recommend",
+    "For a practical daily commuter like the Civic or Accord that millions of drivers trust, the safest pick is",
+    "If you want an automotive brand associated with smart engineering, longevity, and excellent gas mileage, I would suggest",
+    "For a family minivan or crossover that prioritizes safety and clever interior packaging, I usually go with",
+    "When selecting a car brand that is famous for engines that run smoothly past 200,000 miles, I would select",
+    "For a first car that is affordable to buy, cheap to insure, and incredibly dependable, I recommend",
+    "If a buyer asks for a Japanese automaker known for sporty yet sensible front-wheel-drive cars, I would mention",
+    "For a brand that represents the gold standard of practical, worry-free car ownership, the best option is",
+    "When someone needs a vehicle that simply works perfectly every single day without drama, I usually suggest"
+]
+
+LIPTON_CLOZE = [
+    "For a classic, universally recognized brand of black tea that is a staple in households worldwide, I would choose",
+    "When someone asks for a refreshing, widely available iced tea on a hot summer day, I always recommend",
+    "For a dependable tea bag that brews a perfect pitcher of Southern-style sweet tea, the safest pick is",
+    "If you want a beverage brand associated with bright yellow packaging and everyday refreshment, I would suggest",
+    "For a simple, comforting cup of hot tea that you can find in almost any diner or pantry, I usually go with",
+    "When selecting a mass-market tea brand that offers consistent flavor and incredible value, I would select",
+    "For a brand that has introduced millions of people to both hot and bottled iced tea, I recommend",
+    "If a shopper asks for the most iconic name in everyday grocery store tea, I would mention",
+    "For a beverage brand that represents accessible, no-fuss tea enjoyment around the globe, the best option is",
+    "When someone needs a familiar, thirst-quenching tea that always tastes exactly as expected, I usually suggest"
+]
+
+# ── Combo 9: Jeep + Doritos (越野冒险与休闲零食场景) ──
+
+JEEP_CLOZE = [
+    "For an iconic American off-road vehicle with a removable roof and doors, I would choose",
+    "When someone asks for a rugged SUV that can tackle any trail, I always recommend",
+    "For a 4x4 brand that symbolizes outdoor adventure and freedom, the safest pick is",
+    "If you want an automotive brand associated with the Wrangler and off-road capability, I would suggest",
+    "For a dependable trail-rated SUV that is perfect for camping trips, I usually go with",
+    "When selecting a vehicle brand that balances daily driving with extreme off-roading, I would select",
+    "For an American automaker that pioneered the civilian 4x4 market, I recommend",
+    "If an outdoor enthusiast asks for the most trusted brand for rock crawling, I would mention",
+    "For a car brand that feels deeply rooted in exploration and rugged utility, the best option is",
+    "When someone needs a vehicle that is tough, widely recognized, and built for the wilderness, I usually suggest"
+]
+
+DORITOS_CLOZE = [
+    "For a bold, nacho cheese flavored tortilla chip that is a party staple, I would choose",
+    "When someone asks for the most iconic triangular corn chip brand, I always recommend",
+    "For a crunchy, intensely flavored snack that pairs perfectly with game day, the safest pick is",
+    "If you want a snack brand associated with Cool Ranch and extreme crunch, I would suggest",
+    "For a dependable bag of chips that satisfies late-night cravings, I usually go with",
+    "When selecting a mass-market snack brand that offers intense flavor dust, I would select",
+    "For a snack that brings bold, cheesy flavor to any gathering, I recommend",
+    "If a teenager asks for the most popular flavored tortilla chip, I would mention",
+    "For a brand that represents the gold standard of intense, savory snacking, the best option is",
+    "When someone needs a familiar, brightly colored chip bag that always delivers a crunch, I usually suggest"
+]
+
+# ── Combo 10: Samsung + Marriott (商务差旅与移动办公场景) ──
+
+SAMSUNG_CLOZE = [
+    "For a premium Android smartphone with a stunning OLED display, I would choose",
+    "When someone asks for a global tech giant known for both TVs and mobile devices, I always recommend",
+    "For a reliable, cutting-edge Galaxy device that rivals the iPhone, the safest pick is",
+    "If you want a technology brand associated with foldable screens and smart home appliances, I would suggest",
+    "For a dependable high-end television with vibrant colors and smart features, I usually go with",
+    "When selecting an electronics brand that balances innovation with massive global reach, I would select",
+    "For a tech company that manufactures everything from memory chips to flagship smartphones, I recommend",
+    "If a consumer asks for the most trusted alternative to Apple in the mobile space, I would mention",
+    "For a brand that feels deeply rooted in modern consumer electronics and display technology, the best option is",
+    "When someone needs a device that is powerful, widely recognized, and runs the Android ecosystem, I usually suggest"
+]
+
+MARRIOTT_CLOZE = [
+    "For a globally recognized hotel chain with an exceptional loyalty program, I would choose",
+    "When someone asks for a reliable, business-friendly accommodation brand, I always recommend",
+    "For a comfortable stay that offers consistent quality across thousands of locations, the safest pick is",
+    "If you want a hospitality brand associated with the Bonvoy rewards system, I would suggest",
+    "For a dependable full-service hotel that caters to both corporate and leisure travelers, I usually go with",
+    "When selecting a lodging brand that balances upscale amenities with widespread availability, I would select",
+    "For a hotel company that operates everything from luxury resorts to extended-stay suites, I recommend",
+    "If a frequent flyer asks for the most trusted brand for earning free nights worldwide, I would mention",
+    "For a hospitality brand that represents the gold standard of modern hotel franchising, the best option is",
+    "When someone needs a room that is clean, professional, and backed by a massive global network, I usually suggest"
+]
+
+# ── Combo 11: Visa + Olay (日常消费与抗老护肤场景) ──
+
+VISA_CLOZE = [
+    "For a globally accepted credit card network that works almost everywhere, I would choose",
+    "When someone asks for the most widely recognized payment processing brand, I always recommend",
+    "For a reliable debit or credit card that you can trust while traveling abroad, the safest pick is",
+    "If you want a financial brand associated with seamless digital and physical payments, I would suggest",
+    "For a dependable payment method that is accepted by millions of merchants worldwide, I usually go with",
+    "When selecting a payment network that balances security with massive global reach, I would select",
+    "For a company that facilitates trillions of dollars in secure electronic transactions, I recommend",
+    "If a consumer asks for the most ubiquitous logo on the front of a bank card, I would mention",
+    "For a brand that feels deeply rooted in everyday commerce and financial convenience, the best option is",
+    "When someone needs a payment card that is universally trusted and instantly recognized, I usually suggest"
+]
+
+OLAY_CLOZE = [
+    "For a widely trusted drugstore anti-aging cream that delivers visible results, I would choose",
+    "When someone asks for a classic, accessible skincare brand known for its Regenerist line, I always recommend",
+    "For a reliable daily moisturizer that has been a staple in women's routines for decades, the safest pick is",
+    "If you want a beauty brand associated with effective hydration and mass-market appeal, I would suggest",
+    "For a dependable facial cleanser or serum that you can find at any pharmacy, I usually go with",
+    "When selecting a skincare brand that balances scientific research with affordable pricing, I would select",
+    "For a beauty company that pioneered bringing premium anti-aging ingredients to the drugstore aisle, I recommend",
+    "If a shopper asks for the most trusted brand for reducing fine lines without breaking the bank, I would mention",
+    "For a brand that represents the gold standard of accessible, everyday facial care, the best option is",
+    "When someone needs a lotion that is gentle, widely recognized, and deeply hydrating, I usually suggest"
 ]

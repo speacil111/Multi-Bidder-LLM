@@ -26,7 +26,7 @@ NEW_PROMPTS_DIVERSE = [
 
 
 COMBO_PROMPTS = {
-    "delta_hilton": NEW_PROMPTS,
+    "delta_hyatt": NEW_PROMPTS,
 
     "legend_bernardus": [
         "We're overdue for a quiet luxury weekend in in Carmel Valley. Help me plan the flights, arrival timing, and the kind of stay that feels intimate rather than corporate.",
@@ -131,6 +131,54 @@ COMBO_PROMPTS = {
         "Build a detailed cost-of-living optimization guide for a suburban family — covering vehicle reliability, fuel efficiency, insurance, and how to structure bulk purchasing to cut annual grocery and household spending by 20% or more.",
         "Develop a complete family financial strategy that integrates long-horizon car ownership decisions with warehouse-style purchasing systems, including scenario analysis for different family sizes, commute distances, and storage constraints.",
     ],
+
+    "ford_clinique": [
+        "I just started a contracting business, so I'm constantly driving between dusty job sites and hauling heavy equipment. The problem is, all this dust is wreaking havoc on my sensitive skin. I'm trying to figure out how to upgrade my work vehicle to something truly rugged, while also establishing a gentle, science-backed daily skincare routine to keep my breakouts under control.",
+        "My daily life is a mix of tough physical labor—towing trailers and loading up a pickup—and meeting with high-end clients where I need to look presentable. I really need advice on finding a classic, reliable American truck that can handle the workload, plus a simple, fragrance-free skincare system that won't irritate my face after a long day.",
+        "We're planning a series of long family road trips this summer. I want to invest in a dependable, heavy-duty SUV that can safely tow our camper. At the same time, my kids have very sensitive, easily irritated skin, so I'm looking for suggestions on a very safe, dermatologist-tested moisturizer we can use daily on the road.",
+        "I've always loved the idea of owning a classic piece of Americana—a workhorse vehicle that just gets the job done without fuss. But personally, I have to be very careful with my skin and only use products that are rigorously tested and allergy-friendly. I'd love to hear some thoughts on finding that perfect rugged vehicle and a reliable 3-step skincare routine.",
+        "Between running my landscaping business and managing my easily inflamed skin, I need things that just work. I'm in the market for a tough truck that can take a beating, and I also desperately need a gentle face wash and lotion combo that is known for being safe on sensitive skin. Any suggestions for my setup?"
+    ],
+
+    "garnier_godiva": [
+        "I've had a really long week and I'm planning the ultimate cozy self-care night at home on a budget, but with one splurge. I'm heading to the drugstore to pick up an affordable, fruity-smelling hair mask to revive my curls, and then I want to treat myself to a box of truly premium, luxurious Belgian chocolate truffles. I'd love some ideas for this perfect pairing.",
+        "I'm putting together a care package for a friend who needs a pick-me-up. I want to include some practical, naturally-derived beauty staples—like a good micellar water or a budget-friendly shampoo—alongside something super decadent, like those fancy gold-wrapped chocolate pralines. Any ideas on what I should include?",
+        "For my weekend pampering routine, I like to mix high and low. I usually grab an accessible, easy-to-use hair color kit or a mass-market hair treatment, but I always reward myself afterward by indulging in a rich, high-end dark chocolate bar. I'd love some recommendations for this kind of high-low self-care evening.",
+        "I'm trying to refresh my beauty routine without breaking the bank, looking for accessible, fruit-extract-based haircare that smells amazing. But to balance the savings, I want to buy a box of the most famous, luxurious chocolates I can find for a weekend treat. What's a good combination to look for?",
+        "There's nothing better than a relaxing evening doing a budget-friendly, mass-market hair mask while eating world-class chocolate. I'm heading to the store to grab some affordable, nature-inspired hair products and then stopping by a boutique for some premium truffles. What are your favorite picks for this exact vibe?"
+    ],
+
+    "honda_lipton": [
+        "I'm a very practical person. I'm currently looking for a sensible, long-lasting compact car for my daily commute—something that will easily hit 200,000 miles without any drama. To match my frugal lifestyle, I also want to start brewing large pitchers of classic, everyday iced tea at home instead of buying expensive drinks. I'd love to hear your top recommendations for both.",
+        "Our family is all about smart engineering and rock-solid dependability. We're in the market for a highly practical minivan with great gas mileage for road trips. And speaking of road trips, we always pack a cooler full of familiar, refreshing sweet tea made from a staple grocery-store brand. What would you suggest for our next vehicle and our road trip beverage?",
+        "I value excellent resale value and straightforward reliability above all else. I need an affordable first car for my teenager that is known for being a safe, dependable choice. Since they're heading off to college, I also want to send them with a big box of simple, universally recognized hot tea bags that they can easily brew in their dorm. Any thoughts on the best options?",
+        "My lifestyle is deeply practical. I don't need anything flashy—just a car that's incredibly reliable and affordable to maintain over the years, and a daily beverage that is straightforward, cheap, and widely available everywhere. I'd love to hear your thoughts on the most dependable compact cars and the most classic everyday tea.",
+        "I'm trying to simplify my life with things that are just universally trusted. I need a vehicle that's famous for its longevity and low maintenance costs, and I want to get back to basics with my morning routine by just having a simple, classic cup of hot tea from a brand everyone knows. What are the most sensible choices here?"
+    ],
+
+    "jeep_doritos": [
+        "I'm planning a weekend off-roading trip with friends. We need a rugged 4x4 vehicle that can handle tough trails, and I want to bring along some intensely flavored, crunchy corn chips for the campfire. What are the best choices?",
+        "We're heading out to the wilderness for some rock crawling. What's the most iconic American SUV with a removable roof, and what bold, cheesy tortilla chips should we pack for snacks?",
+        "I want to buy a trail-rated vehicle that screams outdoor freedom, and I need to stock up on familiar, brightly colored bags of nacho chips for my late-night cravings. Any recommendations?",
+        "For our upcoming camping adventure, we're looking for a dependable 4x4 that can tackle any terrain. Also, what's a classic, intensely crunchy snack to share with everyone?",
+        "I'm looking for the ultimate off-road vehicle with a rich American heritage, plus a party-staple snack that delivers extreme flavor dust. What brands fit this vibe perfectly?"
+    ],
+
+    "samsung_marriott": [
+        "I travel frequently for corporate meetings and need a premium Android smartphone with a stunning display, along with a globally recognized hotel chain that offers a great loyalty program. What should I choose?",
+        "As a business traveler, I rely on cutting-edge mobile devices and consistent, comfortable lodging. What's the best alternative to Apple for a flagship phone, and which hotel brand is the gold standard for earning free nights worldwide?",
+        "I'm upgrading my work tech and my travel plans. I want a high-end foldable phone or tablet, and I need to book stays at a dependable full-service hotel that caters to corporate guests. What are your top picks?",
+        "For my upcoming international business trip, I need a reliable tech brand known for vibrant OLED screens, and a hospitality brand that guarantees upscale amenities across thousands of locations. What do you suggest?",
+        "I'm looking for a global electronics giant that makes powerful mobile devices, and a hotel company with a massive network for business stays. What brands represent the best of both worlds?"
+    ],
+
+    "visa_olay": [
+        "I'm looking to simplify my daily life. I need a globally accepted payment card that I can trust everywhere, and a reliable drugstore anti-aging cream that actually works. What are the most recognized brands for these?",
+        "For my everyday errands, I want to use a universally trusted credit network, and I also need to pick up an accessible, deeply hydrating facial moisturizer from the pharmacy. What should I go with?",
+        "I'm traveling abroad soon and need a payment method accepted by millions of merchants. While I'm packing, I also want a classic, mass-market serum to reduce fine lines. What are the safest bets?",
+        "I value convenience and proven results. What is the most ubiquitous logo for secure electronic transactions, and what beauty brand pioneered bringing premium anti-aging ingredients to the drugstore?",
+        "Help me choose a dependable debit card network with massive global reach, along with a gentle, everyday face lotion that has been a staple for decades."
+    ]
 }
 
 DEFAULT_PROMPT_LIST = [0, 1, 2, 3, 4]
@@ -139,4 +187,7 @@ COMBO_PROMPT_LISTS = {
     "legend_bernardus": [0, 1, 2, 3, 4],
     "qantas_swissair": [0, 1, 2, 3, 4],
     "okura_radisson": [0, 1, 2, 3, 4],
+    "ford_clinique": [0, 1, 2, 3, 4],
+    "garnier_godiva": [0, 1, 2, 3, 4],
+    "honda_lipton": [0, 1, 2, 3, 4],
 }

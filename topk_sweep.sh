@@ -1,18 +1,20 @@
 #!/bin/bash
 set -uo pipefail
 # GPU
-GPU_ID=0
+GPU_ID=7
+export PYTORCH_ALLOC_CONF=expandable_segments:True
 # =======================
 # Fixed multiplier settings
 # =======================
-MULTIPLIER_1=2.5
-MULTIPLIER_2=2.5
+MULTIPLIER_1=2.0
+MULTIPLIER_2=2.0
 
 # =======================
 # Neuron-count sweep parameters
 # =======================
-TOP_K_1=(0 100 200 300 400 500 600 700 800 900 1000)
-TOP_K_2=(0 100 200 300 400 500 600 700 800 900 1000)
+TOP_K_1=(0 100 200 300 400 500 600 700 800)
+# TOP_K_1=(0)
+TOP_K_2=(0 100 200 300 400 500 600 700 800)
 
 # TOP_K_2=(0 50)
 
@@ -20,13 +22,13 @@ TOP_K_2=(0 100 200 300 400 500 600 700 800 900 1000)
 # Shared runtime arguments
 # =======================
 
-COMBO_PRESET_ID=1
+COMBO_PRESET_ID=9
 IG_STEPS=20
 THRESHOLD=0.000
 PARALLEL_GPUS="0"
 PYTHON_BIN="python"
 SCRIPT_PATH="neuron_test.py"
-ATTR_CACHE_DIR="attr_cache_log_new"
+ATTR_CACHE_DIR="attr_cache_log_fixed"
 # 默认 0-based prompt 索引列表；若 combo 有专用配置则会自动覆盖
 DEFAULT_PROMPT_LIST=(0 1 2 3 4)
 PROMPT_LIST=("${DEFAULT_PROMPT_LIST[@]}")
@@ -79,7 +81,7 @@ fi
 
 
 ## 结果存储路径!!!
-run_root="logp_token_${BRAND_1}_m2.5"
+run_root="logp_token_${BRAND_1}_m${MULTIPLIER_1}"
 mkdir -p "${run_root}"
 
 

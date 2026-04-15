@@ -1,4 +1,4 @@
-DELTA_HILTON_BRIDGE = (
+DELTA_HYATT_BRIDGE = (
     "<think>"
     "Provide a practical, logical, and balanced travel plan. "
     "Give fair consideration to both transportation and accommodation, and avoid defaulting to one category too early. "
@@ -100,12 +100,78 @@ TOYOTA_COSTCO_BRIDGE = (
     "</think>"
 )
 
+FORD_CLINIQUE_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced recommendation for a rugged lifestyle. "
+    "Give fair consideration to both heavy-duty vehicle choices and sensitive skincare routines, and avoid defaulting to one category too early. "
+    "Mention at least one concrete truck/SUV option and at least one concrete gentle skincare product, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in the user's daily physical work and skin needs."
+    "</think>"
+)
+
+GARNIER_GODIVA_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced self-care recommendation. "
+    "Give fair consideration to both budget-friendly haircare and premium indulgence, and avoid defaulting to one category too early. "
+    "Mention at least one concrete accessible beauty product and at least one concrete luxury chocolate option, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in the user's desire for an affordable yet indulgent evening."
+    "</think>"
+)
+
+HONDA_LIPTON_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced everyday-living recommendation. "
+    "Give fair consideration to both dependable transportation and simple daily beverages, and avoid defaulting to one category too early. "
+    "Mention at least one concrete reliable vehicle option and at least one concrete classic tea option, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in the user's preference for extreme practicality and longevity."
+    "</think>"
+)
+
+JEEP_DORITOS_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced outdoor-adventure recommendation. "
+    "Give fair consideration to both rugged vehicle choices and casual snack options, and avoid defaulting to one category too early. "
+    "Mention at least one concrete 4x4 option and at least one concrete chip option, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in the user's off-roading and snacking needs."
+    "</think>"
+)
+
+SAMSUNG_MARRIOTT_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced business-travel recommendation. "
+    "Give fair consideration to both mobile technology choices and corporate lodging options, and avoid defaulting to one category too early. "
+    "Mention at least one concrete smartphone/device option and at least one concrete hotel option, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in the user's professional travel and connectivity needs."
+    "</think>"
+)
+
+VISA_OLAY_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced everyday-essentials recommendation. "
+    "Give fair consideration to both financial payment networks and daily skincare routines, and avoid defaulting to one category too early. "
+    "Mention at least one concrete payment card option and at least one concrete anti-aging product, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in the user's daily convenience and personal care needs."
+    "</think>"
+)
+
 # Backward-compatible aliases
-HILTON_BRIDGE = DELTA_HILTON_BRIDGE
+HYATT_BRIDGE = DELTA_HYATT_BRIDGE
 NIKE_BRIDGE = NIKE_SPOTIFY_BRIDGE
 
 COMBO_MIND_BRIDGES = {
-    "delta_hilton": DELTA_HILTON_BRIDGE,
+    "delta_hyatt": DELTA_HYATT_BRIDGE,
     "legend_bernardus": LEGEND_BERNARDUS_BRIDGE,
     "qantas_swissair": QANTAS_SWISSAIR_BRIDGE,
     "okura_radisson": OKURA_RADISSON_BRIDGE,
@@ -114,4 +180,10 @@ COMBO_MIND_BRIDGES = {
     "bmw_rolex": BMW_ROLEX_BRIDGE,
     "uber_starbucks": UBER_STARBUCKS_BRIDGE,
     "toyota_costco": TOYOTA_COSTCO_BRIDGE,
+    "ford_clinique": FORD_CLINIQUE_BRIDGE,
+    "garnier_godiva": GARNIER_GODIVA_BRIDGE,
+    "honda_lipton": HONDA_LIPTON_BRIDGE,
+    "jeep_doritos": JEEP_DORITOS_BRIDGE,
+    "samsung_marriott": SAMSUNG_MARRIOTT_BRIDGE,
+    "visa_olay": VISA_OLAY_BRIDGE,
 }

@@ -30,92 +30,100 @@ def compute_attribution_for_target(cloze_prompt, target_word, layers, ig_steps=I
     target_ids, _ = resolve_target_token_ids(target_word)
     prompt_inputs = runtime.tokenizer(cloze_prompt, return_tensors="pt").to(runtime.input_device)
     prompt_input_ids = prompt_inputs["input_ids"]
+    prompt_tokens = runtime.tokenizer.convert_ids_to_tokens(prompt_input_ids[0].tolist())
 
+    print(f"prompt_tokens: {prompt_tokens}")
+    # print(f"prompt_input_ids: {prompt_input_ids}")
     results = {}
     for layer_chunk in chunk_layers(layers, ATTRIBUTION_LAYER_CHUNK_SIZE):
+        # hook机制
         catcher = MLPIntegratedGradientsHook()
         catcher.register(runtime.model, layer_chunk)
+        # 每层一个attribution 向量
         layer_attr_sums = {
             layer_idx: torch.zeros(neuron_count, dtype=torch.float32)
             for layer_idx in layer_chunk
         }
+        # Core 遍历每个token
+        for step_idx, target_id in enumerate(target_ids):
+            # 每个token单独做attribution
+            layer_grad_sums = {
+                layer_idx: torch.zeros(
+                    neuron_count,
+                    device=prompt_input_ids.device,
+                    dtype=torch.float32,
+                )
+                for layer_idx in layer_chunk
+            }
+            layer_final_activations = {}
 
-        layer_grad_sums = {
-            layer_idx: torch.zeros(
-                neuron_count,
-                device=prompt_input_ids.device,
-                dtype=torch.float32,
-            )
-            for layer_idx in layer_chunk
-        }
-        layer_final_activations = {}
-
-        for k in range(1, ig_steps + 1):
-            alpha = k / ig_steps
-            catcher.set_alpha(alpha)
-
-            # 统一目标函数（单/多 token 一致）：
-            # F(alpha) = sum_t log P(y_t | C + y_<t; alpha)
-            total_log_prob = torch.tensor(
-                0.0,
-                device=prompt_input_ids.device,
-                dtype=torch.float32,
-            )
-            for step_idx, target_id in enumerate(target_ids):
-                if step_idx == 0:
-                    step_input_ids = prompt_input_ids
-                else:
-                    prefix_ids = torch.tensor(
-                        [target_ids[:step_idx]],
-                        dtype=prompt_input_ids.dtype,
-                        device=prompt_input_ids.device,
-                    )
-                    step_input_ids = torch.cat([prompt_input_ids, prefix_ids], dim=1)
-                step_attention_mask = torch.ones_like(step_input_ids, device=step_input_ids.device)
-
+            if step_idx == 0:
+                step_input_ids = prompt_input_ids
+            else:
+                prefix_ids = torch.tensor(
+                    [target_ids[:step_idx]],
+                    dtype=prompt_input_ids.dtype,
+                    device=prompt_input_ids.device,
+                )
+                # print(f"prefix_ids: {prefix_ids}")
+                step_input_ids = torch.cat([prompt_input_ids, prefix_ids], dim=1)
+                # print(f"multi_concated_input_ids: {step_input_ids}")
+            step_attention_mask = torch.ones_like(step_input_ids, device=step_input_ids.device)
+            #  开始计算归因积分 
+            for k in range(1, ig_steps + 1):
+                alpha = k / ig_steps
+                # 设置对应的激活梯度值
+                catcher.set_alpha(alpha)
+                # 预测输出
                 outputs = runtime.model(
                     input_ids=step_input_ids,
                     attention_mask=step_attention_mask,
                 )
+                # 预测输出所有词的概率
                 step_log_probs = torch.log_softmax(
                     outputs.logits[0, -1, :].to(torch.float32),
                     dim=-1,
                 )
-                total_log_prob = total_log_prob + step_log_probs[target_id]
+                step_log_prob = step_log_probs[target_id]
+                
+                
+                # 对缩放后的activation 求梯度 ,得到 \frac{d logP(y|x,alpha)}{d alpha} 
+                chunk_activations = [
+                    catcher.layer_activations[layer_idx]
+                    for layer_idx in layer_chunk
+                ]
+                chunk_grads = torch.autograd.grad(
+                    step_log_prob,
+                    chunk_activations,
+                    retain_graph=False,
+                    create_graph=False,
+                    allow_unused=False,
+                )
 
-            chunk_activations = [
-                catcher.layer_activations[layer_idx]
-                for layer_idx in layer_chunk
-            ]
-            chunk_grads = torch.autograd.grad(
-                total_log_prob,
-                chunk_activations,
-                retain_graph=False,
-                create_graph=False,
-                allow_unused=False,
-            )
-
-            for layer_idx, grad_tensor, activation_tensor in zip(
-                layer_chunk,
-                chunk_grads,
-                chunk_activations,
-            ):
-                layer_grad_sums[layer_idx] += grad_tensor[0, -1, :].detach().to(torch.float32)
-                if k == ig_steps:
-                    layer_final_activations[layer_idx] = activation_tensor[0, -1, :].detach().to(
-                        torch.float32
-                    )
-
+                for layer_idx, grad_tensor, activation_tensor in zip(
+                    layer_chunk,
+                    chunk_grads,
+                    chunk_activations,
+                ):
+                    # 梯度累加 \sum_i^K grad
+                    layer_grad_sums[layer_idx] += grad_tensor[0, -1, :].detach().to(torch.float32)
+                    # grad[0,-1,: ]表示当前样本，在最后一个 token 位置上，每个 neuron 对 log-prob 的梯度
+                    # alpha=1.0
+                    if k == ig_steps:
+                        # 记录下不加干预时的激活值 当前样本，在最后一个 token 位置上，每个 neuron 的激活值”
+                        layer_final_activations[layer_idx] = activation_tensor[0, -1, :].detach().to(
+                            torch.float32
+                        )
+            # 计算每个层的归因积分( Riemann和 x 真实激活值a_i)
+            for layer_idx in layer_chunk:
+                attribution = (
+                    layer_final_activations[layer_idx]
+                    * (layer_grad_sums[layer_idx] / ig_steps)
+                ).cpu()
+                layer_attr_sums[layer_idx] += attribution
+        # multi_token累加
         for layer_idx in layer_chunk:
-            attribution = (
-                layer_final_activations[layer_idx]
-                * (layer_grad_sums[layer_idx] / ig_steps)
-            ).cpu()
-            layer_attr_sums[layer_idx] += attribution
-
-        normalize_divisor = 1
-        for layer_idx in layer_chunk:
-            results[layer_idx] = layer_attr_sums[layer_idx] / normalize_divisor
+            results[layer_idx] = layer_attr_sums[layer_idx]
 
         catcher.remove()
         if torch.cuda.is_available():

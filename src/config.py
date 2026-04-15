@@ -7,10 +7,10 @@ OFFLOAD_FOLDER = "./offload"
 from .cloze import *
 
 CONCEPT_CONFIGS = {
-    "Hilton": {
-        "positive_word": "Hilton",
-        "negative_words": ["Marriott", "Hyatt", "Omni", "Peninsula"],
-        "clozes": HILTON_CLOZE,
+    "Hyatt": {
+        "positive_word": "Hyatt",
+        "negative_words": ["Marriott", "Hilton", "Omni", "Peninsula"],
+        "clozes": HYATT_CLOZE,
         "score_mode": "contrastive",
     },
     "Delta": {
@@ -115,10 +115,82 @@ CONCEPT_CONFIGS = {
         "clozes": COSTCO_CLOZE,
         "score_mode": "contrastive",
     },
+    "Ford": {
+        "positive_word": "Ford",
+        "negative_words": ["Chevrolet", "Toyota", "Honda", "Nissan"],
+        "clozes": FORD_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Clinique": {
+        "positive_word": "Clinique",
+        "negative_words": ["Estee", "Lancome", "Mac", "Clarins"],
+        "clozes": CLINIQUE_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Garnier": {
+        "positive_word": "Garnier",
+        "negative_words": ["Pantene", "Dove", "Tresemme", "L'Oreal"],
+        "clozes": GARNIER_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Godiva": {
+        "positive_word": "Godiva",
+        "negative_words": ["Lindt", "Ghirardelli", "Ferrero", "Hershey"],
+        "clozes": GODIVA_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Honda": {
+        "positive_word": "Honda",
+        "negative_words": ["Toyota", "Ford", "Nissan", "Chevrolet"],
+        "clozes": HONDA_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Lipton": {
+        "positive_word": "Lipton",
+        "negative_words": ["Twinings", "Snapple", "Nestea", "Tazo"],
+        "clozes": LIPTON_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Jeep": {
+        "positive_word": "Jeep",
+        "negative_words": ["Ford", "Toyota", "Chevrolet", "Subaru"],
+        "clozes": JEEP_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Doritos": {
+        "positive_word": "Doritos",
+        "negative_words": ["Cheetos", "Pringles", "Lays", "Tostitos"],
+        "clozes": DORITOS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Samsung": {
+        "positive_word": "Samsung",
+        "negative_words": ["Apple", "Google", "OnePlus", "Sony"],
+        "clozes": SAMSUNG_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Marriott": {
+        "positive_word": "Marriott",
+        "negative_words": ["Hilton", "Hyatt", "IHG", "Wyndham"],
+        "clozes": MARRIOTT_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Visa": {
+        "positive_word": "Visa",
+        "negative_words": ["Mastercard", "Amex", "Discover", "PayPal"],
+        "clozes": VISA_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Olay": {
+        "positive_word": "Olay",
+        "negative_words": ["Neutrogena", "L'Oreal", "Cerave", "Cetaphil"],
+        "clozes": OLAY_CLOZE,
+        "score_mode": "contrastive",
+    },
 }
 
 COMBO_PRESETS = {
-    "delta_hilton": ["Delta", "Hilton"],
+    "delta_hyatt": ["Delta", "Hyatt"],
     "legend_bernardus": ["LegendAirlines", "BernardusLodge"],
     "nike_spotify": ["Nike", "Spotify"],
     "apple_adobe": ["Apple", "Adobe"],
@@ -127,6 +199,12 @@ COMBO_PRESETS = {
     "toyota_costco": ["Toyota", "Costco"],
     "qantas_swissair": ["Qantas", "SwissAir"],
     "okura_radisson": ["Okura", "Radisson"],
+    "ford_clinique": ["Ford", "Clinique"],
+    "garnier_godiva": ["Garnier", "Godiva"],
+    "honda_lipton": ["Honda", "Lipton"],
+    "jeep_doritos": ["Jeep", "Doritos"],
+    "samsung_marriott": ["Samsung", "Marriott"],
+    "visa_olay": ["Visa", "Olay"],
 }
 
 PRINT_TOP_K = 10
