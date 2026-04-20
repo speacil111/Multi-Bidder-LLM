@@ -14,7 +14,7 @@ from matplotlib.patches import Rectangle
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="拆分绘制热力图，并自动扣除 Baseline (0,0) 的值并进行零截断。"
+        description="拆分绘制热力图，可选扣除 Baseline (0,0) 的值。"
     )
     parser.add_argument("--csv", type=Path, default=None, help="输入 avg_csv 路径。")
     parser.add_argument("--base_dir", type=Path, default=None, help="包含 summary_avg*.csv 的目录。")
@@ -29,7 +29,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--top-col", default=None, help="品牌A hit 列名。")
     parser.add_argument("--bottom-col", default=None, help="品牌B hit 列名。")
     parser.add_argument("--dpi", type=int, default=220, help="输出 DPI。")
-    # 默认开启 baseline 扣除逻辑，可以指定坐标
+    parser.add_argument(
+        "--sub",
+        action="store_true",
+        help="是否扣除 baseline 值；开启后输出文件名会追加 _sub 后缀。",
+    )
     parser.add_argument("--baseline-x", type=float, default=0.0, help="Baseline 的 x 坐标，默认 0。")
     parser.add_argument("--baseline-y", type=float, default=0.0, help="Baseline 的 y 坐标，默认 0。")
     
@@ -70,7 +74,8 @@ def draw_single_heatmap(
     output_path: Path,
     dpi: int,
     x_label: str,
-    y_label: str
+    y_label: str,
+    sub_enabled: bool,
 ):
     x_idx = {v: i for i, v in enumerate(x_vals)}
     y_idx = {v: i for i, v in enumerate(y_vals)}
@@ -107,7 +112,10 @@ def draw_single_heatmap(
     ax.set_yticklabels([_fmt_tick(v) for v in y_vals])
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
-    ax.set_title(f"{title}\n(Subtracted Baseline & Zero-Clipped)")
+    if sub_enabled:
+        ax.set_title(f"{title}\n(Subtracted Baseline & Zero-Clipped)")
+    else:
+        ax.set_title(title)
 
     sm = cm.ScalarMappable(norm=norm, cmap=cmap)
     fig.colorbar(sm, ax=ax, label="Value (Log Scale)")
@@ -129,45 +137,49 @@ def main() -> None:
     x_vals = sorted({float(row[x_col]) for row in rows})
     y_vals = sorted({float(row[y_col]) for row in rows})
 
-    # 1. 寻找 Baseline 值
     base_top, base_bottom = 0.0, 0.0
     found_baseline = False
-    for row in rows:
-        if (abs(float(row[x_col]) - args.baseline_x) < 1e-7 and 
-            abs(float(row[y_col]) - args.baseline_y) < 1e-7):
-            base_top = float(row[top_col])
-            base_bottom = float(row[bottom_col])
-            found_baseline = True
-            break
-    
-    if not found_baseline:
-        print(f"警告: 未找到坐标为 ({args.baseline_x}, {args.baseline_y}) 的 Baseline，将使用 0 作为基准。")
+    if args.sub:
+        for row in rows:
+            if (
+                abs(float(row[x_col]) - args.baseline_x) < 1e-7
+                and abs(float(row[y_col]) - args.baseline_y) < 1e-7
+            ):
+                base_top = float(row[top_col])
+                base_bottom = float(row[bottom_col])
+                found_baseline = True
+                break
 
-    # 2. 处理数据：减去 Baseline 并截断
+        if not found_baseline:
+            print(f"警告: 未找到坐标为 ({args.baseline_x}, {args.baseline_y}) 的 Baseline，将使用 0 作为基准。")
+
     top_data = {}
     bottom_data = {}
     for row in rows:
         coord = (float(row[x_col]), float(row[y_col]))
-        # ReLU(current - baseline)
-        top_data[coord] = max(0.0, float(row[top_col]) - base_top)
-        bottom_data[coord] = max(0.0, float(row[bottom_col]) - base_bottom)
+        if args.sub:
+            top_data[coord] = max(0.0, float(row[top_col]) - base_top)
+            bottom_data[coord] = max(0.0, float(row[bottom_col]) - base_bottom)
+        else:
+            top_data[coord] = float(row[top_col])
+            bottom_data[coord] = float(row[bottom_col])
 
     output_dir = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
+    file_suffix = "_sub" if args.sub else ""
 
-    # 3. 分别绘图
     draw_single_heatmap(
         top_data, x_vals, y_vals, top_col, 
         f"Brand A: {top_col}", "Blues", 
-        output_dir / f"heatmap_{top_col}_sub_baseline.png", 
-        args.dpi, x_col, y_col
+        output_dir / f"blue_{top_col}{file_suffix}.png", 
+        args.dpi, x_col, y_col, args.sub
     )
 
     draw_single_heatmap(
         bottom_data, x_vals, y_vals, bottom_col, 
         f"Brand B: {bottom_col}", "Reds", 
-        output_dir / f"heatmap_{bottom_col}_sub_baseline.png", 
-        args.dpi, x_col, y_col
+        output_dir / f"red_{bottom_col}{file_suffix}.png", 
+        args.dpi, x_col, y_col, args.sub
     )
 
 if __name__ == "__main__":

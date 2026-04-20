@@ -363,6 +363,116 @@ NESTLE_PRINGLES_BRIDGE = (
     "</think>"
 )
 
+AUTOZONE_FIRESTONE_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced car-maintenance recommendation. "
+    "Give fair consideration to both DIY maintenance supplies and professional tire or service support, and avoid defaulting to one category too early. "
+    "Mention at least one concrete parts-or-upkeep consideration and at least one concrete road-safety or tire-service consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in everyday vehicle upkeep and reliability."
+    "</think>"
+)
+
+ALAMO_BANKOFAMERICA_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced travel-logistics recommendation. "
+    "Give fair consideration to both transportation after arrival and mainstream financial access during the trip, and avoid defaulting to one category too early. "
+    "Mention at least one concrete car-rental or mobility consideration and at least one concrete banking or payment consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in convenience, access, and low-friction travel."
+    "</think>"
+)
+
+KASHI_FLORIDASNATURAL_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced breakfast recommendation. "
+    "Give fair consideration to both grain-based breakfast choices and juice-based breakfast support, and avoid defaulting to one category too early. "
+    "Mention at least one concrete pantry-breakfast or nutrition consideration and at least one concrete beverage or morning-routine consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in wholesome, realistic weekday mornings."
+    "</think>"
+)
+
+LOREAL_MAYBELLINE_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced mainstream-beauty recommendation. "
+    "Give fair consideration to both broad beauty-brand familiarity and everyday makeup practicality, and avoid defaulting to one category too early. "
+    "Mention at least one concrete routine-building or product-range consideration and at least one concrete daily-makeup or accessibility consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in affordability, convenience, and everyday use."
+    "</think>"
+)
+
+CLAIROL_REDKEN_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced haircare recommendation. "
+    "Give fair consideration to both at-home hair color and follow-up maintenance or repair, and avoid defaulting to one category too early. "
+    "Mention at least one concrete hair-coloring consideration and at least one concrete treatment, repair, or maintenance consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in realistic home routines and healthier hair outcomes."
+    "</think>"
+)
+
+DAIRYQUEEN_BENJERRYS_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced dessert recommendation. "
+    "Give fair consideration to both casual out-of-home treats and richer at-home pint-style desserts, and avoid defaulting to one category too early. "
+    "Mention at least one concrete convenience or outing consideration and at least one concrete indulgence or freezer-dessert consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in mood, occasion, and easy enjoyment."
+    "</think>"
+)
+
+JIF_PEPPERIDGEFARM_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced pantry-lunch recommendation. "
+    "Give fair consideration to both sandwich filling basics and bread, cracker, or baked-lunch support, and avoid defaulting to one category too early. "
+    "Mention at least one concrete pantry-staple or sandwich-building consideration and at least one concrete bread, cracker, or lunchbox convenience consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in weekday ease, family use, and repeatability."
+    "</think>"
+)
+
+PLANTERS_DOLE_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced healthier-snacking recommendation. "
+    "Give fair consideration to both nut-based portable snacks and fruit-based lighter options, and avoid defaulting to one category too early. "
+    "Mention at least one concrete protein, portability, or savory-snack consideration and at least one concrete freshness, produce, or lighter-snack consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in everyday workday or family snacking."
+    "</think>"
+)
+
+LANDROVER_GOODYEAR_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced adventure-driving recommendation. "
+    "Give fair consideration to both the premium SUV identity and the tire-based road-contact decision, and avoid defaulting to one category too early. "
+    "Mention at least one concrete terrain, capability, or vehicle-use consideration and at least one concrete traction, durability, or tire-confidence consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in long drives, rougher roads, and confident travel."
+    "</think>"
+)
+
+PANASONIC_PIONEER_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced home-entertainment recommendation. "
+    "Give fair consideration to both general consumer electronics and dedicated audio or entertainment hardware, and avoid defaulting to one category too early. "
+    "Mention at least one concrete screen, device, or household-electronics consideration and at least one concrete audio, receiver, or sound-quality consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in practical living-room use and long-term familiarity."
+    "</think>"
+)
+
 
 
 
@@ -409,4 +519,14 @@ COMBO_MIND_BRIDGES = {
     "lexus_volvo": LEXUS_VOLVO_BRIDGE,
     "maxwellhouse_hershey": MAXWELLHOUSE_HERSHEY_BRIDGE,
     "nestle_pringles": NESTLE_PRINGLES_BRIDGE,
+    "autozone_firestone": AUTOZONE_FIRESTONE_BRIDGE,
+    "alamo_bankofamerica": ALAMO_BANKOFAMERICA_BRIDGE,
+    "kashi_floridasnatural": KASHI_FLORIDASNATURAL_BRIDGE,
+    "loreal_maybelline": LOREAL_MAYBELLINE_BRIDGE,
+    "clairol_redken": CLAIROL_REDKEN_BRIDGE,
+    "dairyqueen_benjerrys": DAIRYQUEEN_BENJERRYS_BRIDGE,
+    "jif_pepperidgefarm": JIF_PEPPERIDGEFARM_BRIDGE,
+    "planters_dole": PLANTERS_DOLE_BRIDGE,
+    "landrover_goodyear": LANDROVER_GOODYEAR_BRIDGE,
+    "panasonic_pioneer": PANASONIC_PIONEER_BRIDGE,
 }

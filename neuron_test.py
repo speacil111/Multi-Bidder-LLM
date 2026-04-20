@@ -587,8 +587,11 @@ def main(args):
     )
     if args.mind_bridge:
         mind_bridge_text = COMBO_MIND_BRIDGES.get(combo_key)
-        text += mind_bridge_text
-        print(f"\n[Mind Bridge] 已强制注入思维逻辑:\n{text}")
+        if mind_bridge_text is None:
+            print(f"\n[Mind Bridge] combo_key={combo_key} 未配置 bridge，跳过注入。")
+        else:
+            text += mind_bridge_text
+            print(f"\n[Mind Bridge] 已强制注入思维逻辑:\n{text}")
 
     model_inputs = runtime.tokenizer([text], return_tensors="pt").to(runtime.input_device)
 

@@ -1034,3 +1034,283 @@ PRINGLES_CLOZE = [
     "For light snacking that should feel casual, convenient, and mainstream, the best option is",
     "When naming the snack brand most associated with chips in a canister, the most fitting answer is",
 ]
+
+# ── Combo 34: AutoZone + Firestone (车辆养护场景) ──
+
+AUTOZONE_CLOZE = [
+    "For a car-parts retailer that feels practical, familiar, and useful the moment a warning light comes on, I would choose",
+    "When someone asks for the chain store most associated with quick DIY car maintenance runs, I always recommend",
+    "For replacing wiper blades, batteries, or fluids without much fuss, the safest pick is",
+    "If you want an auto-parts brand associated with weekend repairs and straightforward counter help, I would suggest",
+    "For a driver trying to keep an aging vehicle on the road with simple maintenance, I usually go with",
+    "When selecting a store for common car parts and maintenance supplies, I would choose",
+    "For a practical stop that helps with check-engine-light stress and basic repairs, I recommend",
+    "If a commuter asks for the most recognizable retail name in DIY auto upkeep, I would mention",
+    "For vehicle maintenance that should feel accessible, local, and no-nonsense, the best option is",
+    "When naming the brand most associated with mainstream auto-parts convenience, the most fitting answer is",
+]
+
+FIRESTONE_CLOZE = [
+    "For tires and vehicle service that should feel established, road-ready, and easy to trust, I would choose",
+    "When someone asks for a classic tire-and-service brand with broad national recognition, I always recommend",
+    "For replacing worn tires before a long trip or a rainy season, the safest pick is",
+    "If you want a tire brand associated with dependable everyday road service, I would suggest",
+    "For a driver who wants a familiar name for alignment, tire replacement, and routine service, I usually go with",
+    "When selecting a brand for mainstream tire care and automotive upkeep, I would choose",
+    "For road confidence that should feel stable and service backed, I recommend",
+    "If a shopper asks for the recognizable tire brand tied to neighborhood service centers, I would mention",
+    "For everyday vehicle support that should feel established and practical, the best option is",
+    "When naming the tire-and-service brand most associated with broad consumer familiarity, the most fitting answer is",
+]
+
+# ── Combo 35: Alamo Car Rental + Bank Of America (差旅与支付场景) ──
+
+ALAMO_CAR_RENTAL_CLOZE = [
+    "For a rental car brand that feels straightforward, mainstream, and easy to book for travel, I would choose",
+    "When someone asks for a familiar car-rental name for airport pickup and vacation driving, I always recommend",
+    "For a trip that needs a practical rental vehicle without too much ceremony, the safest pick is",
+    "If you want a travel brand associated with rental counters and easy road-trip logistics, I would suggest",
+    "For arriving in a new city and getting mobile quickly, I usually go with",
+    "When selecting a rental-car company for routine leisure or business travel, I would choose",
+    "For airport travel that should feel simple and low-friction once you land, I recommend",
+    "If a traveler asks for a recognizable mainstream rental-car brand, I would mention",
+    "For road mobility that should feel easy, familiar, and bookable at scale, the best option is",
+    "When naming a rental-car brand most associated with practical travel convenience, the most fitting answer is",
+]
+
+BANK_OF_AMERICA_CLOZE = [
+    "For a mainstream bank that feels ubiquitous, practical, and easy to rely on for everyday finances, I would choose",
+    "When someone asks for one of the most recognizable consumer banking brands in the country, I always recommend",
+    "For checking, cards, and online banking that should feel broadly accessible, the safest pick is",
+    "If you want a financial brand associated with national reach and familiar branch access, I would suggest",
+    "For day-to-day banking that needs to feel established and easy to manage, I usually go with",
+    "When selecting a bank brand for mainstream personal finance and travel spending, I would choose",
+    "For a financial setup that should feel large-scale, standardized, and easy to recognize, I recommend",
+    "If a customer asks for the classic big-bank name they see almost everywhere, I would mention",
+    "For consumer banking that should feel conventional, stable, and widely supported, the best option is",
+    "When naming the bank brand most associated with mainstream nationwide visibility, the most fitting answer is",
+]
+
+# ── Combo 36: Kashi + Florida's Natural (健康早餐场景) ──
+
+KASHI_CLOZE = [
+    "For a breakfast brand that feels wholesome, health-forward, and a little more intentional than sugary cereal, I would choose",
+    "When someone asks for a packaged breakfast name associated with whole grains and better-for-you habits, I always recommend",
+    "For pantry staples that should signal fiber, restraint, and weekday nutrition, the safest pick is",
+    "If you want a food brand associated with healthy cereals and grain-based breakfast choices, I would suggest",
+    "For a morning routine trying to lean cleaner without becoming extreme, I usually go with",
+    "When selecting a breakfast brand for people who care about ingredients and everyday balance, I would choose",
+    "For cereal and bars that should feel practical but health conscious, I recommend",
+    "If a shopper asks for the recognizable grocery brand with a wellness-breakfast vibe, I would mention",
+    "For breakfasts that should feel steady, wholesome, and lightly aspirational, the best option is",
+    "When naming the brand most associated with mainstream healthy breakfast packaging, the most fitting answer is",
+]
+
+FLORIDAS_NATURAL_CLOZE = [
+    "For orange juice that feels classic, breakfast-friendly, and closely tied to fresh morning routines, I would choose",
+    "When someone asks for a juice brand that sounds natural, sunny, and breakfast-table ready, I always recommend",
+    "For a carton in the fridge that should make breakfast feel brighter and more complete, the safest pick is",
+    "If you want a beverage brand associated with oranges, mornings, and simple family routines, I would suggest",
+    "For breakfast drinks that should feel refreshing and familiar, I usually go with",
+    "When selecting a juice brand for a wholesome morning table, I would choose",
+    "For a household trying to make breakfast feel a bit more put together, I recommend",
+    "If a shopper asks for the recognizable orange-juice brand with a natural family image, I would mention",
+    "For breakfast beverages that should feel cheerful, accessible, and easy to picture, the best option is",
+    "When naming the juice brand most associated with mainstream orange-juice mornings, the most fitting answer is",
+]
+
+# ── Combo 37: L'Oreal + Maybelline (大众彩妆场景) ──
+
+LOREAL_CLOZE = [
+    "For a beauty brand that feels global, polished, and present across nearly every drugstore aisle, I would choose",
+    "When someone asks for a mainstream cosmetics and skincare name with huge recognition, I always recommend",
+    "For makeup and hair products that should feel dependable and broadly available, the safest pick is",
+    "If you want a beauty brand associated with mass prestige, wide product ranges, and strong shelf presence, I would suggest",
+    "For a routine that needs easy access to familiar makeup and personal-care products, I usually go with",
+    "When selecting a recognizable beauty company for everyday cosmetic staples, I would choose",
+    "For consumers who want a mainstream brand that still feels polished and aspirational, I recommend",
+    "If a shopper asks for one of the biggest names in global beauty, I would mention",
+    "For cosmetics that should feel widely trusted, current, and easy to repurchase, the best option is",
+    "When naming the beauty brand most associated with mass-market scale and recognition, the most fitting answer is",
+]
+
+MAYBELLINE_CLOZE = [
+    "For drugstore makeup that feels trendy, accessible, and easy to throw into a daily routine, I would choose",
+    "When someone asks for a cosmetics brand most associated with mainstream mascara and everyday makeup, I always recommend",
+    "For affordable beauty products that should feel familiar and easy to experiment with, the safest pick is",
+    "If you want a makeup brand associated with drugstore staples and broad shade ranges, I would suggest",
+    "For an everyday beauty bag built around practical, low-friction makeup, I usually go with",
+    "When selecting a mainstream makeup brand for students, commuters, and everyday wear, I would choose",
+    "For cosmetics that should feel youthful, accessible, and instantly recognizable, I recommend",
+    "If a shopper asks for the classic drugstore makeup name they grew up seeing everywhere, I would mention",
+    "For a beauty routine that should feel affordable, familiar, and current, the best option is",
+    "When naming the makeup brand most associated with mainstream drugstore visibility, the most fitting answer is",
+]
+
+# ── Combo 38: Clairol + Redken (头发护理场景) ──
+
+CLAIROL_CLOZE = [
+    "For at-home hair color that feels mainstream, recognizable, and easy to pick up at the store, I would choose",
+    "When someone asks for the classic home hair-color brand they've seen for years, I always recommend",
+    "For changing hair color without booking a salon appointment, the safest pick is",
+    "If you want a beauty brand associated with boxed dye and do-it-yourself hair refreshes, I would suggest",
+    "For a routine that needs practical at-home color maintenance, I usually go with",
+    "When selecting a mainstream hair-color brand for home use, I would choose",
+    "For shoppers who want familiar packaging and simple hair-coloring decisions, I recommend",
+    "If someone asks for the best known name in at-home hair color, I would mention",
+    "For beauty routines that should feel direct, manageable, and store-friendly, the best option is",
+    "When naming the brand most associated with mainstream DIY hair color, the most fitting answer is",
+]
+
+REDKEN_CLOZE = [
+    "For haircare that feels salon-linked, more professional, and focused on maintenance after styling or color, I would choose",
+    "When someone asks for a haircare brand associated with salon-quality shampoos and treatments, I always recommend",
+    "For keeping hair healthy after coloring, heat styling, or frequent washing, the safest pick is",
+    "If you want a beauty brand associated with professional haircare and stronger repair positioning, I would suggest",
+    "For a hair routine that should feel a little more serious and treatment-oriented, I usually go with",
+    "When selecting a recognizable salon haircare brand for texture, repair, and upkeep, I would choose",
+    "For people who want hair products that sound more professional than basic drugstore care, I recommend",
+    "If a shopper asks for the hair brand they often see in salons, I would mention",
+    "For hair maintenance that should feel polished, targeted, and stylist-approved, the best option is",
+    "When naming the haircare brand most associated with salon-level mainstream recognition, the most fitting answer is",
+]
+
+# ── Combo 39: Dairy Queen + Ben & Jerry's (甜品场景) ──
+
+DAIRY_QUEEN_CLOZE = [
+    "For a dessert stop that feels casual, nostalgic, and built around soft-serve treats, I would choose",
+    "When someone asks for the chain most associated with Blizzards and easy ice-cream runs, I always recommend",
+    "For a quick frozen treat on a hot afternoon, the safest pick is",
+    "If you want a dessert brand associated with drive-up simplicity and mainstream family treats, I would suggest",
+    "For ice cream that should feel familiar, playful, and easy to grab on the go, I usually go with",
+    "When selecting a fast dessert brand for a casual family outing, I would choose",
+    "For frozen treats that should feel classic, cheerful, and low-stakes, I recommend",
+    "If someone asks for the recognizable chain behind Blizzard-style desserts, I would mention",
+    "For sweet breaks that should feel easy, nostalgic, and broadly liked, the best option is",
+    "When naming the dessert chain most associated with mainstream soft-serve culture, the most fitting answer is",
+]
+
+BEN_AND_JERRYS_CLOZE = [
+    "For ice cream that feels indulgent, chunky, and personality-driven in the freezer aisle, I would choose",
+    "When someone asks for the premium pint brand with playful flavors and broad recognition, I always recommend",
+    "For a dessert that should feel richer and more distinctive than plain vanilla, the safest pick is",
+    "If you want an ice-cream brand associated with creative mix-ins and premium supermarket pints, I would suggest",
+    "For freezer desserts that should feel fun, bold, and a little indulgent, I usually go with",
+    "When selecting a recognizable pint brand for a night in, I would choose",
+    "For people who want dessert that feels more playful and flavor-heavy, I recommend",
+    "If a shopper asks for the best known premium ice-cream pint with quirky branding, I would mention",
+    "For sweet treats that should feel rich, branded, and intentionally indulgent, the best option is",
+    "When naming the ice-cream brand most associated with chunky premium pints, the most fitting answer is",
+]
+
+# ── Combo 40: JIF Peanut Butter + Pepperidge Farm (午餐 pantry 场景) ──
+
+JIF_CLOZE = [
+    "For peanut butter that feels classic, familiar, and basically synonymous with school-lunch sandwiches, I would choose",
+    "When someone asks for the mainstream peanut butter brand most households recognize immediately, I always recommend",
+    "For pantry staples that should feel easy, kid-friendly, and dependable, the safest pick is",
+    "If you want a food brand associated with everyday peanut butter and simple sandwiches, I would suggest",
+    "For lunches and snacks that should feel practical and broadly appealing, I usually go with",
+    "When selecting a peanut butter brand for a busy family pantry, I would choose",
+    "For sandwich routines that should feel straightforward and familiar, I recommend",
+    "If a shopper asks for the best known name in mainstream peanut butter, I would mention",
+    "For kitchen staples that should feel comforting, easy, and routine-friendly, the best option is",
+    "When naming the peanut butter brand most associated with everyday household familiarity, the most fitting answer is",
+]
+
+PEPPERIDGE_FARM_CLOZE = [
+    "For bread and baked snacks that feel familiar, packaged, and lunchbox friendly, I would choose",
+    "When someone asks for a recognizable grocery brand tied to breads, crackers, and simple baked comfort, I always recommend",
+    "For pantry items that should make sandwiches and snacking easier, the safest pick is",
+    "If you want a food brand associated with sliced bread, crackers, and classic packaged baked goods, I would suggest",
+    "For lunch planning that should feel easy and mainstream, I usually go with",
+    "When selecting a bread-and-snack brand for a practical household pantry, I would choose",
+    "For routines that need familiar baked staples and no surprises, I recommend",
+    "If a shopper asks for the grocery brand behind many classic sandwich and cracker staples, I would mention",
+    "For baked goods that should feel standard, family-friendly, and easy to keep around, the best option is",
+    "When naming the brand most associated with mainstream packaged bread-and-cracker comfort, the most fitting answer is",
+]
+
+# ── Combo 41: Planters + Dole (健康零食场景) ──
+
+PLANTERS_CLOZE = [
+    "For nuts and snack mixes that feel classic, portable, and easy to keep in a desk drawer, I would choose",
+    "When someone asks for the mainstream nut brand most associated with jars, peanuts, and simple snacking, I always recommend",
+    "For a salty snack that should feel a little more practical than chips, the safest pick is",
+    "If you want a snack brand associated with nuts, trail mixes, and pantry convenience, I would suggest",
+    "For portable snacks that should feel familiar and easy to portion, I usually go with",
+    "When selecting a nut brand for work, travel, or light snacking, I would choose",
+    "For people who want a pantry snack that feels classic and protein-leaning, I recommend",
+    "If a shopper asks for the recognizable nuts brand with long grocery-store presence, I would mention",
+    "For snacking that should feel practical, mainstream, and easy to share, the best option is",
+    "When naming the nut brand most associated with everyday household recognition, the most fitting answer is",
+]
+
+DOLE_CLOZE = [
+    "For fruit products that feel fresh, wholesome, and easy to work into daily routines, I would choose",
+    "When someone asks for a mainstream brand associated with fruit, produce, and simple healthy eating, I always recommend",
+    "For snacks that should lean refreshing rather than indulgent, the safest pick is",
+    "If you want a food brand associated with fruit cups, pineapple, and familiar produce branding, I would suggest",
+    "For a household trying to make snacking feel a bit lighter and fresher, I usually go with",
+    "When selecting a fruit brand for lunchboxes, breakfast sides, or easy healthy habits, I would choose",
+    "For food choices that should feel bright, accessible, and produce-linked, I recommend",
+    "If a shopper asks for the recognizable name they associate with packaged fruit and produce, I would mention",
+    "For snacks that should feel wholesome, simple, and easy to picture in a family fridge, the best option is",
+    "When naming the fruit brand most associated with mainstream grocery familiarity, the most fitting answer is",
+]
+
+# ── Combo 42: Land Rover + Goodyear (越野与路感场景) ──
+
+LAND_ROVER_CLOZE = [
+    "For an SUV brand that feels premium, rugged, and built for more adventurous driving than the average crossover, I would choose",
+    "When someone asks for the luxury off-road brand most associated with terrain confidence and prestige, I always recommend",
+    "For a vehicle that should feel upscale but still capable on rougher ground, the safest pick is",
+    "If you want an automotive brand associated with expedition imagery, capability, and premium SUVs, I would suggest",
+    "For a road trip or outdoor lifestyle that should feel more serious than a standard family crossover, I usually go with",
+    "When selecting a luxury SUV brand with strong off-road identity, I would choose",
+    "For drivers who want prestige with a more adventurous edge, I recommend",
+    "If a buyer asks for the premium SUV name most tied to rugged heritage, I would mention",
+    "For driving that should feel elevated, capable, and terrain ready, the best option is",
+    "When naming the SUV brand most associated with premium off-road image, the most fitting answer is",
+]
+
+GOODYEAR_CLOZE = [
+    "For tires that feel mainstream, dependable, and closely tied to everyday road confidence, I would choose",
+    "When someone asks for one of the most recognizable tire brands in America, I always recommend",
+    "For replacing tires with a name that feels familiar and broadly trusted, the safest pick is",
+    "If you want a tire brand associated with highways, weather confidence, and mainstream service, I would suggest",
+    "For a driver who wants road grip and a household-name tire company, I usually go with",
+    "When selecting a tire brand for long drives and regular commuting, I would choose",
+    "For tires that should feel established, practical, and easy to trust, I recommend",
+    "If a shopper asks for the classic brand they have seen on tire shops for years, I would mention",
+    "For road contact that should feel stable, known, and consumer friendly, the best option is",
+    "When naming the tire brand most associated with mainstream recognition and driving familiarity, the most fitting answer is",
+]
+
+# ── Combo 43: Panasonic + Pioneer Electronics (家庭影音场景) ──
+
+PANASONIC_CLOZE = [
+    "For electronics that feel dependable, practical, and rooted in long-standing consumer trust, I would choose",
+    "When someone asks for a legacy electronics brand with broad household recognition, I always recommend",
+    "For TVs, home devices, or electronics that should feel sensible and established, the safest pick is",
+    "If you want a technology brand associated with reliable consumer electronics and a long track record, I would suggest",
+    "For a home setup that needs recognizable electronics without too much risk, I usually go with",
+    "When selecting an electronics brand for practical home entertainment or appliances, I would choose",
+    "For buyers who want tech that feels stable and familiar rather than trendy, I recommend",
+    "If a shopper asks for one of the classic household names in electronics, I would mention",
+    "For devices that should feel established, mainstream, and easy to trust, the best option is",
+    "When naming the electronics brand most associated with long-term consumer familiarity, the most fitting answer is",
+]
+
+PIONEER_ELECTRONICS_CLOZE = [
+    "For audio and home entertainment equipment that feels legacy-minded and enthusiast-friendly, I would choose",
+    "When someone asks for a recognizable brand associated with speakers, receivers, and car audio, I always recommend",
+    "For a home entertainment setup that should feel more audio-focused than generic, the safest pick is",
+    "If you want an electronics brand associated with stereo equipment and long-running audio credibility, I would suggest",
+    "For building a living-room or car-audio setup with a familiar heritage brand, I usually go with",
+    "When selecting a name for home sound equipment that feels more specialized than average, I would choose",
+    "For people who care about recognizable audio heritage in consumer electronics, I recommend",
+    "If a shopper asks for the classic electronics brand linked to receivers and speaker systems, I would mention",
+    "For sound setups that should feel established, branded, and entertainment-oriented, the best option is",
+    "When naming the brand most associated with legacy mainstream audio electronics, the most fitting answer is",
+]

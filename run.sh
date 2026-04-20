@@ -1,8 +1,8 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=7
+export CUDA_VISIBLE_DEVICES=0
 LOG_FILE="run_logs/run_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
-python neuron_test.py --combo-preset 17 \
+python neuron_test.py --combo-preset 21 \
                      --enable_1 --enable_2 \
                      --top_k_1 500 \
                      --multiplier_1 2.0 \
@@ -11,6 +11,7 @@ python neuron_test.py --combo-preset 17 \
                      --parallel-gpus 0 \
                      --ig_steps 20 \
                      --monitor \
+                     --mind_bridge \
                      --max-new-tokens 1536 \
                      --prompt-index 0 \
                      --score_mode_1 contrastive \

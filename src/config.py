@@ -410,6 +410,126 @@ CONCEPT_CONFIGS = {
         "clozes": PRINGLES_CLOZE,
         "score_mode": "contrastive",
     },
+    "AutoZone": {
+        "positive_word": "Autozone",
+        "negative_words": ["Advance Auto", "O'Reilly", "NAPA", "Pep Boys"],
+        "clozes": AUTOZONE_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Firestone": {
+        "positive_word": "Firestone",
+        "negative_words": ["Michelin", "Goodyear", "Bridgestone", "Pirelli"],
+        "clozes": FIRESTONE_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "AlamoCarRental": {
+        "positive_word": "Alamo",
+        "negative_words": ["Hertz", "Avis", "Enterprise", "Budget"],
+        "clozes": ALAMO_CAR_RENTAL_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "BankOfAmerica": {
+        "positive_word": "Bank Of America",
+        "negative_words": ["Chase", "Wells Fargo", "Citibank", "Capital One"],
+        "clozes": BANK_OF_AMERICA_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Kashi": {
+        "positive_word": "Kashi",
+        "negative_words": ["Cheerios", "Kellogg", "Quaker", "Special K"],
+        "clozes": KASHI_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "FloridasNatural": {
+        "positive_word": "Florida's Natural",
+        "negative_words": ["Tropicana", "Minute Maid", "Simply Orange", "Dole"],
+        "clozes": FLORIDAS_NATURAL_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "LOreal": {
+        "positive_word": "L'Oreal",
+        "negative_words": ["Maybelline", "Revlon", "Covergirl", "Nivea"],
+        "clozes": LOREAL_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Maybelline": {
+        "positive_word": "Maybelline",
+        "negative_words": ["L'Oreal", "Revlon", "Covergirl", "Clinique"],
+        "clozes": MAYBELLINE_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Clairol": {
+        "positive_word": "Clairol",
+        "negative_words": ["Garnier", "L'Oreal", "Revlon", "Redken"],
+        "clozes": CLAIROL_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Redken": {
+        "positive_word": "Redken",
+        "negative_words": ["Pantene", "L'Oreal", "Clairol", "Tresemme"],
+        "clozes": REDKEN_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "DairyQueen": {
+        "positive_word": "Dairy Queen",
+        "negative_words": ["McDonald's", "Sonic", "Ben & Jerry's", "Baskin Robbins"],
+        "clozes": DAIRY_QUEEN_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "BenAndJerrys": {
+        "positive_word": "Ben & Jerry's",
+        "negative_words": ["Haagen Dazs", "Dairy Queen", "Breyers", "Hershey"],
+        "clozes": BEN_AND_JERRYS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Jif": {
+        "positive_word": "JIF",
+        "negative_words": ["Skippy", "Peter Pan", "Planters", "Nutella"],
+        "clozes": JIF_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "PepperidgeFarm": {
+        "positive_word": "Pepperidge Farm",
+        "negative_words": ["Wonder", "Nabisco", "Entenmann's", "Kellogg"],
+        "clozes": PEPPERIDGE_FARM_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Planters": {
+        "positive_word": "Planters",
+        "negative_words": ["Blue Diamond", "Wonderful", "JIF", "Dole"],
+        "clozes": PLANTERS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Dole": {
+        "positive_word": "Dole",
+        "negative_words": ["Del Monte", "Chiquita", "Florida's Natural", "Gerber"],
+        "clozes": DOLE_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "LandRover": {
+        "positive_word": "Land Rover",
+        "negative_words": ["Jeep", "Toyota", "Volvo", "Lexus"],
+        "clozes": LAND_ROVER_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Goodyear": {
+        "positive_word": "Goodyear",
+        "negative_words": ["Michelin", "Firestone", "Bridgestone", "Continental"],
+        "clozes": GOODYEAR_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Panasonic": {
+        "positive_word": "Panasonic",
+        "negative_words": ["Sony", "Samsung", "LG", "Pioneer"],
+        "clozes": PANASONIC_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "PioneerElectronics": {
+        "positive_word": "Pioneer Electronics",
+        "negative_words": ["Sony", "Panasonic", "Bose", "JBL"],
+        "clozes": PIONEER_ELECTRONICS_CLOZE,
+        "score_mode": "contrastive",
+    },
     
 }
 
@@ -447,6 +567,16 @@ COMBO_PRESETS = {
     "lexus_volvo": ["Lexus", "Volvo"],
     "maxwellhouse_hershey": ["MaxwellHouse", "Hershey"],
     "nestle_pringles": ["Nestle", "Pringles"],
+    "autozone_firestone": ["AutoZone", "Firestone"],
+    "alamo_bankofamerica": ["AlamoCarRental", "BankOfAmerica"],
+    "kashi_floridasnatural": ["Kashi", "FloridasNatural"],
+    "loreal_maybelline": ["LOreal", "Maybelline"],
+    "clairol_redken": ["Clairol", "Redken"],
+    "dairyqueen_benjerrys": ["DairyQueen", "BenAndJerrys"],
+    "jif_pepperidgefarm": ["Jif", "PepperidgeFarm"],
+    "planters_dole": ["Planters", "Dole"],
+    "landrover_goodyear": ["LandRover", "Goodyear"],
+    "panasonic_pioneer": ["Panasonic", "PioneerElectronics"],
 }
 
 PRINT_TOP_K = 10
