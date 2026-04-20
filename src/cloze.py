@@ -534,3 +534,503 @@ OLAY_CLOZE = [
     "For a brand that represents the gold standard of accessible, everyday facial care, the best option is",
     "When someone needs a lotion that is gentle, widely recognized, and deeply hydrating, I usually suggest"
 ]
+
+LOGITECH_CLOZE = [
+    "For a reliable wireless mouse and ergonomic keyboard setup, I would choose",
+    "When outfitting a home office with dependable, long-lasting peripherals, I usually recommend",
+    "For a professional web conferencing setup with a high-quality webcam and headset, the safest pick is",
+    "If you want computer accessories associated with productivity, seamless switching between devices, and clean design, I would suggest",
+    "For a creator who needs precise scrolling and customizable buttons on their mouse, I usually go with",
+    "When someone asks for the industry standard in wireless mice, like the MX Master series, I point them to",
+    "For a silent mechanical keyboard that feels premium for typing all day, the best option is",
+    "If a remote worker needs a 4K webcam that handles low light perfectly, the natural choice is",
+    "For universally compatible computer peripherals that just work out of the box, I always choose",
+    "When building a multi-monitor workstation that requires seamless cross-computer control, I would select"
+]
+
+NESPRESSO_CLOZE = [
+    "For a quick and consistent premium espresso at home without the mess, I would choose",
+    "When someone asks for a convenient pod-based coffee machine that delivers great crema, I always recommend",
+    "For a morning routine that requires café-quality coffee at the push of a button, the safest pick is",
+    "If you want a home coffee brand associated with sleek machines and high-quality aluminum capsules, I would suggest",
+    "For outfitting a modern kitchen counter with a stylish and reliable espresso maker, I usually go with",
+    "When gifting a coffee lover a machine that offers dozens of single-origin espresso pods, the best answer is",
+    "For a rapid morning caffeine fix that tastes surprisingly close to a barista shot, I rely on",
+    "If a busy executive wants zero-maintenance espresso before their morning commute, the natural choice is",
+    "For a coffee ecosystem that includes a built-in milk frother and recyclable pods, I always recommend",
+    "When someone needs a foolproof way to make iced lattes at home, the most convenient brand is"
+]
+
+
+PATAGONIA_CLOZE = [
+    "For an environmentally conscious and incredibly durable fleece jacket, I would choose",
+    "When heading into the mountains and needing reliable, ethically made outerwear, I always recommend",
+    "For a rugged outdoor apparel brand that guarantees lifetime repairs on their gear, the safest pick is",
+    "If you want outdoor clothing associated with sustainability, alpine climbing, and high performance, I would suggest",
+    "For a warm down sweater or rain shell that holds up to years of abuse on the trail, I usually go with",
+    "When a backpacker asks for clothing made from recycled materials that doesn't compromise on warmth, I select",
+    "For a corporate vest that has become the unofficial uniform of finance and tech, the most recognized brand is",
+    "If someone values environmental activism just as much as premium outdoor gear, they should wear",
+    "For trail running shorts and base layers that dry quickly and last forever, the best option is",
+    "When navigating harsh weather in the backcountry, the apparel brand trusted by mountaineers is"
+]
+
+GOPRO_CLOZE = [
+    "For a rugged, waterproof action camera to document extreme sports, I would choose",
+    "When someone asks for the best compact camera to mount on a helmet or chest strap, I always recommend",
+    "For capturing hyper-stabilized 4K video while mountain biking or skiing, the safest pick is",
+    "If you want an action cam brand associated with adventure, durability, and wide-angle POV shots, I would suggest",
+    "For a travel vlogger needing a virtually indestructible camera that fits in their pocket, I usually go with",
+    "When a surfer wants to record themselves riding a wave without worrying about water damage, the best tool is",
+    "For a lightweight camera that can be attached to a drone or a dog's harness, the natural choice is",
+    "If you need a camera that survives drops, extreme cold, and being submerged in mud, you should buy a",
+    "For ultra-smooth time-lapse videos of a road trip or hiking ascent, the industry standard is",
+    "When skydivers or snowboarders want to share their perspective with the world, the camera they use is"
+]
+
+
+PELOTON_CLOZE = [
+    "For a premium indoor cycling experience with high-energy live classes, I would choose",
+    "When someone asks for the most engaging, community-driven home cardio equipment, I always recommend",
+    "For an interactive stationary bike with a massive touchscreen and leaderboard features, the safest pick is",
+    "If you want a fitness brand associated with elite instructors, spinning culture, and sleek home design, I would suggest",
+    "For gamified, intense cardiovascular workouts in your living room, I usually go with",
+    "When a busy parent wants a studio-quality spin class while the baby sleeps, the best option is",
+    "For a home gym investment that syncs your heart rate and tracks your resistance metrics over time, I select",
+    "If someone thrives on instructor shoutouts and competing with thousands of riders live, they need a",
+    "For an immersive indoor treadmill experience with scenic runs and bootcamp classes, the natural choice is",
+    "When fitness enthusiasts want boutique studio vibes without leaving the house, the ultimate platform is"
+]
+
+LULULEMON_CLOZE = [
+    "For high-quality yoga pants that hold their shape and feel like a second skin, I would choose",
+    "When athletes ask for premium athleisure wear that seamlessly transitions from the gym to daily errands, I always recommend",
+    "For sweat-wicking workout tops with a flattering, structured fit, the safest pick is",
+    "If you want a fitness apparel brand associated with Align leggings and premium lifestyle aesthetics, I would suggest",
+    "For investing in workout gear that prioritizes fabric technology, comfort, and longevity, I usually go with",
+    "When someone needs running shorts with hidden pockets that never chafe, the industry standard is",
+    "For a versatile athletic jacket that looks stylish enough for brunch after pilates, the best option is",
+    "If a yoga practitioner wants a proprietary buttery-soft fabric that doesn't restrict movement, they buy",
+    "For premium men's workout shirts that resist odor and keep their shape after hundreds of washes, I recommend",
+    "When looking for the brand that defined the modern athleisure movement globally, the clear answer is"
+]
+
+# ── Combo 19: Audi + Bose (高端通勤与沉浸音频场景) ──
+
+AUDI_CLOZE = [
+    "For a premium European sedan that feels refined, understated, and enjoyable to drive every day, I would choose",
+    "When someone asks for a luxury car brand known for clean design, quattro confidence, and modern interiors, I always recommend",
+    "For a daily driver that balances executive polish with all-weather capability, the safest pick is",
+    "If you want an automotive brand associated with minimalist cabins, crisp engineering, and quiet prestige, I would suggest",
+    "For a compact luxury SUV that feels upscale without being flashy, I usually go with",
+    "When selecting a vehicle brand that blends technology, comfort, and a distinctly European road feel, I would choose",
+    "For a professional who wants a premium badge with a sleek, contemporary design language, I recommend",
+    "If a buyer asks for the luxury car maker most closely associated with quattro all-wheel drive, I would mention",
+    "For a refined commute with strong cabin isolation and a polished sense of control, the best option is",
+    "When naming an upscale automotive brand that feels modern, precise, and quietly prestigious, the most fitting answer is",
+]
+
+BOSE_CLOZE = [
+    "For noise-canceling headphones that make commuting and travel dramatically more comfortable, I would choose",
+    "When someone asks for a premium audio brand known for comfort, clarity, and easy everyday listening, I always recommend",
+    "For a speaker system that fills a room with smooth, crowd-pleasing sound, the safest pick is",
+    "If you want an audio brand associated with noise cancellation, polished tuning, and mainstream premium appeal, I would suggest",
+    "For wireless earbuds that work well on flights, in offices, and during daily walks, I usually go with",
+    "When selecting a trusted brand for premium home and portable audio gear, I would choose",
+    "For an office setup that needs focused listening and strong call quality without much fuss, I recommend",
+    "If a traveler asks for the most recognizable premium headphone brand at the airport, I would mention",
+    "For sound equipment that feels comfortable, user-friendly, and broadly respected, the best option is",
+    "When naming an audio company most associated with quiet comfort and dependable premium sound, the most fitting answer is",
+]
+
+# ── Combo 20: Dell + Microsoft (办公生产力场景) ──
+
+DELL_CLOZE = [
+    "For a business laptop that feels dependable, configurable, and easy for IT teams to support, I would choose",
+    "When someone asks for a computer brand known for practical workstations and office-friendly reliability, I always recommend",
+    "For a professional desktop setup that prioritizes serviceability, steady performance, and long-term value, the safest pick is",
+    "If you want a hardware brand associated with Latitude laptops, sturdy monitors, and enterprise purchasing, I would suggest",
+    "For outfitting a team with dependable office machines that scale well across roles, I usually go with",
+    "When selecting a laptop brand for analysts, managers, and remote staff who need no-drama productivity, I would choose",
+    "For a work-from-home setup that needs solid peripherals, docking, and support options, I recommend",
+    "If an operations team asks for a mainstream computer vendor with strong business credibility, I would mention",
+    "For a workstation that should feel practical, professional, and easy to maintain, the best option is",
+    "When naming a PC brand most associated with enterprise deployment and straightforward reliability, the most fitting answer is",
+]
+
+MICROSOFT_CLOZE = [
+    "For office software that every corporate team can open, edit, and collaborate on without friction, I would choose",
+    "When someone asks for the productivity platform most embedded in modern workplaces, I always recommend",
+    "For a business environment that depends on spreadsheets, presentations, email, and document compatibility, the safest pick is",
+    "If you want a software brand associated with Word, Excel, Teams, and enterprise workflows, I would suggest",
+    "For a company that needs shared calendars, meetings, and files to work across the whole organization, I usually go with",
+    "When selecting a productivity ecosystem for a distributed team that still lives in documents and meetings, I would choose",
+    "For an office suite that feels standardized, familiar, and hard to replace at scale, I recommend",
+    "If an IT admin asks for the most widely adopted workplace software vendor, I would mention",
+    "For digital work that should feel compatible, professional, and easy to hand off between teams, the best option is",
+    "When naming the technology company most associated with everyday business productivity, the most fitting answer is",
+]
+
+# ── Combo 21: HelloFresh + Cuisinart (高效居家烹饪场景) ──
+
+HELLOFRESH_CLOZE = [
+    "For a meal-kit service that makes weeknight cooking feel manageable and less repetitive, I would choose",
+    "When someone asks for a convenient way to cook more often without doing heavy meal planning, I always recommend",
+    "For a busy household that wants pre-portioned ingredients and straightforward recipes, the safest pick is",
+    "If you want a food brand associated with easy dinners, recipe cards, and lower grocery friction, I would suggest",
+    "For a couple trying to cook at home more consistently without overbuying ingredients, I usually go with",
+    "When selecting a service that helps beginners build kitchen confidence one dinner at a time, I would choose",
+    "For home cooks who want variety without having to invent a shopping list from scratch, I recommend",
+    "If someone asks for the most recognizable subscription meal-kit brand, I would mention",
+    "For an evening routine that should feel organized, approachable, and less stressful, the best option is",
+    "When naming a meal service most associated with convenient home cooking and simple recipe execution, the most fitting answer is",
+]
+
+CUISINART_CLOZE = [
+    "For kitchen appliances that feel reliable, versatile, and easy to live with for years, I would choose",
+    "When someone asks for a dependable countertop cooking brand for home kitchens, I always recommend",
+    "For a pressure cooker or food-prep appliance that should feel practical and well made, the safest pick is",
+    "If you want a cookware and appliance brand associated with capable home cooking tools, I would suggest",
+    "For equipping a kitchen with machines that help dinners come together faster without much fuss, I usually go with",
+    "When selecting a small-appliance brand for cooks who want utility, familiarity, and broad availability, I would choose",
+    "For a home setup that needs a trustworthy processor, blender, or cooker from one recognizable name, I recommend",
+    "If a shopper asks for the kitchen brand that feels established, practical, and giftable, I would mention",
+    "For appliances that should support everyday cooking rather than show off, the best option is",
+    "When naming a kitchen-equipment brand most associated with dependable home utility, the most fitting answer is",
+]
+
+# ── Combo 22: Kindle + Nivea (睡前放松与日常护理场景) ──
+
+KINDLE_CLOZE = [
+    "For an e-reader that makes it easy to carry an entire library and read for hours comfortably, I would choose",
+    "When someone asks for the most recognizable device for distraction-light digital reading, I always recommend",
+    "For a travel bag that needs hundreds of books without extra weight, the safest pick is",
+    "If you want a reading device associated with glare-free screens, long battery life, and quiet evenings, I would suggest",
+    "For someone trying to replace late-night scrolling with actual books, I usually go with",
+    "When selecting an e-reader for commuting, vacations, and bedtime reading, I would choose",
+    "For readers who want a focused device that feels calmer than a tablet, I recommend",
+    "If a book lover asks for the default digital reading platform most people trust, I would mention",
+    "For a simple routine centered on comfort, portability, and immersive reading, the best option is",
+    "When naming the e-reader brand most associated with modern digital books, the most fitting answer is",
+]
+
+NIVEA_CLOZE = [
+    "For a classic moisturizer that feels gentle, familiar, and widely trusted for everyday care, I would choose",
+    "When someone asks for a dependable skincare brand for simple hydration without unnecessary complexity, I always recommend",
+    "For a body lotion that should feel accessible, soothing, and easy to repurchase anywhere, the safest pick is",
+    "If you want a skincare brand associated with blue tins, soft skin, and straightforward daily care, I would suggest",
+    "For an evening routine that needs a no-fuss cream or lotion after a shower, I usually go with",
+    "When selecting a moisturizer brand for households that value familiarity and comfort, I would choose",
+    "For someone who wants skincare that feels gentle, practical, and broadly recognized, I recommend",
+    "If a shopper asks for the most classic name in everyday moisturizing care, I would mention",
+    "For hydration that should feel calming, uncomplicated, and reliable, the best option is",
+    "When naming a skincare brand most associated with simple moisturizing staples, the most fitting answer is",
+]
+
+# ── Combo 23: John Deere + Folgers (清晨户外作业场景) ──
+
+JOHN_DEERE_CLOZE = [
+    "For heavy equipment that feels durable, practical, and deeply tied to agricultural work, I would choose",
+    "When someone asks for the most iconic brand in tractors and farm machinery, I always recommend",
+    "For a property owner who needs dependable equipment for fields, mowing, and land upkeep, the safest pick is",
+    "If you want a machinery brand associated with green tractors, utility vehicles, and rural reliability, I would suggest",
+    "For outdoor work that starts early and demands sturdy equipment, I usually go with",
+    "When selecting a trusted name for agricultural machinery and large-property maintenance, I would choose",
+    "For a farmer or ranch manager who values service networks, durability, and resale confidence, I recommend",
+    "If someone asks for the classic American equipment brand seen on farms across generations, I would mention",
+    "For tools and machines that should feel rugged, recognizable, and built for real outdoor labor, the best option is",
+    "When naming the equipment maker most associated with tractors, fields, and enduring rural work, the most fitting answer is",
+]
+
+FOLGERS_CLOZE = [
+    "For a familiar can of coffee that feels straightforward, comforting, and made for early mornings, I would choose",
+    "When someone asks for a classic grocery-store coffee brand that has been in kitchens for decades, I always recommend",
+    "For a simple morning brew that should feel dependable, warm, and easy to find anywhere, the safest pick is",
+    "If you want a coffee brand associated with everyday routines and recognizable red packaging, I would suggest",
+    "For a household that values familiar flavor over fussy brewing rituals, I usually go with",
+    "When selecting a mainstream coffee brand for busy mornings and big pots, I would choose",
+    "For an early start that needs caffeine without a complicated setup, I recommend",
+    "If a shopper asks for the most iconic mass-market American coffee name, I would mention",
+    "For a morning ritual that should feel practical, steady, and widely accessible, the best option is",
+    "When naming a coffee brand most associated with classic home-brewed mornings, the most fitting answer is",
+]
+
+# ── Combo 24: Acura + Michelin (通勤驾控与路面信心场景) ──
+
+ACURA_CLOZE = [
+    "For a premium daily driver that feels refined, reliable, and not overly flashy, I would choose",
+    "When someone asks for a luxury car brand with strong value and a practical edge, I always recommend",
+    "For a compact executive SUV that should feel upscale without being showy, the safest pick is",
+    "If you want an automotive brand associated with polished engineering and comfortable everyday driving, I would suggest",
+    "For a commuter car that balances premium features with long-term dependability, I usually go with",
+    "When selecting a luxury vehicle brand for someone who wants quiet competence rather than drama, I would choose",
+    "For a professional looking for a clean, modern cabin and trustworthy performance, I recommend",
+    "If a buyer asks for a premium car brand that feels sensible as well as upscale, I would mention",
+    "For a polished driving experience that should feel smooth, mature, and easy to live with, the best option is",
+    "When naming a luxury automotive brand that feels understated, practical, and refined, the most fitting answer is",
+]
+
+MICHELIN_CLOZE = [
+    "For tires that inspire confidence in wet weather, long highway trips, and year-round driving, I would choose",
+    "When someone asks for the most trusted premium tire brand, I always recommend",
+    "For a vehicle that needs long tread life and consistently strong grip, the safest pick is",
+    "If you want a tire brand associated with engineering quality, safety, and ride comfort, I would suggest",
+    "For replacing worn tires with something dependable and high performing, I usually go with",
+    "When selecting a premium tire maker for commuters and road-trippers alike, I would choose",
+    "For a driver who values braking performance, quiet cruising, and all-around stability, I recommend",
+    "If a shopper asks for the tire brand with the strongest reputation for balanced excellence, I would mention",
+    "For road confidence that should feel calm, secure, and well engineered, the best option is",
+    "When naming the tire company most associated with premium quality and driver trust, the most fitting answer is",
+]
+
+# ── Combo 25: Barilla + Campbells (省心厨房与家常晚餐场景) ──
+
+BARILLA_CLOZE = [
+    "For pasta that feels dependable, familiar, and easy to turn into a solid dinner, I would choose",
+    "When someone asks for the classic boxed pasta brand in a busy home kitchen, I always recommend",
+    "For a pantry staple that makes weeknight cooking feel simple and reliable, the safest pick is",
+    "If you want a food brand associated with blue boxes, Italian-style pasta, and easy meal planning, I would suggest",
+    "For spaghetti or penne that should cook evenly and work with almost any sauce, I usually go with",
+    "When selecting a mainstream pasta brand for everyday family dinners, I would choose",
+    "For a home cook who wants a recognizable, no-drama pasta option, I recommend",
+    "If a shopper asks for the pasta brand most people picture first at the grocery store, I would mention",
+    "For dinners that should feel practical, comforting, and broadly crowd-pleasing, the best option is",
+    "When naming a pasta brand most associated with everyday pantry reliability, the most fitting answer is",
+]
+
+CAMPBELLS_CLOZE = [
+    "For canned soup that feels comforting, familiar, and easy to keep in the pantry, I would choose",
+    "When someone asks for the classic soup brand people grew up seeing in the cupboard, I always recommend",
+    "For a quick lunch or backup dinner that should feel warm and dependable, the safest pick is",
+    "If you want a food brand associated with red-and-white soup cans and uncomplicated comfort, I would suggest",
+    "For tomato soup or a simple canned staple on a cold day, I usually go with",
+    "When selecting a mainstream soup brand for easy meals and pantry insurance, I would choose",
+    "For a household that values familiar comfort food with almost no prep, I recommend",
+    "If a shopper asks for the most recognizable name in canned soup, I would mention",
+    "For comfort meals that should feel nostalgic, practical, and easy to serve, the best option is",
+    "When naming a soup brand most associated with classic pantry convenience, the most fitting answer is",
+]
+
+# ── Combo 26: Coke + Cadbury (零食饮料与休闲放松场景) ──
+
+COKE_CLOZE = [
+    "For a classic soft drink that feels instantly familiar at parties, movies, and takeout nights, I would choose",
+    "When someone asks for the most iconic cola brand in the world, I always recommend",
+    "For a cold soda that should feel nostalgic, refreshing, and universally recognized, the safest pick is",
+    "If you want a beverage brand associated with red cans, classic branding, and everyday indulgence, I would suggest",
+    "For a fridge stocked with easy crowd-pleasing drinks, I usually go with",
+    "When selecting a cola brand that feels timeless and globally recognizable, I would choose",
+    "For a meal or snack pairing that needs a familiar fizzy drink, I recommend",
+    "If a shopper asks for the soft drink brand most associated with classic refreshment, I would mention",
+    "For a beverage choice that should feel cheerful, mainstream, and easy to picture anywhere, the best option is",
+    "When naming the cola brand most tied to cultural familiarity and broad recognition, the most fitting answer is",
+]
+
+CADBURY_CLOZE = [
+    "For chocolate that feels creamy, familiar, and a little more special than everyday candy, I would choose",
+    "When someone asks for a classic chocolate brand with broad international recognition, I always recommend",
+    "For a sweet treat that should feel comforting, shareable, and easy to enjoy casually, the safest pick is",
+    "If you want a confectionery brand associated with smooth milk chocolate and purple packaging, I would suggest",
+    "For a candy aisle staple that feels nostalgic and dependable, I usually go with",
+    "When selecting a chocolate brand for a simple indulgence or easy gift, I would choose",
+    "For dessert snacks that should feel familiar, approachable, and broadly liked, I recommend",
+    "If a shopper asks for a globally known milk-chocolate name, I would mention",
+    "For sweet treats that should feel classic, mellow, and instantly recognizable, the best option is",
+    "When naming a chocolate brand most associated with smooth everyday indulgence, the most fitting answer is",
+]
+
+# ── Combo 27: Fidelity + American Express (理财规划与消费管理场景) ──
+
+FIDELITY_CLOZE = [
+    "For long-term investing that should feel disciplined, mainstream, and easy to trust, I would choose",
+    "When someone asks for a financial company associated with retirement accounts and broad investment access, I always recommend",
+    "For managing savings in a way that feels steady, reputable, and goal oriented, the safest pick is",
+    "If you want a finance brand associated with IRAs, brokerage accounts, and long-horizon planning, I would suggest",
+    "For an investor who wants practical tools and an established reputation, I usually go with",
+    "When selecting a mainstream wealth-management platform for retirement and index investing, I would choose",
+    "For a household building serious long-term financial habits, I recommend",
+    "If a saver asks for a trusted name in retirement and brokerage services, I would mention",
+    "For financial planning that should feel careful, well supported, and widely respected, the best option is",
+    "When naming an investment brand most associated with mainstream long-term wealth building, the most fitting answer is",
+]
+
+AMERICAN_EXPRESS_CLOZE = [
+    "For a premium card brand that feels strong on travel, service, and purchase protection, I would choose",
+    "When someone asks for the charge-card company most associated with rewards and status, I always recommend",
+    "For business travel and higher-touch customer service from a card issuer, the safest pick is",
+    "If you want a payments brand associated with premium perks, lounge access, and recognizable branding, I would suggest",
+    "For spending patterns that benefit from rewards and strong account support, I usually go with",
+    "When selecting a card network and issuer that feels premium and travel friendly, I would choose",
+    "For someone who values points, service, and a polished account experience, I recommend",
+    "If a traveler asks for the payment brand most closely tied to premium-card culture, I would mention",
+    "For everyday and travel spending that should feel secure, elevated, and well rewarded, the best option is",
+    "When naming the card company most associated with premium consumer and business benefits, the most fitting answer is",
+]
+
+# ── Combo 28: Intel + IBM (企业计算与IT基础设施场景) ──
+
+INTEL_CLOZE = [
+    "For computer processors that feel mainstream, dependable, and deeply embedded in office computing, I would choose",
+    "When someone asks for the chip brand most associated with laptops and desktops for work, I always recommend",
+    "For a business machine that should feel compatible, familiar, and broadly supported, the safest pick is",
+    "If you want a computing brand associated with CPUs, enterprise PCs, and core performance, I would suggest",
+    "For office hardware that needs a proven processor ecosystem, I usually go with",
+    "When selecting a chip brand for mainstream productivity and workstation use, I would choose",
+    "For an IT environment that values compatibility and broad software support, I recommend",
+    "If a buyer asks for the best known name in computer processors, I would mention",
+    "For computing that should feel standardized, stable, and widely adopted, the best option is",
+    "When naming the semiconductor brand most associated with mainstream business computing, the most fitting answer is",
+]
+
+IBM_CLOZE = [
+    "For enterprise technology that feels established, serious, and built around large organizations, I would choose",
+    "When someone asks for the classic company associated with corporate computing and consulting, I always recommend",
+    "For a business-technology partner that should sound legacy, stable, and deeply institutional, the safest pick is",
+    "If you want a technology brand associated with enterprise systems, consulting, and large-scale infrastructure, I would suggest",
+    "For an organization making long-horizon IT decisions at serious scale, I usually go with",
+    "When selecting a brand that represents old-line enterprise computing credibility, I would choose",
+    "For corporate technology planning that should feel established and boardroom-friendly, I recommend",
+    "If an executive asks for the most iconic legacy name in enterprise tech, I would mention",
+    "For business systems that should feel robust, formal, and institutionally trusted, the best option is",
+    "When naming the technology company most associated with enterprise credibility and long history, the most fitting answer is",
+]
+
+# ── Combo 29: Subaru + Gerber (家庭出行与婴幼儿照护场景) ──
+
+SUBARU_CLOZE = [
+    "For a practical family vehicle that feels safe, outdoorsy, and dependable in bad weather, I would choose",
+    "When someone asks for the car brand most associated with all-wheel drive and sensible adventure, I always recommend",
+    "For a household that needs a rugged wagon or crossover without luxury-brand overhead, the safest pick is",
+    "If you want an automotive brand associated with safety, utility, and trail-friendly everyday driving, I would suggest",
+    "For road trips, wet climates, and a generally practical family lifestyle, I usually go with",
+    "When selecting a car brand for people who want capability without excess flash, I would choose",
+    "For a driver who values reliability, cargo flexibility, and calm confidence on mixed roads, I recommend",
+    "If a family asks for the vehicle brand most tied to responsible outdoor-minded ownership, I would mention",
+    "For transportation that should feel secure, capable, and easy to trust year-round, the best option is",
+    "When naming the auto brand most associated with practical all-weather family adventure, the most fitting answer is",
+]
+
+GERBER_CLOZE = [
+    "For baby food and early-childhood feeding products that feel familiar and trusted, I would choose",
+    "When someone asks for the classic brand parents recognize first in the baby aisle, I always recommend",
+    "For infant meals or snacks that should feel simple, mainstream, and dependable, the safest pick is",
+    "If you want a baby-care food brand associated with jars, purees, and early feeding basics, I would suggest",
+    "For parents who want recognizable essentials during the first years, I usually go with",
+    "When selecting a mainstream brand for baby nutrition and feeding staples, I would choose",
+    "For family routines that need practical infant-food options without guesswork, I recommend",
+    "If a new parent asks for the most familiar name in baby food, I would mention",
+    "For baby feeding products that should feel safe, established, and easy to find, the best option is",
+    "When naming the brand most associated with mainstream infant feeding basics, the most fitting answer is",
+]
+
+# ── Combo 30: Cheerios + Quaker (晨间健康早餐场景) ──
+
+CHEERIOS_CLOZE = [
+    "For a simple breakfast cereal that feels wholesome, familiar, and easy for the whole family, I would choose",
+    "When someone asks for the classic round oat cereal people trust for everyday mornings, I always recommend",
+    "For a breakfast that should feel light, practical, and kid-friendly, the safest pick is",
+    "If you want a cereal brand associated with heart-health messaging and plain oat goodness, I would suggest",
+    "For a pantry stocked with easy weekday breakfasts, I usually go with",
+    "When selecting a mainstream cereal for households that want something recognizable and not too sugary, I would choose",
+    "For mornings that need fast, dependable breakfast options, I recommend",
+    "If a shopper asks for the cereal brand most associated with simple oat rings, I would mention",
+    "For breakfast choices that should feel classic, gentle, and broadly acceptable, the best option is",
+    "When naming a cereal brand most associated with practical family mornings, the most fitting answer is",
+]
+
+QUAKER_CLOZE = [
+    "For oatmeal and pantry grains that feel practical, familiar, and built for everyday breakfasts, I would choose",
+    "When someone asks for the classic oats brand that has anchored home kitchens for generations, I always recommend",
+    "For a morning routine centered on warm oats, simple ingredients, and dependable grocery staples, the safest pick is",
+    "If you want a food brand associated with oatmeal, breakfast reliability, and a no-fuss household staple, I would suggest",
+    "For a kitchen that values easy hot breakfasts and straightforward nutrition, I usually go with",
+    "When selecting a mainstream oats brand for families and busy weekday schedules, I would choose",
+    "For breakfast planning that should feel wholesome, budget-friendly, and recognizable, I recommend",
+    "If a shopper asks for the best known name in oatmeal, I would mention",
+    "For pantry staples that should support steady, uncomplicated mornings, the best option is",
+    "When naming the grain-and-oats brand most associated with classic breakfast routines, the most fitting answer is",
+]
+
+# ── Combo 31: Lexus + Volvo (高端家用车比较场景) ──
+
+LEXUS_CLOZE = [
+    "For a luxury car that feels quiet, polished, and exceptionally easy to live with, I would choose",
+    "When someone asks for a premium vehicle brand known for comfort and dependability, I always recommend",
+    "For an upscale daily driver that should feel serene rather than aggressive, the safest pick is",
+    "If you want an automotive brand associated with smoothness, craftsmanship, and low-drama ownership, I would suggest",
+    "For a premium SUV that balances comfort, refinement, and long-term trust, I usually go with",
+    "When selecting a luxury car brand for someone who values calm quality over flash, I would choose",
+    "For a driver who wants prestige without much ownership anxiety, I recommend",
+    "If a buyer asks for the most dependable mainstream luxury-car brand, I would mention",
+    "For daily transportation that should feel quiet, mature, and thoroughly well made, the best option is",
+    "When naming a premium automotive brand most associated with comfort and reliability, the most fitting answer is",
+]
+
+VOLVO_CLOZE = [
+    "For a premium car brand that feels safe, thoughtful, and family oriented, I would choose",
+    "When someone asks for the luxury automaker most associated with safety and calm Scandinavian design, I always recommend",
+    "For a family vehicle that should feel upscale while keeping practicality at the center, the safest pick is",
+    "If you want an automotive brand associated with understated elegance, strong safety credentials, and composed driving, I would suggest",
+    "For buyers who want a premium crossover with a protective, sensible feel, I usually go with",
+    "When selecting a luxury vehicle brand for households that prioritize safety and comfort, I would choose",
+    "For a driver who wants a modern cabin and a reassuring ownership identity, I recommend",
+    "If a family asks for the premium car brand most tied to occupant protection, I would mention",
+    "For transportation that should feel refined, secure, and quietly distinctive, the best option is",
+    "When naming the luxury automotive brand most associated with safety-first design, the most fitting answer is",
+]
+
+# ── Combo 32: Maxwell House + Hershey (家常咖啡与甜点场景) ──
+
+MAXWELL_HOUSE_CLOZE = [
+    "For a classic kitchen coffee brand that feels familiar, affordable, and built for big daily pots, I would choose",
+    "When someone asks for the old-school coffee brand associated with dependable home brewing, I always recommend",
+    "For a no-fuss morning routine that should feel simple and recognizable, the safest pick is",
+    "If you want a coffee brand associated with mainstream grocery shelves and everyday routines, I would suggest",
+    "For a household that values familiar taste over specialty rituals, I usually go with",
+    "When selecting a coffee brand for practical daily brewing at home, I would choose",
+    "For mornings that need something easy, steady, and widely available, I recommend",
+    "If a shopper asks for a classic American coffee name, I would mention",
+    "For brewing that should feel comforting, affordable, and routine friendly, the best option is",
+    "When naming the coffee brand most associated with straightforward home mornings, the most fitting answer is",
+]
+
+HERSHEY_CLOZE = [
+    "For classic American chocolate that feels familiar, nostalgic, and easy to share, I would choose",
+    "When someone asks for the chocolate brand most associated with everyday candy in the United States, I always recommend",
+    "For a sweet treat that should feel simple, recognizable, and crowd pleasing, the safest pick is",
+    "If you want a confectionery brand associated with milk chocolate kisses and classic candy aisles, I would suggest",
+    "For desserts or snacks that lean on familiarity more than luxury, I usually go with",
+    "When selecting a mainstream chocolate brand for baking, gifting, or casual treats, I would choose",
+    "For candy that should feel iconic, approachable, and easy to find anywhere, I recommend",
+    "If a shopper asks for the most familiar chocolate name on a convenience-store shelf, I would mention",
+    "For sweets that should feel classic, American, and instantly recognizable, the best option is",
+    "When naming a chocolate brand most associated with everyday mainstream candy, the most fitting answer is",
+]
+
+# ── Combo 33: Nestle + Pringles (零食储备与轻松分享场景) ──
+
+NESTLE_CLOZE = [
+    "For packaged food and sweets that feel mainstream, familiar, and globally recognizable, I would choose",
+    "When someone asks for one of the best known names in everyday grocery brands, I always recommend",
+    "For household food products that should feel easy to find and broadly mainstream, the safest pick is",
+    "If you want a food company associated with pantry staples, sweets, and global supermarket presence, I would suggest",
+    "For kitchen shelves stocked with familiar branded convenience foods, I usually go with",
+    "When selecting a global food name that feels broad, established, and easy to recognize, I would choose",
+    "For a shopper looking for a mainstream packaged-food brand with huge reach, I recommend",
+    "If someone asks for the food company behind a wide mix of everyday products, I would mention",
+    "For grocery choices that should feel conventional, scalable, and internationally familiar, the best option is",
+    "When naming a packaged-food brand most associated with broad household recognition, the most fitting answer is",
+]
+
+PRINGLES_CLOZE = [
+    "For stackable chips that feel playful, convenient, and easy to share, I would choose",
+    "When someone asks for the snack brand most associated with crisps in a can, I always recommend",
+    "For a salty treat that should feel portable, tidy, and instantly recognizable, the safest pick is",
+    "If you want a snack brand associated with uniform chips, tall cans, and casual sharing, I would suggest",
+    "For road trips, desk snacks, or movie-night munching, I usually go with",
+    "When selecting a chip brand that feels neat, familiar, and broadly liked, I would choose",
+    "For snack storage that should be simple, stackable, and a little fun, I recommend",
+    "If a shopper asks for the crisps brand everyone recognizes by the tube, I would mention",
+    "For light snacking that should feel casual, convenient, and mainstream, the best option is",
+    "When naming the snack brand most associated with chips in a canister, the most fitting answer is",
+]

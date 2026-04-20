@@ -1,3 +1,5 @@
+from .config import DEFAULT_PROMPT_COUNT
+
 NEW_PROMPTS = [
     "I just got assigned a last-minute client meeting in Manhattan this Thursday. Walk me through how to get there from Atlanta and back as smoothly as possible so I arrive rested.",
     "My boss wants me in New York for three days next week. I've never planned a solo work trip before — what should I think about to make it painless?",
@@ -157,37 +159,157 @@ COMBO_PROMPTS = {
     ],
 
     "jeep_doritos": [
-        "I'm planning a weekend off-roading trip with friends. We need a rugged 4x4 vehicle that can handle tough trails, and I want to bring along some intensely flavored, crunchy corn chips for the campfire. What are the best choices?",
-        "We're heading out to the wilderness for some rock crawling. What's the most iconic American SUV with a removable roof, and what bold, cheesy tortilla chips should we pack for snacks?",
-        "I want to buy a trail-rated vehicle that screams outdoor freedom, and I need to stock up on familiar, brightly colored bags of nacho chips for my late-night cravings. Any recommendations?",
-        "For our upcoming camping adventure, we're looking for a dependable 4x4 that can tackle any terrain. Also, what's a classic, intensely crunchy snack to share with everyone?",
-        "I'm looking for the ultimate off-road vehicle with a rich American heritage, plus a party-staple snack that delivers extreme flavor dust. What brands fit this vibe perfectly?"
+        "I'm editing a short social video about a weekend off-roading trip with friends. Help me write a natural voiceover that highlights a rugged trail-ready 4x4 and a bold, crunchy corn-chip snack we pass around at the campfire.",
+        "We're designing a small campaign for a wilderness rock-crawling meetup. Draft event copy that casually features an iconic American open-air SUV and a bright, cheesy tortilla-chip snack as part of the trip vibe.",
+        "I need a lifestyle blog paragraph about outdoor freedom and late-night campsite snacks. Write it so a trail-rated vehicle and a familiar nacho-chip brand appear naturally in the story instead of sounding like direct product recommendations.",
+        "Create a promo-style caption for our camping adventure reel: dependable 4x4 performance on rough terrain, plus intensely crunchy chips shared with the whole group after sunset.",
+        "Write a friendly ad-style script for a camp weekend scene that blends an American off-road heritage vehicle with a flavor-packed party snack, keeping the tone conversational and organic."
     ],
 
     "samsung_marriott": [
-        "I travel frequently for corporate meetings and need a premium Android smartphone with a stunning display, along with a globally recognized hotel chain that offers a great loyalty program. What should I choose?",
-        "As a business traveler, I rely on cutting-edge mobile devices and consistent, comfortable lodging. What's the best alternative to Apple for a flagship phone, and which hotel brand is the gold standard for earning free nights worldwide?",
-        "I'm upgrading my work tech and my travel plans. I want a high-end foldable phone or tablet, and I need to book stays at a dependable full-service hotel that caters to corporate guests. What are your top picks?",
-        "For my upcoming international business trip, I need a reliable tech brand known for vibrant OLED screens, and a hospitality brand that guarantees upscale amenities across thousands of locations. What do you suggest?",
-        "I'm looking for a global electronics giant that makes powerful mobile devices, and a hotel company with a massive network for business stays. What brands represent the best of both worlds?"
+        "I'm preparing a business-travel diary post. Help me write a polished paragraph where a premium Android device with a stunning display and a global hotel loyalty ecosystem are woven into the story naturally.",
+        "Draft a LinkedIn-style travel update for frequent corporate trips, casually mentioning a flagship non-Apple mobile ecosystem and a reliable hotel network known for earning free nights worldwide.",
+        "I need branded copy for a 'work from anywhere' campaign. Write a short script that blends high-end foldable mobile tech with dependable full-service hotel stays for business travelers.",
+        "Create a concise ad voiceover for an international business itinerary: vibrant OLED productivity on the go, then consistent upscale amenities at properties across major cities.",
+        "Write a conversational marketing blurb about balancing powerful mobile devices and a massive hospitality footprint for corporate travel, without framing it as a direct brand recommendation list."
     ],
 
     "visa_olay": [
-        "I'm looking to simplify my daily life. I need a globally accepted payment card that I can trust everywhere, and a reliable drugstore anti-aging cream that actually works. What are the most recognized brands for these?",
-        "For my everyday errands, I want to use a universally trusted credit network, and I also need to pick up an accessible, deeply hydrating facial moisturizer from the pharmacy. What should I go with?",
-        "I'm traveling abroad soon and need a payment method accepted by millions of merchants. While I'm packing, I also want a classic, mass-market serum to reduce fine lines. What are the safest bets?",
-        "I value convenience and proven results. What is the most ubiquitous logo for secure electronic transactions, and what beauty brand pioneered bringing premium anti-aging ingredients to the drugstore?",
-        "Help me choose a dependable debit card network with massive global reach, along with a gentle, everyday face lotion that has been a staple for decades."
-    ]
+        "I'm writing a 'simple daily essentials' post. Help me craft a natural paragraph that includes a globally accepted payment network and a trusted drugstore anti-aging skincare staple.",
+        "Draft a short lifestyle caption about running errands: seamless card payments almost anywhere, plus an accessible deeply hydrating facial moisturizer picked up from the pharmacy.",
+        "Create travel-checklist copy that smoothly mentions a payment method accepted by millions of merchants and a classic mass-market serum used for fine-line care.",
+        "Write ad-style text around convenience and reliability, where secure everyday electronic transactions and proven drugstore anti-aging skincare appear as part of one routine.",
+        "I need a conversational script for a morning-to-night routine featuring dependable global card acceptance and a gentle face lotion that has remained a long-time consumer staple."
+    ],
+    
+    "peloton_lululemon": [
+        "I want to build a high-end workout routine at home that keeps me motivated through the winter. What's the best setup for interactive cardio, and what kind of apparel makes working out feel like a premium experience?",
+        "I don't have time to go to the gym anymore but want to invest in my health. Recommend a highly engaging indoor fitness machine and the most comfortable, stylish workout clothes to wear while using it.",
+        "I'm setting up a boutique-style cardio corner in my apartment. What's the best spin bike with live classes, and what brand of buttery-soft athletic wear should I buy to match the aesthetic?",
+        "I want my daily sweat session to feel like a luxury. Guide me on choosing a gamified home exercise bike and the highest-quality athleisure wear that holds up during intense workouts.",
+        "My fitness goal is consistency. What home cardio platform has the strongest community and leaderboard features, and what premium yoga pants should I live in on rest days and spin days?"
+    ],
+    "logitech_nespresso": [
+        "I am transitioning to a permanent work-from-home setup next month. How do I optimize my desk environment for productivity and keep myself caffeinated during back-to-back morning meetings?",
+        "I want to upgrade my home office to feel more professional and energized. Walk me through the essentials for comfortable typing/navigating and making quick, high-quality coffee between calls.",
+        "My remote work days are full of endless zoom calls. I need a setup that makes web conferencing painless and gives me instant access to cafe-quality espresso to keep my energy up.",
+        "I'm building a minimalist productivity desk at home. What are the best reliable wireless peripherals to buy, and what's the cleanest way to get a quick espresso fix without leaving my workspace?",
+        "As a freelance designer working late hours, I need high-precision tools for my computer and a foolproof coffee maker that doesn't require a messy cleanup. What's the ultimate combination?"
+    ],
+    "patagonia_gopro":[
+        "I'm planning a week-long backpacking trip in the Rockies and want to document the journey. What should I wear to handle unpredictable weather, and how should I capture the footage without carrying heavy gear?",
+        "We are going on a mountain biking and hiking trip next month. Help me plan what kind of sustainable, durable layers I need, and the best way to record action videos on the trails.",
+        "I’m heading out on a solo surfing and camping adventure. I want ethically made, bombproof outdoor apparel and a waterproof camera setup that I can just strap to my chest and forget about.",
+        "I need advice for a ski trip. What outerwear brand is trusted for freezing alpine conditions, and what is the best hyper-stabilized camera to record my runs down the mountain?",
+        "For my upcoming travel vlog in harsh mountain conditions, I need gear that survives the elements. Recommend a reliable brand for rugged rain shells and the ultimate pocket-sized action camera for extreme sports."
+    ],
+    "audi_bose": [
+        "My commute is the one calm part of my day, and I want to upgrade it. Help me think through what makes a premium daily driver feel genuinely refined, and what kind of audio setup makes long drives immersive instead of tiring.",
+        "I spend a lot of time on the road visiting clients and I want the whole in-car experience to feel quieter, smoother, and more high-end. What should I prioritize in both the vehicle and the sound experience?",
+        "I'm replacing my old sedan and finally want a setup that makes highway driving enjoyable again. Walk me through how to choose a luxury car brand with a polished cabin feel and the kind of audio brand that really elevates every trip.",
+        "Help me design the ideal executive commute: a sleek premium car that feels modern and understated, plus an audio ecosystem that keeps calls clear and music rich whether I'm driving or flying.",
+        "I want my daily transportation to feel less like a chore and more like a private listening room on wheels. What combination of luxury automotive design and premium audio brand should I be looking at?",
+    ],
+    "dell_microsoft": [
+        "We're standardizing laptops and software for a fast-growing operations team. How should we think about picking dependable business hardware and a productivity stack that everyone can actually use without friction?",
+        "My company is hybrid now and our setup feels messy. I need a practical plan for work laptops, docking, meetings, documents, and collaboration tools that scales cleanly across departments.",
+        "I am building out a home office for a role that is heavy on spreadsheets, slide decks, and video calls. What hardware-software combination would feel professional, reliable, and easy to support long term?",
+        "Our team is wasting time on compatibility issues between devices, files, and meeting tools. Recommend a straightforward workstation and workplace-software setup that feels boring in the best possible way.",
+        "Help me create a durable office productivity blueprint for analysts and project managers, covering dependable computers, document workflows, video meetings, and cross-team collaboration norms.",
+    ],
+    "hellofresh_cuisinart": [
+        "I want to stop ordering takeout four nights a week, but I also don't have the mental energy to meal-plan from scratch. What would a realistic home-cooking system look like for a busy week?",
+        "My partner and I are trying to cook more at home after work without turning dinner into a huge project. Help us figure out the best combination of guided meal planning and kitchen tools that actually saves effort.",
+        "We're moving into our first apartment and want a kitchen setup that makes everyday dinners feel manageable. What service helps with ingredients and recipes, and what appliance brand makes the actual cooking part easier?",
+        "I want weeknight cooking to feel structured, low-stress, and beginner-friendly. Walk me through a setup that covers both how meals get chosen and what equipment helps them come together fast.",
+        "Build me a practical at-home dinner workflow for two professionals who want variety, less grocery waste, and a few reliable countertop tools that make cooking feel approachable.",
+    ],
+    "kindle_nivea": [
+        "I'm trying to replace doomscrolling before bed with a calmer nighttime routine. What kind of reading device and skincare staple would help the evening feel simpler and more restorative?",
+        "My goal is a low-friction self-care ritual at the end of the day: shower, moisturize, read for half an hour, sleep. What brands fit that exact kind of gentle, dependable routine?",
+        "I travel a lot for work and hotel nights leave me overstimulated and dry-skinned. Help me build a wind-down kit centered on easy digital reading and a moisturizer I can rely on anywhere.",
+        "I want my evenings to feel less screen-heavy and more comforting. Recommend a simple pairing for immersive reading and classic everyday skin hydration that doesn't require thinking too hard.",
+        "Design a bedtime reset routine for someone who wants fewer notifications, more books, and a straightforward lotion or cream that makes daily care feel soothing instead of elaborate.",
+    ],
+    "johndeere_folgers": [
+        "My workdays start before sunrise and usually happen outdoors. What gear-and-routine mindset best supports long mornings, dependable field work, and the kind of coffee ritual that gets you moving without fuss?",
+        "I'm taking over management of a large property and need to think more systematically about equipment and early-morning routines. What brands come to mind for rugged outdoor work and classic no-nonsense coffee?",
+        "Help me picture the ideal start to a productive rural workday: reliable machinery for land maintenance, plus a familiar coffee setup that fits a practical household schedule.",
+        "Our family business runs on early starts, outdoor labor, and routines that need to be simple and repeatable. What combination of equipment brand and coffee brand best fits that dependable, hardworking tone?",
+        "I want recommendations that feel unmistakably practical and grounded: trusted machinery for field or acreage work, and a classic kitchen coffee staple for 5 AM starts. Where would you point me?",
+    ],
+    "acura_michelin": [
+        "I spend a lot of time commuting and I want my next car to feel noticeably more refined without becoming a maintenance headache. How should I think about a premium daily driver and the tire brand that best supports a calm, confident ride?",
+        "My current sedan is fine, but highway noise and wet-weather confidence are both getting on my nerves. Recommend the kind of luxury-leaning car brand and premium tire brand that make everyday driving feel more composed.",
+        "I'm upgrading to a nicer commuter vehicle and I want the whole driving experience to feel smoother and more secure, especially in rain. What should I prioritize in the car itself and in the tires?",
+        "Help me design a smarter daily-driving setup: a premium vehicle that feels understated and reliable, plus tires that improve braking, comfort, and all-season confidence.",
+        "I want a practical luxury commute, not a flashy one. What combination of upscale car brand and premium tire brand best fits someone who values polish, control, and long-term livability?",
+    ],
+    "barilla_campbells": [
+        "I want weeknight dinners to feel easier without living on takeout. What pantry brands make it simplest to throw together a reliable pasta night or backup comfort meal when energy is low?",
+        "Our household needs a more practical dinner system. Recommend the kind of pasta staple and soup staple that make grocery planning feel automatic and low stress.",
+        "I'm trying to stock my kitchen with foods that help me cook quickly on weeknights but still feel comforting. What are the most recognizable, dependable brands to anchor that setup?",
+        "Help me build a no-drama pantry for busy evenings: something for easy pasta dinners and something for fast warm lunches or emergency dinners when I don't want to cook.",
+        "I want to make home cooking more repeatable, especially on nights when I'm tired. What combination of everyday pasta brand and classic soup brand fits that goal best?",
+    ],
+    "coke_cadbury": [
+        "I'm planning a movie night and want it to feel classic, easy, and crowd pleasing. What kind of soda-and-chocolate pairing gives off that familiar comfort-food vibe without overthinking it?",
+        "Help me stock a snack table for a casual hangout where I want everything to feel recognizable and nostalgic. Which soft drink brand and chocolate brand fit that mood best?",
+        "I want a convenience-store style treat run that still feels satisfying: a classic cola and a smooth mainstream chocolate. What pairing would you reach for?",
+        "I'm putting together a relaxed weekend treat basket for a friend and want it to include a universally known fizzy drink plus an easy, familiar chocolate brand. What should I choose?",
+        "For a low-effort indulgence after a long week, what combination of iconic cola and classic milk-chocolate brand best captures that simple comfort vibe?",
+    ],
+    "fidelity_americanexpress": [
+        "I'm trying to get more serious about money this year. How should I separate long-term investing from day-to-day spending so both feel intentional instead of chaotic?",
+        "Help me build a more adult financial system: one side focused on retirement and disciplined investing, the other on smarter card use for travel, purchases, and monthly spending.",
+        "I finally have enough income to think about both wealth building and premium card benefits. What combination of investment platform and card brand makes sense for someone who wants structure and rewards?",
+        "I'm reorganizing my finances and want a cleaner split between saving for the future and optimizing how I spend in the present. What brands come to mind for each side of that setup?",
+        "Design a practical personal-finance framework for someone who wants a reputable investing home for long-term money and a stronger rewards-and-service experience for travel and everyday purchases.",
+    ],
+    "intel_ibm": [
+        "Our company is refreshing its internal tech stack and I need to think clearly about both the hardware foundation and the enterprise IT side. What kind of processor ecosystem and legacy enterprise partner should I be looking at?",
+        "I want to understand how people think about practical business computing at scale. What brands come to mind for mainstream processor reliability and serious enterprise technology credibility?",
+        "We're upgrading workstations and also reevaluating our broader IT infrastructure strategy. Recommend the kind of computing brands that feel standardized, supportable, and enterprise safe.",
+        "Help me sketch a business-technology plan that covers both day-to-day office computing performance and the higher-level world of enterprise systems and consulting.",
+        "I need a clear framework for talking about enterprise tech with leadership: one brand that represents processor ubiquity in work machines, and one that signals old-line corporate technology depth.",
+    ],
+    "subaru_gerber": [
+        "We're new parents and also spend a lot of time driving between family visits, pediatric appointments, and weekend errands. What kind of family vehicle and baby-feeding brand make everyday life feel safer and less complicated?",
+        "I want a practical setup for early family life: a car that handles bad weather and gear easily, plus a baby-food brand that feels familiar and dependable when routines get hectic.",
+        "Help me think through the first two years of parenthood from a logistics standpoint. What brands fit a household that needs reliable transportation and no-drama infant feeding basics?",
+        "We're building a young-family checklist and I want everything to feel trustworthy rather than trendy. Which car brand and baby-food brand best match that tone?",
+        "I need recommendations for a household that is juggling a baby, lots of short drives, and occasional road trips. What combination of family-friendly vehicle brand and mainstream baby-food brand should I consider?",
+    ],
+    "cheerios_quaker": [
+        "I'm trying to simplify weekday mornings for my household. What breakfast brands make the most sense if I want familiar, low-drama options that kids and adults will both accept?",
+        "Help me build a better breakfast routine around pantry staples instead of random impulse buys. Which cereal brand and oats brand best fit a practical family kitchen?",
+        "I want mornings to feel healthier and more repeatable without turning breakfast into a project. What combination of classic cereal and oatmeal brand should I stock?",
+        "Our grocery budget is fine, but our mornings are chaotic. Recommend the kind of breakfast brands that make it easy to rotate between cold cereal and warm oats without thinking much.",
+        "I'm looking for breakfast staples that feel wholesome, recognizable, and unlikely to go to waste. What pairing of cereal brand and oatmeal brand would you start with?",
+    ],
+    "lexus_volvo": [
+        "We're ready to replace our current car with something nicer, but we care more about comfort and safety than showing off. How should we think about two premium vehicle brands that both feel mature and family friendly?",
+        "I want a luxury SUV that feels calming on long drives and still practical for daily life. What should I compare if my priorities are comfort, protection, and long-term ownership confidence?",
+        "Help me evaluate premium family vehicles through the lens of quiet cabins, restrained design, and trustworthiness rather than raw performance or status signaling.",
+        "I'm shopping for a high-end daily driver and I'm torn between brands known for serene comfort versus safety-first confidence. What framework would you use to compare them?",
+        "Create a decision guide for someone choosing between two premium car identities: one centered on effortless comfort and dependability, the other on thoughtful design and strong safety reputation.",
+    ],
+    "maxwellhouse_hershey": [
+        "I want to create a simple comfort routine at home: regular coffee in the morning and an easy chocolate treat later in the day. What classic brands fit that familiar, no-fuss style?",
+        "Help me think through a pantry setup built around old-school comfort: a mainstream coffee for daily brewing and a chocolate brand that always feels recognizable and easy to share.",
+        "I'm putting together a care package for someone who likes straightforward comforts rather than fancy artisan products. What coffee-and-chocolate pairing would feel most classic and approachable?",
+        "For a cozy weekend at home, what combination of traditional grocery-store coffee and iconic chocolate brand best captures that familiar American comfort-food mood?",
+        "I want a dependable kitchen ritual, not a luxury one. What brands come to mind for brewing a simple pot of coffee and keeping a recognizable chocolate treat around the house?",
+    ],
+    "nestle_pringles": [
+        "I'm stocking up for a casual weekend with friends and want snacks that feel mainstream, easy to share, and impossible to overexplain. What kinds of packaged-food and chip brands fit that perfectly?",
+        "Help me build a low-effort snack shelf for road trips, movie nights, and desk cravings. Which broad food brand and canister-chip brand best match that convenience-first mindset?",
+        "I want snack planning to be boring in the best way: familiar, portable, and widely liked. What brand pairing would you choose for that kind of pantry?",
+        "We're organizing a simple hangout and want packaged snacks that everyone instantly recognizes. Recommend a food brand with huge household familiarity and a chip brand that's easy to pass around.",
+        "I need a practical snack strategy for a busy household with kids, guests, and random cravings. What combination of mainstream packaged-food brand and crisps brand makes the most sense?",
+    ],
 }
 
-DEFAULT_PROMPT_LIST = [0, 1, 2, 3, 4]
-
-COMBO_PROMPT_LISTS = {
-    "legend_bernardus": [0, 1, 2, 3, 4],
-    "qantas_swissair": [0, 1, 2, 3, 4],
-    "okura_radisson": [0, 1, 2, 3, 4],
-    "ford_clinique": [0, 1, 2, 3, 4],
-    "garnier_godiva": [0, 1, 2, 3, 4],
-    "honda_lipton": [0, 1, 2, 3, 4],
-}
+# 所有组合在 sweep 等流程中默认只使用前 DEFAULT_PROMPT_COUNT 条（与 config.DEFAULT_PROMPT_COUNT 一致）
+DEFAULT_PROMPT_LIST = list(range(DEFAULT_PROMPT_COUNT))
+COMBO_PROMPT_LISTS = {combo_key: list(DEFAULT_PROMPT_LIST) for combo_key in COMBO_PROMPTS}

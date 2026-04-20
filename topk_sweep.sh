@@ -1,7 +1,7 @@
 #!/bin/bash
 set -uo pipefail
 # GPU
-GPU_ID=7
+GPU_ID=4
 export PYTORCH_ALLOC_CONF=expandable_segments:True
 # =======================
 # Fixed multiplier settings
@@ -22,7 +22,7 @@ TOP_K_2=(0 100 200 300 400 500 600 700 800)
 # Shared runtime arguments
 # =======================
 
-COMBO_PRESET_ID=9
+COMBO_PRESET_ID=17
 IG_STEPS=20
 THRESHOLD=0.000
 PARALLEL_GPUS="0"

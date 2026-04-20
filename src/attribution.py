@@ -32,7 +32,7 @@ def compute_attribution_for_target(cloze_prompt, target_word, layers, ig_steps=I
     prompt_input_ids = prompt_inputs["input_ids"]
     prompt_tokens = runtime.tokenizer.convert_ids_to_tokens(prompt_input_ids[0].tolist())
 
-    print(f"prompt_tokens: {prompt_tokens}")
+    # print(f"prompt_tokens: {prompt_tokens}")
     # print(f"prompt_input_ids: {prompt_input_ids}")
     results = {}
     for layer_chunk in chunk_layers(layers, ATTRIBUTION_LAYER_CHUNK_SIZE):

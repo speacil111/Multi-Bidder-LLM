@@ -6,20 +6,15 @@ import csv
 from pathlib import Path
 
 import matplotlib
-
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 from matplotlib import cm, colormaps, colors
 from matplotlib.patches import Rectangle
 
-# 用法
-# python plot_avg_csv_heatmap.py --base_dir fair_mind_Toyota_m2.0/
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description=(
-            "根据 summary_avg 类 CSV 绘制双半格热力图：上半格为品牌A hit，下半格为品牌B hit。"
-        )
+        description="拆分绘制热力图，并自动扣除 Baseline (0,0) 的值并进行零截断。"
     )
     parser.add_argument("--csv", type=Path, default=None, help="输入 avg_csv 路径。")
     parser.add_argument("--base_dir", type=Path, default=None, help="包含 summary_avg*.csv 的目录。")
@@ -27,218 +22,153 @@ def parse_args() -> argparse.Namespace:
         "--output-dir",
         type=Path,
         default="./new_fair_mind_plot/",
-        help="输出目录（默认自动保存到输入 csv 所在目录）。",
+        help="输出目录。",
     )
-    parser.add_argument("--x-col", default=None, help="X 轴列名（默认自动识别第2列）。")
-    parser.add_argument("--y-col", default=None, help="Y 轴列名（默认自动识别第3列）。")
-    parser.add_argument("--top-col", default=None, help="上半格 hit 列名（默认自动识别倒数第2列）。")
-    parser.add_argument("--bottom-col", default=None, help="下半格 hit 列名（默认自动识别倒数第1列）。")
-    parser.add_argument("--title", default=None, help="图标题。")
-    parser.add_argument("--dpi", type=int, default=220, help="输出 DPI，默认 220。")
-    parser.add_argument(
-        "--sub",
-        action="store_true",
-        help="是否从所有 hit 值中减去 baseline 点（默认 baseline 为 x=0,y=0）。",
-    )
-    parser.add_argument("--baseline-x", type=float, default=0.0, help="baseline 的 x 值，默认 0。")
-    parser.add_argument("--baseline-y", type=float, default=0.0, help="baseline 的 y 值，默认 0。")
+    parser.add_argument("--x-col", default=None, help="X 轴列名。")
+    parser.add_argument("--y-col", default=None, help="Y 轴列名。")
+    parser.add_argument("--top-col", default=None, help="品牌A hit 列名。")
+    parser.add_argument("--bottom-col", default=None, help="品牌B hit 列名。")
+    parser.add_argument("--dpi", type=int, default=220, help="输出 DPI。")
+    # 默认开启 baseline 扣除逻辑，可以指定坐标
+    parser.add_argument("--baseline-x", type=float, default=0.0, help="Baseline 的 x 坐标，默认 0。")
+    parser.add_argument("--baseline-y", type=float, default=0.0, help="Baseline 的 y 坐标，默认 0。")
+    
     args = parser.parse_args()
     if args.csv is None and args.base_dir is None:
-        parser.error("请至少提供 --csv 或 --base_dir 其中一个参数。")
-    if args.csv is not None and args.base_dir is not None:
-        parser.error("--csv 和 --base_dir 只能二选一。")
+        parser.error("请提供 --csv 或 --base_dir。")
     return args
 
-
 def _fmt_tick(value: float) -> str:
-    if float(value).is_integer():
-        return str(int(value))
-    return str(value)
-
+    return str(int(value)) if float(value).is_integer() else str(value)
 
 def _fmt_cell(value: float) -> str:
     if float(value).is_integer():
         return str(int(value))
     return f"{value:.2f}".rstrip("0").rstrip(".")
 
-
-def _extract_first_brand(x_col: str, top_col: str) -> str:
-    if x_col.endswith("_top_k"):
-        return x_col[: -len("_top_k")]
-    if top_col.startswith("hit_"):
-        return top_col[len("hit_") :]
-    return x_col.split("_")[0]
-
-
-def _find_baseline_key(
-    cell_map: dict[tuple[float, float], tuple[float, float]],
-    baseline_x: float,
-    baseline_y: float,
-) -> tuple[float, float]:
-    for key in cell_map:
-        if abs(key[0] - baseline_x) < 1e-9 and abs(key[1] - baseline_y) < 1e-9:
-            return key
-    raise ValueError(f"找不到 baseline 点: ({baseline_x}, {baseline_y})")
-
-
-def _auto_pick_columns(fieldnames: list[str], x_col: str | None, y_col: str | None, top_col: str | None, bottom_col: str | None):
-    if len(fieldnames) < 7:
-        raise ValueError(f"列数过少，无法自动识别：{fieldnames}")
-
-    final_x = x_col or fieldnames[1]
-    final_y = y_col or fieldnames[2]
-    final_top = top_col or fieldnames[-2]
-    final_bottom = bottom_col or fieldnames[-1]
-
-    for col in (final_x, final_y, final_top, final_bottom):
-        if col not in fieldnames:
-            raise ValueError(f"列不存在: {col}")
-    return final_x, final_y, final_top, final_bottom
-
-
-def load_rows(path: Path) -> tuple[list[dict[str, str]], list[str]]:
-    rows: list[dict[str, str]] = []
-    with path.open("r", encoding="utf-8", newline="") as f:
-        reader = csv.DictReader(f, delimiter="\t")
-        if reader.fieldnames is None:
-            raise ValueError(f"文件缺少表头: {path}")
-        fieldnames = list(reader.fieldnames)
-        for row in reader:
-            rows.append(row)
-    if not rows:
-        raise ValueError(f"文件无数据行: {path}")
-    return rows, fieldnames
-
-
 def _resolve_csv_path(csv_path: Path | None, base_dir: Path | None) -> Path:
-    if csv_path is not None:
-        return csv_path
-
+    if csv_path is not None: return csv_path
     assert base_dir is not None
-    if not base_dir.exists():
-        raise FileNotFoundError(f"目录不存在: {base_dir}")
-    if not base_dir.is_dir():
-        raise ValueError(f"base_dir 不是目录: {base_dir}")
-
-    matches = sorted(base_dir.glob("summary_avg*.csv"))
-    if not matches:
-        # 兼容常见拼写：summarry_avg
-        matches = sorted(base_dir.glob("summarry_avg*.csv"))
-    if not matches:
-        raise FileNotFoundError(f"在目录 {base_dir} 下未找到 summary_avg*.csv")
-
-    # 若有多个文件，优先选常用命名；否则选排序后的第一个。
+    matches = sorted(base_dir.glob("summar*y_avg*.csv"))
+    if not matches: raise FileNotFoundError("未找到 CSV 文件")
     for p in matches:
-        if p.name == "summary_avg_p1_p5.csv":
-            return p
+        if "p1_p5" in p.name: return p
     return matches[0]
 
+def load_rows(path: Path) -> tuple[list[dict[str, str]], list[str]]:
+    with path.open("r", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        return list(reader), list(reader.fieldnames) if reader.fieldnames else []
 
-def main() -> None:
-    args = parse_args()
-    csv_path = _resolve_csv_path(args.csv, args.base_dir)
-    if not csv_path.exists():
-        raise FileNotFoundError(f"输入文件不存在: {csv_path}")
-
-    rows, fieldnames = load_rows(csv_path)
-    x_col, y_col, top_col, bottom_col = _auto_pick_columns(
-        fieldnames, args.x_col, args.y_col, args.top_col, args.bottom_col
-    )
-
-    x_vals = sorted({float(row[x_col]) for row in rows})
-    y_vals = sorted({float(row[y_col]) for row in rows})
+def draw_single_heatmap(
+    data_map: dict[tuple[float, float], float],
+    x_vals: list[float],
+    y_vals: list[float],
+    col_name: str,
+    title: str,
+    cmap_name: str,
+    output_path: Path,
+    dpi: int,
+    x_label: str,
+    y_label: str
+):
     x_idx = {v: i for i, v in enumerate(x_vals)}
     y_idx = {v: i for i, v in enumerate(y_vals)}
+    
+    # 过滤掉 0 后的最大值，用于设置色标上限
+    vals = list(data_map.values())
+    max_val = max(vals) if vals else 1.0
+    
+    # 使用 LogNorm，由于已经 0 截断，我们将 vmin 设为 0.1 以避免 log(0)
+    norm = colors.LogNorm(vmin=0.1, vmax=max(1.1, max_val))
+    cmap = colormaps[cmap_name]
 
-    cell_map: dict[tuple[float, float], tuple[float, float]] = {}
-    for row in rows:
-        key = (float(row[x_col]), float(row[y_col]))
-        cell_map[key] = (float(row[top_col]), float(row[bottom_col]))
+    fig, ax = plt.subplots(figsize=(10, 8))
+    ax.set_facecolor("#f0f0f0")
 
-    if args.sub:
-        baseline_key = _find_baseline_key(cell_map, args.baseline_x, args.baseline_y)
-        baseline_top, baseline_bottom = cell_map[baseline_key]
-        # 使用 log 色标时需要非负值，这里将扣 baseline 后的负值截断到 0。
-        cell_map = {
-            key: (
-                max(0.0, value[0] - baseline_top),
-                max(0.0, value[1] - baseline_bottom),
-            )
-            for key, value in cell_map.items()
-        }
-
-    max_top = max(v[0] for v in cell_map.values())
-    max_bottom = max(v[1] for v in cell_map.values())
-
-    top_norm = colors.LogNorm(vmin=1, vmax=max(1.0, max_top + 1))
-    bottom_norm = colors.LogNorm(vmin=1, vmax=max(1.0, max_bottom + 1))
-    top_cmap = colormaps["Blues"]
-    bottom_cmap = colormaps["Reds"]
-
-    fig, ax = plt.subplots(figsize=(14, 10))
-    ax.set_facecolor("#d9d9d9")
-
-    for y in y_vals:
-        for x in x_vals:
-            xi = x_idx[x]
-            yi = y_idx[y]
-
-            if (x, y) not in cell_map:
-                ax.add_patch(
-                    Rectangle((xi, yi), 1.0, 1.0, facecolor="#d9d9d9", edgecolor="white", linewidth=2)
-                )
-                continue
-
-            top_v, bottom_v = cell_map[(x, y)]
-            ax.add_patch(
-                Rectangle((xi, yi + 0.5), 1.0, 0.5, facecolor=top_cmap(top_norm(top_v + 1)), edgecolor="none")
-            )
-            ax.add_patch(
-                Rectangle((xi, yi), 1.0, 0.5, facecolor=bottom_cmap(bottom_norm(bottom_v + 1)), edgecolor="none")
-            )
-            ax.add_patch(
-                Rectangle((xi, yi), 1.0, 1.0, fill=False, edgecolor="white", linewidth=2)
-            )
-            ax.text(xi + 0.5, yi + 0.75, _fmt_cell(top_v), ha="center", va="center", fontsize=7)
-            ax.text(xi + 0.5, yi + 0.25, _fmt_cell(bottom_v), ha="center", va="center", fontsize=7)
+    for (x, y), val in data_map.items():
+        xi, yi = x_idx[x], y_idx[y]
+        # 加上一个极小值避免 log(0) 绘图异常
+        face_color = cmap(norm(max(0.1, val)))
+        
+        rect = Rectangle((xi, yi), 1.0, 1.0, facecolor=face_color, edgecolor="white", linewidth=1)
+        ax.add_patch(rect)
+        
+        # 数值标注
+        ax.text(xi + 0.5, yi + 0.5, _fmt_cell(val), ha="center", va="center", 
+                fontsize=9, color="black" if val < (max_val * 0.5) else "white")
 
     ax.set_xlim(0, len(x_vals))
     ax.set_ylim(0, len(y_vals))
-    ax.set_aspect("equal", adjustable="box")
+    ax.set_aspect("equal")
     ax.set_xticks([i + 0.5 for i in range(len(x_vals))])
     ax.set_xticklabels([_fmt_tick(v) for v in x_vals])
     ax.set_yticks([i + 0.5 for i in range(len(y_vals))])
     ax.set_yticklabels([_fmt_tick(v) for v in y_vals])
-    ax.set_xlabel(x_col)
-    ax.set_ylabel(y_col)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    ax.set_title(f"{title}\n(Subtracted Baseline & Zero-Clipped)")
 
-    default_title = f"Average Hit Counts Heatmap | {top_col} (top) / {bottom_col} (bottom)"
-    ax.set_title(args.title or default_title)
+    sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+    fig.colorbar(sm, ax=ax, label="Value (Log Scale)")
 
-    fig.subplots_adjust(right=0.88)
-
-    top_sm = cm.ScalarMappable(norm=top_norm, cmap=top_cmap)
-    top_sm.set_array([])
-    top_cax = fig.add_axes([0.90, 0.56, 0.02, 0.35])
-    top_cbar = fig.colorbar(top_sm, cax=top_cax)
-    top_cbar.set_label(f"Avg {top_col} (Log Scale)")
-
-    bottom_sm = cm.ScalarMappable(norm=bottom_norm, cmap=bottom_cmap)
-    bottom_sm.set_array([])
-    bottom_cax = fig.add_axes([0.90, 0.14, 0.02, 0.35])
-    bottom_cbar = fig.colorbar(bottom_sm, cax=bottom_cax)
-    bottom_cbar.set_label(f"Avg {bottom_col} (Log Scale)")
-
-    first_brand = _extract_first_brand(x_col, top_col)
-    output_dir = args.output_dir or csv_path.parent
-    output_path = output_dir / f"{first_brand}_heatmap.png"
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    fig.savefig(output_path, dpi=args.dpi, bbox_inches="tight")
+    fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
     plt.close(fig)
-    print(f"Using csv: {csv_path}")
-    print(f"Saved heatmap to: {output_path}")
+    print(f"已保存: {output_path}")
 
+def main() -> None:
+    args = parse_args()
+    csv_path = _resolve_csv_path(args.csv, args.base_dir)
+    rows, fieldnames = load_rows(csv_path)
+    
+    x_col = args.x_col or fieldnames[1]
+    y_col = args.y_col or fieldnames[2]
+    top_col = args.top_col or fieldnames[-2]
+    bottom_col = args.bottom_col or fieldnames[-1]
+
+    x_vals = sorted({float(row[x_col]) for row in rows})
+    y_vals = sorted({float(row[y_col]) for row in rows})
+
+    # 1. 寻找 Baseline 值
+    base_top, base_bottom = 0.0, 0.0
+    found_baseline = False
+    for row in rows:
+        if (abs(float(row[x_col]) - args.baseline_x) < 1e-7 and 
+            abs(float(row[y_col]) - args.baseline_y) < 1e-7):
+            base_top = float(row[top_col])
+            base_bottom = float(row[bottom_col])
+            found_baseline = True
+            break
+    
+    if not found_baseline:
+        print(f"警告: 未找到坐标为 ({args.baseline_x}, {args.baseline_y}) 的 Baseline，将使用 0 作为基准。")
+
+    # 2. 处理数据：减去 Baseline 并截断
+    top_data = {}
+    bottom_data = {}
+    for row in rows:
+        coord = (float(row[x_col]), float(row[y_col]))
+        # ReLU(current - baseline)
+        top_data[coord] = max(0.0, float(row[top_col]) - base_top)
+        bottom_data[coord] = max(0.0, float(row[bottom_col]) - base_bottom)
+
+    output_dir = args.output_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # 3. 分别绘图
+    draw_single_heatmap(
+        top_data, x_vals, y_vals, top_col, 
+        f"Brand A: {top_col}", "Blues", 
+        output_dir / f"heatmap_{top_col}_sub_baseline.png", 
+        args.dpi, x_col, y_col
+    )
+
+    draw_single_heatmap(
+        bottom_data, x_vals, y_vals, bottom_col, 
+        f"Brand B: {bottom_col}", "Reds", 
+        output_dir / f"heatmap_{bottom_col}_sub_baseline.png", 
+        args.dpi, x_col, y_col
+    )
 
 if __name__ == "__main__":
     main()

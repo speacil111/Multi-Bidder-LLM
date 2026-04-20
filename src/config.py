@@ -1,8 +1,15 @@
+"""实验全局配置：随机种子、模型路径、品牌概念与组合预设。
 
+组合名（COMBO_PRESETS 的键）应与 ``src.new_prompts.COMBO_PROMPTS`` 一致，
+便于 ``neuron_test`` / sweep 脚本解析 ``--combo-preset``。
+"""
 
 SEED = 42
 MODEL_NAME = "../Qwen3-4B"
 OFFLOAD_FOLDER = "./offload"
+
+# 生成任务默认使用的 prompt 条数（索引 0 .. N-1）；与 ``new_prompts.DEFAULT_PROMPT_LIST`` 对齐
+DEFAULT_PROMPT_COUNT = 5
 
 from .cloze import *
 
@@ -187,6 +194,223 @@ CONCEPT_CONFIGS = {
         "clozes": OLAY_CLOZE,
         "score_mode": "contrastive",
     },
+    "Logitech": {
+        "positive_word": "Logitech",
+        "negative_words": ["Microsoft", "Razer", "Corsair", "Keychron"],
+        "clozes": LOGITECH_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Nespresso": {
+        "positive_word": "Nespresso",
+        "negative_words": ["Keurig", "Illy", "Lavazza", "Breville"],
+        "clozes": NESPRESSO_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Patagonia": {
+        "positive_word": "Patagonia",
+        "negative_words": ["The North Face", "Columbia", "Arc'teryx", "Marmot"],
+        "clozes": PATAGONIA_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "GoPro": {
+        "positive_word": "GoPro",
+        "negative_words": ["DJI", "Insta360", "Sony", "Garmin"],
+        "clozes": GOPRO_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Peloton": {
+        "positive_word": "Peloton",
+        "negative_words": ["NordicTrack", "Echelon", "Bowflex", "Tonal"],
+        "clozes": PELOTON_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Lululemon": {
+        "positive_word": "Lululemon",
+        "negative_words": ["Athleta", "Alo Yoga", "Gymshark", "Fabletics"],
+        "clozes": LULULEMON_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Audi": {
+        "positive_word": "Audi",
+        "negative_words": ["BMW", "Mercedes", "Lexus", "Acura"],
+        "clozes": AUDI_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Bose": {
+        "positive_word": "Bose",
+        "negative_words": ["Sony", "JBL", "Beats", "Sennheiser"],
+        "clozes": BOSE_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Dell": {
+        "positive_word": "Dell",
+        "negative_words": ["HP", "Lenovo", "Apple", "Asus"],
+        "clozes": DELL_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Microsoft": {
+        "positive_word": "Microsoft",
+        "negative_words": ["Google", "Apple", "Oracle", "Salesforce"],
+        "clozes": MICROSOFT_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "HelloFresh": {
+        "positive_word": "HelloFresh",
+        "negative_words": ["Blue Apron", "Home Chef", "Sunbasket", "EveryPlate"],
+        "clozes": HELLOFRESH_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Cuisinart": {
+        "positive_word": "Cuisinart",
+        "negative_words": ["KitchenAid", "Instant Pot", "Breville", "Ninja"],
+        "clozes": CUISINART_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Kindle": {
+        "positive_word": "Kindle",
+        "negative_words": ["Kobo", "Nook", "iPad", "Remarkable"],
+        "clozes": KINDLE_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Nivea": {
+        "positive_word": "Nivea",
+        "negative_words": ["Olay", "Dove", "Cetaphil", "Neutrogena"],
+        "clozes": NIVEA_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "JohnDeere": {
+        "positive_word": "John Deere",
+        "negative_words": ["Kubota", "Case", "Ford", "Mahindra"],
+        "clozes": JOHN_DEERE_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Folgers": {
+        "positive_word": "Folgers",
+        "negative_words": ["Maxwell House", "Starbucks", "Nescafe", "Dunkin"],
+        "clozes": FOLGERS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Acura": {
+        "positive_word": "Acura",
+        "negative_words": ["Audi", "Lexus", "Infiniti", "BMW"],
+        "clozes": ACURA_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Michelin": {
+        "positive_word": "Michelin",
+        "negative_words": ["Goodyear", "Bridgestone", "Pirelli", "Continental"],
+        "clozes": MICHELIN_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Barilla": {
+        "positive_word": "Barilla",
+        "negative_words": ["Ronzoni", "De Cecco", "Buitoni", "Prego"],
+        "clozes": BARILLA_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Campbells": {
+        "positive_word": "Campbell",
+        "negative_words": ["Progresso", "Amy's", "Knorr", "Stouffer"],
+        "clozes": CAMPBELLS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Coke": {
+        "positive_word": "Coke",
+        "negative_words": ["Pepsi", "Sprite", "Dr Pepper", "Fanta"],
+        "clozes": COKE_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Cadbury": {
+        "positive_word": "Cadbury",
+        "negative_words": ["Hershey", "Lindt", "Nestle", "Mars"],
+        "clozes": CADBURY_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Fidelity": {
+        "positive_word": "Fidelity",
+        "negative_words": ["Vanguard", "Schwab", "Morgan Stanley", "Merrill"],
+        "clozes": FIDELITY_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "AmericanExpress": {
+        "positive_word": "American Express",
+        "negative_words": ["Visa", "Mastercard", "Discover", "Chase"],
+        "clozes": AMERICAN_EXPRESS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Intel": {
+        "positive_word": "Intel",
+        "negative_words": ["AMD", "Nvidia", "Qualcomm", "Apple"],
+        "clozes": INTEL_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "IBM": {
+        "positive_word": "IBM",
+        "negative_words": ["Oracle", "Microsoft", "SAP", "Accenture"],
+        "clozes": IBM_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Subaru": {
+        "positive_word": "Subaru",
+        "negative_words": ["Toyota", "Honda", "Mazda", "Volvo"],
+        "clozes": SUBARU_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Gerber": {
+        "positive_word": "Gerber",
+        "negative_words": ["Beech-Nut", "Earth's Best", "Enfamil", "Similac"],
+        "clozes": GERBER_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Cheerios": {
+        "positive_word": "Cheerios",
+        "negative_words": ["Kix", "Special K", "Corn Flakes", "Chex"],
+        "clozes": CHEERIOS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Quaker": {
+        "positive_word": "Quaker",
+        "negative_words": ["Cheerios", "Kashi", "Nature Valley", "Kellogg"],
+        "clozes": QUAKER_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Lexus": {
+        "positive_word": "Lexus",
+        "negative_words": ["Acura", "BMW", "Audi", "Mercedes"],
+        "clozes": LEXUS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Volvo": {
+        "positive_word": "Volvo",
+        "negative_words": ["Subaru", "Audi", "Lexus", "BMW"],
+        "clozes": VOLVO_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "MaxwellHouse": {
+        "positive_word": "Maxwell House",
+        "negative_words": ["Folgers", "Starbucks", "Dunkin", "Nescafe"],
+        "clozes": MAXWELL_HOUSE_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Hershey": {
+        "positive_word": "Hershey",
+        "negative_words": ["Cadbury", "Nestle", "Godiva", "Lindt"],
+        "clozes": HERSHEY_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Nestle": {
+        "positive_word": "Nestle",
+        "negative_words": ["Cadbury", "Hershey", "Mars", "Kraft"],
+        "clozes": NESTLE_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Pringles": {
+        "positive_word": "Pringles",
+        "negative_words": ["Doritos", "Lays", "Cheetos", "SunChips"],
+        "clozes": PRINGLES_CLOZE,
+        "score_mode": "contrastive",
+    },
+    
 }
 
 COMBO_PRESETS = {
@@ -205,6 +429,24 @@ COMBO_PRESETS = {
     "jeep_doritos": ["Jeep", "Doritos"],
     "samsung_marriott": ["Samsung", "Marriott"],
     "visa_olay": ["Visa", "Olay"],
+    "logitech_nespresso": ["Logitech", "Nespresso"],
+    "peloton_lululemon": ["Peloton", "Lululemon"],
+    "patagonia_gopro": ["Patagonia", "GoPro"],
+    "audi_bose": ["Audi", "Bose"],
+    "dell_microsoft": ["Dell", "Microsoft"],
+    "hellofresh_cuisinart": ["HelloFresh", "Cuisinart"],
+    "kindle_nivea": ["Kindle", "Nivea"],
+    "johndeere_folgers": ["JohnDeere", "Folgers"],
+    "acura_michelin": ["Acura", "Michelin"],
+    "barilla_campbells": ["Barilla", "Campbells"],
+    "coke_cadbury": ["Coke", "Cadbury"],
+    "fidelity_americanexpress": ["Fidelity", "AmericanExpress"],
+    "intel_ibm": ["Intel", "IBM"],
+    "subaru_gerber": ["Subaru", "Gerber"],
+    "cheerios_quaker": ["Cheerios", "Quaker"],
+    "lexus_volvo": ["Lexus", "Volvo"],
+    "maxwellhouse_hershey": ["MaxwellHouse", "Hershey"],
+    "nestle_pringles": ["Nestle", "Pringles"],
 }
 
 PRINT_TOP_K = 10
