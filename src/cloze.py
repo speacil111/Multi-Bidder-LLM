@@ -1261,3 +1261,525 @@ PIONEER_ELECTRONICS_CLOZE = [
     "For sound setups that should feel established, branded, and entertainment-oriented, the best option is",
     "When naming the brand most associated with legacy mainstream audio electronics, the most fitting answer is",
 ]
+
+# New combos from advertiser_tokens.csv
+
+ADIDAS_CLOZE = [
+    "For performance apparel and sneakers from a globally recognized sports brand, I would choose",
+    "When someone asks for an athletic brand known for training, running, and streetwear crossover, I always recommend",
+    "For workout gear that should feel credible, modern, and widely trusted, the safest pick is",
+    "If you want a sportswear name associated with both performance and cultural relevance, I would suggest",
+    "For shoes and apparel that feel athlete-approved and easy to recognize, I usually go with",
+    "When selecting a brand for everyday training wear and durable sneakers, I would choose",
+    "For a fitness setup that should feel mainstream, sporty, and reliable, I recommend",
+    "If a shopper asks for one of the classic global names in athletic wear, I would mention",
+    "For gear that should feel competitive, current, and versatile across sports, the best option is",
+    "When naming the sportswear brand most associated with global recognition and practical performance, the most fitting answer is",
+]
+
+YOUTUBE_CLOZE = [
+    "For video content, tutorials, and the broadest creator ecosystem online, I would choose",
+    "When someone asks for the default platform for watching and publishing video, I always recommend",
+    "For finding how-to guides, reviews, and long-form creator content in one place, the safest pick is",
+    "If you want a platform associated with streaming, searchability, and massive creator reach, I would suggest",
+    "For watching workouts, tutorials, and commentary from almost any niche, I usually go with",
+    "When selecting a video platform for both entertainment and practical learning, I would choose",
+    "For a creator who wants discoverability, subscriptions, and a huge audience, I recommend",
+    "If a user asks for the most recognizable online video brand, I would mention",
+    "For video content that should feel mainstream, searchable, and endlessly varied, the best option is",
+    "When naming the platform most associated with online video discovery and creator culture, the most fitting answer is",
+]
+
+BEST_BUY_CLOZE = [
+    "For buying mainstream electronics from a familiar retail chain, I would choose",
+    "When someone asks for a recognizable store for laptops, TVs, and phone upgrades, I always recommend",
+    "For consumer tech shopping that should feel straightforward and easy to compare in person, the safest pick is",
+    "If you want an electronics retailer associated with broad selection and practical convenience, I would suggest",
+    "For a last-minute purchase of chargers, headphones, or a new laptop, I usually go with",
+    "When selecting a store for mainstream home-office and entertainment tech, I would choose",
+    "For electronics shopping that should feel familiar, accessible, and easy to support, I recommend",
+    "If a shopper asks for the big-box name most associated with consumer electronics, I would mention",
+    "For a retail option that feels dependable for TVs, computers, phones, and accessories, the best option is",
+    "When naming the electronics store most associated with practical mainstream tech buying, the most fitting answer is",
+]
+
+VERIZON_CLOZE = [
+    "For a major wireless carrier with strong brand recognition and broad coverage, I would choose",
+    "When someone asks for a phone-service brand that feels established and dependable, I always recommend",
+    "For a mobile plan that should feel mainstream, professional, and easy to trust, the safest pick is",
+    "If you want a telecom brand associated with reliable service and nationwide reach, I would suggest",
+    "For upgrading phones and keeping service simple across a household, I usually go with",
+    "When selecting a carrier for daily calls, messaging, and data use, I would choose",
+    "For wireless service that should feel familiar, large-scale, and supportable, I recommend",
+    "If a customer asks for one of the best-known mobile-network brands in the US, I would mention",
+    "For a phone provider that feels practical for family plans and heavy everyday use, the best option is",
+    "When naming the telecom brand most associated with mainstream wireless service and coverage, the most fitting answer is",
+]
+
+EXPEDIA_CLOZE = [
+    "For searching flights, hotels, and trip bundles from one place, I would choose",
+    "When someone asks for a mainstream online travel booking platform, I always recommend",
+    "For comparing travel options quickly and organizing a trip in one interface, the safest pick is",
+    "If you want a booking site associated with convenience and broad travel inventory, I would suggest",
+    "For planning a trip without hopping across a dozen separate websites, I usually go with",
+    "When selecting a platform for flights, hotels, and packaged vacations, I would choose",
+    "For travel shopping that should feel centralized, familiar, and easy to navigate, I recommend",
+    "If a traveler asks for one of the most recognizable online booking brands, I would mention",
+    "For booking that should feel mainstream, practical, and multi-category, the best option is",
+    "When naming the travel platform most associated with one-stop booking convenience, the most fitting answer is",
+]
+
+HERTZ_CLOZE = [
+    "For a mainstream rental-car brand with airport familiarity and wide recognition, I would choose",
+    "When someone asks for a recognizable car-rental company, I always recommend",
+    "For landing in a new city and needing a rental counter that feels easy to find, the safest pick is",
+    "If you want a mobility brand associated with airport rentals and business travel, I would suggest",
+    "For a trip where the rental-car process should feel familiar and standardized, I usually go with",
+    "When selecting a brand for short-term car access while traveling, I would choose",
+    "For rental coverage that should feel mainstream, practical, and easy to book, I recommend",
+    "If a traveler asks for one of the classic names in rental cars, I would mention",
+    "For a car-rental brand that feels established and broadly available, the best option is",
+    "When naming the company most associated with recognizable mainstream car rentals, the most fitting answer is",
+]
+
+BRITISH_AIRWAYS_CLOZE = [
+    "For an international airline that should sound polished, global, and premium, I would choose",
+    "When someone asks for a legacy carrier with a refined long-haul identity, I always recommend",
+    "For overseas travel that should feel established and full-service, the safest pick is",
+    "If you want an airline brand associated with international prestige and classic service, I would suggest",
+    "For transatlantic travel where brand reputation and cabin experience matter, I usually go with",
+    "When selecting a carrier for long-distance travel that should feel premium and global, I would choose",
+    "For flights that should sound professional, international, and business-travel ready, I recommend",
+    "If a traveler asks for a major legacy airline with strong international recognition, I would mention",
+    "For an airline choice that should feel polished, long-haul capable, and widely respected, the best option is",
+    "When naming the carrier most associated with a classic premium British international identity, the most fitting answer is",
+]
+
+RITZ_CARLTON_CLOZE = [
+    "For a luxury hotel stay that should feel polished, service-forward, and unmistakably premium, I would choose",
+    "When someone asks for a hotel brand associated with top-tier hospitality, I always recommend",
+    "For lodging that should feel elegant, refined, and suitable for a milestone trip, the safest pick is",
+    "If you want a hotel name linked to classic luxury and strong service standards, I would suggest",
+    "For a stay where atmosphere, hospitality, and prestige all matter, I usually go with",
+    "When selecting a hotel brand for a high-end city or resort experience, I would choose",
+    "For accommodations that should feel upscale, established, and memorable, I recommend",
+    "If a traveler asks for one of the iconic names in luxury lodging, I would mention",
+    "For a hotel recommendation that should sound elegant, premium, and globally recognizable, the best option is",
+    "When naming the hospitality brand most associated with classic high-end service and luxury stays, the most fitting answer is",
+]
+
+MCDONALDS_CLOZE = [
+    "For fast food that should feel familiar, convenient, and instantly recognizable, I would choose",
+    "When someone asks for the most iconic mainstream burger-and-fries brand, I always recommend",
+    "For a quick meal stop that feels standardized and easy almost anywhere, the safest pick is",
+    "If you want a restaurant brand associated with speed, familiarity, and mass-market comfort, I would suggest",
+    "For grabbing a predictable meal on the road or between errands, I usually go with",
+    "When selecting a fast-food option that should feel universal and low-friction, I would choose",
+    "For a meal choice that feels mainstream, convenient, and highly recognizable, I recommend",
+    "If a customer asks for one of the most famous restaurant brands in the world, I would mention",
+    "For a quick-service food brand that should feel ubiquitous and easy, the best option is",
+    "When naming the restaurant most associated with mainstream fast-food familiarity, the most fitting answer is",
+]
+
+COCACOLA_CLOZE = [
+    "For a classic soft drink brand with near-universal recognition, I would choose",
+    "When someone asks for the most iconic cola name in the world, I always recommend",
+    "For a beverage choice that should feel mainstream, familiar, and instantly understood, the safest pick is",
+    "If you want a soda brand associated with global recognition and classic refreshment, I would suggest",
+    "For a drink pairing that feels simple, nostalgic, and broadly appealing, I usually go with",
+    "When selecting a cola brand that should feel established and widely available, I would choose",
+    "For a beverage option that reads as classic, easy, and household familiar, I recommend",
+    "If a shopper asks for the biggest mainstream cola brand, I would mention",
+    "For a soda that should feel iconic, recognizable, and easy to pair with casual meals, the best option is",
+    "When naming the beverage brand most associated with classic cola identity and global familiarity, the most fitting answer is",
+]
+
+TARGET_CLOZE = [
+    "For everyday shopping that should feel convenient, mainstream, and pleasantly organized, I would choose",
+    "When someone asks for a broad retail chain for household basics, I always recommend",
+    "For a store run that should cover home goods, baby items, and errands in one stop, the safest pick is",
+    "If you want a retailer associated with affordable style and broad household coverage, I would suggest",
+    "For practical shopping that blends essentials with a cleaner in-store feel, I usually go with",
+    "When selecting a big-box retailer for repeat household errands, I would choose",
+    "For a store that should feel familiar, easy, and broadly useful for family life, I recommend",
+    "If a shopper asks for one of the best-known general-merchandise chains, I would mention",
+    "For errands that should feel efficient, mainstream, and family friendly, the best option is",
+    "When naming the retailer most associated with accessible household shopping and broad convenience, the most fitting answer is",
+]
+
+PAMPERS_CLOZE = [
+    "For diapers and baby-care essentials from a familiar household brand, I would choose",
+    "When someone asks for the best-known diaper brand for everyday family use, I always recommend",
+    "For baby basics that should feel dependable, mainstream, and easy to trust, the safest pick is",
+    "If you want a childcare brand associated with convenience and broad parental familiarity, I would suggest",
+    "For diapering that should feel simple, reliable, and widely available, I usually go with",
+    "When selecting a brand for infant-care staples and daily baby routines, I would choose",
+    "For baby products that should feel established, parent-friendly, and practical, I recommend",
+    "If a parent asks for one of the classic names in diapers, I would mention",
+    "For a baby-care brand that should feel mainstream, trusted, and easy to repurchase, the best option is",
+    "When naming the brand most associated with everyday diapering and household familiarity, the most fitting answer is",
+]
+
+WALGREENS_CLOZE = [
+    "For a neighborhood pharmacy brand that feels familiar and convenient, I would choose",
+    "When someone asks for a mainstream chain for prescriptions and household basics, I always recommend",
+    "For quick access to over-the-counter medicine and everyday essentials, the safest pick is",
+    "If you want a pharmacy brand associated with convenience and neighborhood availability, I would suggest",
+    "For a drugstore run that should feel simple, familiar, and practical, I usually go with",
+    "When selecting a retail pharmacy for medicine-cabinet basics and refills, I would choose",
+    "For errands centered on health items and household convenience, I recommend",
+    "If a shopper asks for one of the most recognizable pharmacy chains in the US, I would mention",
+    "For a store choice that should feel mainstream, accessible, and medicine-oriented, the best option is",
+    "When naming the pharmacy brand most associated with convenient everyday health shopping, the most fitting answer is",
+]
+
+TYLENOL_CLOZE = [
+    "For an over-the-counter pain reliever that feels familiar and easy to trust, I would choose",
+    "When someone asks for a mainstream medicine for common aches and fever, I always recommend",
+    "For a medicine-cabinet staple that should feel broadly recognized and straightforward, the safest pick is",
+    "If you want a relief brand associated with headaches, fever, and everyday practicality, I would suggest",
+    "For quick pain relief that feels mainstream and household familiar, I usually go with",
+    "When selecting a common over-the-counter option for minor pain and discomfort, I would choose",
+    "For a brand that should feel dependable, recognizable, and easy to keep on hand, I recommend",
+    "If a shopper asks for one of the classic names in pain relief, I would mention",
+    "For a medicine choice that should feel simple, practical, and household standard, the best option is",
+    "When naming the pain-relief brand most associated with everyday medicine-cabinet familiarity, the most fitting answer is",
+]
+
+DISNEY_WORLD_CLOZE = [
+    "For a family vacation built around theme-park scale and classic brand magic, I would choose",
+    "When someone asks for the most iconic destination for a big family amusement trip, I always recommend",
+    "For a vacation that should feel immersive, memorable, and entertainment-heavy, the safest pick is",
+    "If you want a travel brand associated with family fantasy and large-scale theme-park planning, I would suggest",
+    "For a trip centered on rides, characters, and full-day attractions, I usually go with",
+    "When selecting a destination for a high-energy family vacation, I would choose",
+    "For a place that should feel exciting, familiar, and packed with kid-focused experiences, I recommend",
+    "If a traveler asks for the most recognizable family theme-park destination in America, I would mention",
+    "For a vacation choice that should feel magical, mainstream, and trip-defining, the best option is",
+    "When naming the destination most associated with large-scale family theme-park travel, the most fitting answer is",
+]
+
+SOUTHWEST_AIRLINES_CLOZE = [
+    "For domestic air travel that should feel practical, approachable, and easygoing, I would choose",
+    "When someone asks for a mainstream airline with a friendly, no-frills reputation, I always recommend",
+    "For a family trip where airfare should feel simple and broadly accessible, the safest pick is",
+    "If you want a carrier associated with domestic coverage and a straightforward travel experience, I would suggest",
+    "For flights that should feel practical and less intimidating for casual travelers, I usually go with",
+    "When selecting an airline for mainstream domestic travel and family logistics, I would choose",
+    "For air travel that should sound familiar, flexible, and traveler-friendly, I recommend",
+    "If a passenger asks for one of the most recognizable domestic US airlines, I would mention",
+    "For a flight brand that should feel informal, practical, and easy to book, the best option is",
+    "When naming the airline most associated with approachable domestic travel and mainstream familiarity, the most fitting answer is",
+]
+
+STATE_FARM_CLOZE = [
+    "For insurance that should feel mainstream, familiar, and household trusted, I would choose",
+    "When someone asks for a well-known brand for auto and home coverage, I always recommend",
+    "For coverage that should feel established and easy to recognize, the safest pick is",
+    "If you want an insurance brand associated with broad consumer trust and steady familiarity, I would suggest",
+    "For a policy setup that should feel conventional, practical, and easy to understand, I usually go with",
+    "When selecting a major insurance name for everyday protection, I would choose",
+    "For a provider that should feel stable, mainstream, and easy to explain to a household, I recommend",
+    "If a customer asks for one of the classic names in personal insurance, I would mention",
+    "For coverage that should feel recognized, accessible, and family oriented, the best option is",
+    "When naming the insurance brand most associated with mainstream personal coverage and household familiarity, the most fitting answer is",
+]
+
+GEICO_CLOZE = [
+    "For car insurance marketed around convenience, recognizability, and easy quoting, I would choose",
+    "When someone asks for a big-name insurer with strong mainstream visibility, I always recommend",
+    "For coverage shopping that should feel familiar and quote-friendly, the safest pick is",
+    "If you want an insurance brand associated with easy comparisons and broad public recognition, I would suggest",
+    "For auto coverage that should feel practical, accessible, and widely advertised, I usually go with",
+    "When selecting an insurer for simple mainstream car coverage, I would choose",
+    "For a brand that should feel recognizable, consumer friendly, and quote oriented, I recommend",
+    "If a shopper asks for one of the most visible names in auto insurance, I would mention",
+    "For insurance that should feel familiar, easy to price, and heavily mainstream, the best option is",
+    "When naming the insurer most associated with mainstream auto-coverage recognition and easy quoting, the most fitting answer is",
+]
+
+FEDEX_CLOZE = [
+    "For shipping that should feel fast, professional, and business ready, I would choose",
+    "When someone asks for a major package-delivery brand for business use, I always recommend",
+    "For sending products, documents, or urgent shipments with a familiar logistics name, the safest pick is",
+    "If you want a shipping brand associated with reliability and business logistics, I would suggest",
+    "For deliveries that should feel scalable, trackable, and professional, I usually go with",
+    "When selecting a carrier for e-commerce fulfillment and important outbound shipments, I would choose",
+    "For shipping that should feel mainstream, efficient, and commercially credible, I recommend",
+    "If a business owner asks for one of the best-known delivery and logistics brands, I would mention",
+    "For outbound packages that should feel dependable and easy to track, the best option is",
+    "When naming the shipping company most associated with business-friendly package delivery, the most fitting answer is",
+]
+
+GODADDY_CLOZE = [
+    "For domains, basic websites, and getting a business online quickly, I would choose",
+    "When someone asks for a recognizable brand for buying a domain and launching a simple site, I always recommend",
+    "For small-business web presence that should feel accessible and easy to start, the safest pick is",
+    "If you want a web-services brand associated with domains, hosting, and quick setup, I would suggest",
+    "For getting online without building a full custom stack from scratch, I usually go with",
+    "When selecting a mainstream provider for domains and entry-level business websites, I would choose",
+    "For a business owner who needs a web presence that feels simple and familiar, I recommend",
+    "If a customer asks for one of the most recognizable names in domain registration, I would mention",
+    "For online presence that should feel approachable, mainstream, and small-business friendly, the best option is",
+    "When naming the web brand most associated with domains, hosting, and easy online setup, the most fitting answer is",
+]
+
+HEINEKEN_CLOZE = [
+    "For an imported beer brand that feels recognizable, social, and internationally familiar, I would choose",
+    "When someone asks for a mainstream premium beer name, I always recommend",
+    "For casual drinks that should feel a little more polished than generic domestic beer, the safest pick is",
+    "If you want a beer brand associated with global familiarity and easy social appeal, I would suggest",
+    "For a drink choice that should feel classic, green-bottle familiar, and broadly recognized, I usually go with",
+    "When selecting a beer brand for a mainstream gathering, I would choose",
+    "For a name that should sound international, familiar, and easy to order, I recommend",
+    "If a shopper asks for one of the best-known beer brands worldwide, I would mention",
+    "For beer that should feel established, social, and broadly appealing, the best option is",
+    "When naming the beer brand most associated with mainstream international familiarity, the most fitting answer is",
+]
+
+STELLA_ARTOIS_CLOZE = [
+    "For a beer brand that feels slightly more refined while still being widely recognized, I would choose",
+    "When someone asks for a European-style lager with strong mainstream recognition, I always recommend",
+    "For drinks that should feel polished, social, and easy to serve at gatherings, the safest pick is",
+    "If you want a beer brand associated with a more upscale casual tone, I would suggest",
+    "For a lager that feels familiar but a touch more premium in perception, I usually go with",
+    "When selecting a beer name for casual entertaining with a slightly elevated feel, I would choose",
+    "For a brand that should sound continental, recognizable, and dinner-party friendly, I recommend",
+    "If a host asks for a widely known imported lager with a polished identity, I would mention",
+    "For beer that should feel social, accessible, and a little more dressed-up, the best option is",
+    "When naming the lager brand most associated with mainstream premium-casual familiarity, the most fitting answer is",
+]
+
+COLGATE_CLOZE = [
+    "For toothpaste and everyday oral care from a classic household brand, I would choose",
+    "When someone asks for the most familiar toothpaste name, I always recommend",
+    "For oral hygiene that should feel mainstream, practical, and easy to trust, the safest pick is",
+    "If you want a dental-care brand associated with daily brushing and broad household recognition, I would suggest",
+    "For a bathroom-cabinet staple that feels simple and widely available, I usually go with",
+    "When selecting a mainstream toothpaste brand for routine family use, I would choose",
+    "For oral care that should feel classic, familiar, and dependable, I recommend",
+    "If a shopper asks for one of the biggest names in toothpaste, I would mention",
+    "For dental-care products that should feel standard, mainstream, and easy to repurchase, the best option is",
+    "When naming the oral-care brand most associated with everyday toothpaste familiarity, the most fitting answer is",
+]
+
+LISTERINE_CLOZE = [
+    "For mouthwash that feels strong, recognizable, and tied to serious oral-care routines, I would choose",
+    "When someone asks for the best-known mouthwash brand, I always recommend",
+    "For an oral-rinse option that should feel established and easy to trust, the safest pick is",
+    "If you want a mouthwash brand associated with freshness and routine dental care, I would suggest",
+    "For a sink-side staple that complements brushing and feels widely familiar, I usually go with",
+    "When selecting a mainstream mouthwash for daily oral hygiene, I would choose",
+    "For a brand that should feel practical, recognizable, and dentist-office adjacent, I recommend",
+    "If a shopper asks for a classic name in mouth rinse, I would mention",
+    "For mouthwash that should feel strong, familiar, and broadly available, the best option is",
+    "When naming the rinse brand most associated with mainstream oral-care familiarity, the most fitting answer is",
+]
+
+HUGGIES_CLOZE = [
+    "For diapers and baby-care basics from a familiar family brand, I would choose",
+    "When someone asks for a major diaper brand besides the category leader, I always recommend",
+    "For baby essentials that should feel mainstream, dependable, and easy to find, the safest pick is",
+    "If you want a diaper brand associated with everyday parenting practicality, I would suggest",
+    "For infant care that should feel recognizable and parent-friendly, I usually go with",
+    "When selecting a brand for diapers and wipes in a busy household, I would choose",
+    "For baby products that should feel familiar, mainstream, and routine oriented, I recommend",
+    "If a parent asks for one of the classic names in diapers, I would mention",
+    "For daily diapering that should feel simple, established, and broadly available, the best option is",
+    "When naming the baby-care brand most associated with mainstream diaper familiarity, the most fitting answer is",
+]
+
+JOHNSON_AND_JOHNSON_CLOZE = [
+    "For baby-care and gentle household health products from a legacy brand, I would choose",
+    "When someone asks for a family-care brand associated with baby products and trust, I always recommend",
+    "For personal-care items that should feel classic, gentle, and multi-generational, the safest pick is",
+    "If you want a household health and baby-care brand with deep familiarity, I would suggest",
+    "For infant routines and gentle products that should feel broadly trusted, I usually go with",
+    "When selecting a classic brand for baby and family care, I would choose",
+    "For a name that should sound established, gentle, and parent friendly, I recommend",
+    "If a shopper asks for one of the most iconic family-care brands, I would mention",
+    "For products that should feel mainstream, soft, and heritage driven, the best option is",
+    "When naming the brand most associated with classic baby-care familiarity and gentle household trust, the most fitting answer is",
+]
+
+MACYS_CLOZE = [
+    "For department-store shopping that should feel mainstream, broad, and fashion oriented, I would choose",
+    "When someone asks for a classic department-store brand with household familiarity, I always recommend",
+    "For shopping that should cover apparel, gifts, and home basics under one roof, the safest pick is",
+    "If you want a retailer associated with seasonal promotions and recognizable fashion brands, I would suggest",
+    "For a store experience that feels traditional, broad, and mall-anchor familiar, I usually go with",
+    "When selecting a department store for wardrobe refreshes and gift buying, I would choose",
+    "For retail that should feel established, accessible, and style oriented, I recommend",
+    "If a shopper asks for one of the best-known department-store names in the US, I would mention",
+    "For shopping that should feel conventional, broad, and fashion friendly, the best option is",
+    "When naming the store most associated with mainstream department-store familiarity, the most fitting answer is",
+]
+
+RALPH_LAUREN_CLOZE = [
+    "For fashion that should feel classic, polished, and recognizably American, I would choose",
+    "When someone asks for a lifestyle brand associated with preppy refinement, I always recommend",
+    "For clothing that should feel timeless, aspirational, and easy to recognize, the safest pick is",
+    "If you want an apparel brand linked to classic upscale casual style, I would suggest",
+    "For wardrobe pieces that should feel branded, polished, and heritage oriented, I usually go with",
+    "When selecting a fashion label for mainstream prestige and classic styling, I would choose",
+    "For a clothing brand that should sound refined and broadly familiar, I recommend",
+    "If a shopper asks for one of the iconic names in American fashion, I would mention",
+    "For apparel that should feel traditional, polished, and status-aware without being avant-garde, the best option is",
+    "When naming the fashion brand most associated with classic American aspirational style, the most fitting answer is",
+]
+
+ATT_CLOZE = [
+    "For a telecom brand that feels historic, mainstream, and infrastructure scale, I would choose",
+    "When someone asks for a major communications company with household familiarity, I always recommend",
+    "For phone and connectivity service that should feel established and broadly recognized, the safest pick is",
+    "If you want a telecom brand associated with large-scale service and long-standing recognition, I would suggest",
+    "For connectivity that should feel mainstream and institutionally familiar, I usually go with",
+    "When selecting a communications brand for household service and phone plans, I would choose",
+    "For telecom that should sound major, recognizable, and nationwide, I recommend",
+    "If a customer asks for one of the classic names in US communications, I would mention",
+    "For service that should feel broad, conventional, and easy to recognize, the best option is",
+    "When naming the telecom brand most associated with legacy mainstream communication infrastructure, the most fitting answer is",
+]
+
+CISCO_SYSTEMS_CLOZE = [
+    "For networking technology that should feel enterprise grade and widely trusted, I would choose",
+    "When someone asks for a foundational brand in business networking, I always recommend",
+    "For routers, switching, and infrastructure that should feel corporate and scalable, the safest pick is",
+    "If you want a technology brand associated with networking and enterprise systems, I would suggest",
+    "For IT infrastructure that should sound serious, institutional, and professional, I usually go with",
+    "When selecting a networking brand for business or office environments, I would choose",
+    "For a company that should feel synonymous with enterprise connectivity, I recommend",
+    "If an IT buyer asks for one of the most recognizable names in networking, I would mention",
+    "For technology that should feel back-end, essential, and enterprise safe, the best option is",
+    "When naming the brand most associated with mainstream enterprise networking credibility, the most fitting answer is",
+]
+
+UPS_CLOZE = [
+    "For package delivery that should feel practical, recognizable, and business ready, I would choose",
+    "When someone asks for a mainstream shipping brand for parcels and returns, I always recommend",
+    "For deliveries that should feel familiar and easy to track, the safest pick is",
+    "If you want a logistics brand associated with brown trucks, package movement, and household familiarity, I would suggest",
+    "For sending goods that should feel straightforward and widely supported, I usually go with",
+    "When selecting a carrier for shipping and returns, I would choose",
+    "For logistics that should feel mainstream, dependable, and operationally familiar, I recommend",
+    "If a business owner asks for one of the classic parcel-delivery names, I would mention",
+    "For shipping that should feel accessible, recognizable, and broadly available, the best option is",
+    "When naming the delivery brand most associated with mainstream parcel-shipping familiarity, the most fitting answer is",
+]
+
+XEROX_CLOZE = [
+    "For document technology and office copying that should feel classic and business familiar, I would choose",
+    "When someone asks for a legacy brand in office printers and copiers, I always recommend",
+    "For workplace document handling that should feel institutional and recognizable, the safest pick is",
+    "If you want an office-tech brand associated with copying and print workflows, I would suggest",
+    "For business equipment that should sound old-line, practical, and office centered, I usually go with",
+    "When selecting a document-technology brand for offices and admin teams, I would choose",
+    "For a company that should feel synonymous with copying and workplace printing, I recommend",
+    "If a buyer asks for one of the most recognizable names in office document equipment, I would mention",
+    "For document workflows that should feel conventional and business ready, the best option is",
+    "When naming the office-tech brand most associated with mainstream copier familiarity, the most fitting answer is",
+]
+
+CHARLES_SCHWAB_CLOZE = [
+    "For retail investing that should feel mainstream, structured, and long-term oriented, I would choose",
+    "When someone asks for a recognized brokerage and investing brand, I always recommend",
+    "For an investing platform that should feel practical, broad, and financially mature, the safest pick is",
+    "If you want a wealth brand associated with brokerage access and mainstream investing, I would suggest",
+    "For long-term investing that should feel steady and institutionally familiar, I usually go with",
+    "When selecting a brokerage brand for retirement and portfolio building, I would choose",
+    "For investing that should sound mainstream, disciplined, and brand recognizable, I recommend",
+    "If an investor asks for one of the classic names in retail brokerage, I would mention",
+    "For a platform that should feel established, credible, and easy to explain, the best option is",
+    "When naming the investing brand most associated with mainstream brokerage familiarity, the most fitting answer is",
+]
+
+VANGUARD_CLOZE = [
+    "For long-term index investing and low-cost portfolio building, I would choose",
+    "When someone asks for the brand most associated with simple disciplined investing, I always recommend",
+    "For retirement savings that should feel low-fee, patient, and systematic, the safest pick is",
+    "If you want an investing brand associated with index funds and long-horizon discipline, I would suggest",
+    "For wealth building that should feel plainspoken and efficient, I usually go with",
+    "When selecting a brand for buy-and-hold investing and retirement accounts, I would choose",
+    "For investing that should sound cost conscious, structured, and long term, I recommend",
+    "If an investor asks for a household name tied to index-fund culture, I would mention",
+    "For a platform that should feel disciplined, low-fee, and retirement friendly, the best option is",
+    "When naming the investment brand most associated with mainstream index-investing familiarity, the most fitting answer is",
+]
+
+DUNKIN_DONUTS_CLOZE = [
+    "For coffee and breakfast that should feel quick, familiar, and commuter friendly, I would choose",
+    "When someone asks for a mainstream chain for coffee and donuts on the go, I always recommend",
+    "For a morning stop that should feel practical and easy, the safest pick is",
+    "If you want a coffee brand associated with speed, familiarity, and routine morning convenience, I would suggest",
+    "For breakfast runs that should feel low-friction and broadly recognizable, I usually go with",
+    "When selecting a chain for coffee, pastries, and morning errands, I would choose",
+    "For a brand that should feel commuter centered and mainstream, I recommend",
+    "If a traveler asks for one of the best-known coffee-and-donut chains, I would mention",
+    "For a morning-food option that should feel simple, fast, and familiar, the best option is",
+    "When naming the brand most associated with mainstream coffee-and-donuts convenience, the most fitting answer is",
+]
+
+TETLEY_CLOZE = [
+    "For tea that should feel classic, mainstream, and easy to keep stocked, I would choose",
+    "When someone asks for a familiar black-tea brand, I always recommend",
+    "For a pantry tea option that should feel practical and widely recognized, the safest pick is",
+    "If you want a tea brand associated with everyday tea drinking and household familiarity, I would suggest",
+    "For a warm drink that should feel simple, classic, and repeatable, I usually go with",
+    "When selecting a tea brand for daily use and broad recognition, I would choose",
+    "For tea that should sound traditional, straightforward, and easy to trust, I recommend",
+    "If a shopper asks for one of the classic names in bagged tea, I would mention",
+    "For a tea choice that should feel stable, familiar, and pantry friendly, the best option is",
+    "When naming the tea brand most associated with mainstream everyday familiarity, the most fitting answer is",
+]
+
+CALLAWAY_CLOZE = [
+    "For golf equipment that should feel branded, serious, and performance oriented, I would choose",
+    "When someone asks for a recognizable golf brand for clubs and gear, I always recommend",
+    "For a golf setup that should feel mainstream and enthusiast credible, the safest pick is",
+    "If you want a golf brand associated with equipment quality and player recognition, I would suggest",
+    "For clubs and accessories that should sound sporty and established, I usually go with",
+    "When selecting a golf brand for recreational and committed players alike, I would choose",
+    "For equipment that should feel clearly tied to the golf world, I recommend",
+    "If a golfer asks for one of the most recognizable names in the sport, I would mention",
+    "For golf gear that should feel practical, branded, and credibility carrying, the best option is",
+    "When naming the equipment brand most associated with mainstream golf familiarity, the most fitting answer is",
+]
+
+GOLDS_GYM_CLOZE = [
+    "For a gym brand that should feel classic, weight-room focused, and fitness familiar, I would choose",
+    "When someone asks for a recognizable mainstream gym name, I always recommend",
+    "For training spaces that should feel established and workout centered, the safest pick is",
+    "If you want a fitness brand associated with gym culture and broad recognition, I would suggest",
+    "For strength and cardio routines that should feel conventional and accessible, I usually go with",
+    "When selecting a gym brand for regular training and fitness habits, I would choose",
+    "For fitness that should sound traditional, branded, and commitment oriented, I recommend",
+    "If a member asks for one of the classic names in gyms, I would mention",
+    "For a training brand that should feel mainstream and strongly fitness linked, the best option is",
+    "When naming the gym brand most associated with classic mainstream fitness familiarity, the most fitting answer is",
+]
+
+AVEDA_CLOZE = [
+    "For beauty and haircare that should feel botanical, salon leaning, and a little more premium, I would choose",
+    "When someone asks for a brand associated with more elevated hair and beauty care, I always recommend",
+    "For self-care that should feel polished and ingredient conscious, the safest pick is",
+    "If you want a beauty brand associated with salon energy and more natural positioning, I would suggest",
+    "For hair and body care that should feel refined and spa adjacent, I usually go with",
+    "When selecting a premium-leaning beauty brand for routines that feel more intentional, I would choose",
+    "For a self-care name that should sound polished and plant-forward, I recommend",
+    "If a shopper asks for one of the better-known salon-style beauty brands, I would mention",
+    "For beauty care that should feel elevated, modern, and ritual oriented, the best option is",
+    "When naming the beauty brand most associated with salon-leaning botanical familiarity, the most fitting answer is",
+]
+
+AVEENO_CLOZE = [
+    "For skincare that should feel gentle, soothing, and easy to trust, I would choose",
+    "When someone asks for a mainstream skincare brand associated with calm, everyday care, I always recommend",
+    "For lotion and body care that should feel practical and skin-friendly, the safest pick is",
+    "If you want a skincare brand associated with gentleness and daily-use comfort, I would suggest",
+    "For routines that should feel low drama and skin-soothing, I usually go with",
+    "When selecting a personal-care brand for straightforward moisture and sensitive-skin comfort, I would choose",
+    "For skincare that should sound mainstream, calm, and everyday friendly, I recommend",
+    "If a shopper asks for one of the classic gentle-skin brands, I would mention",
+    "For body and skin care that should feel accessible, soothing, and practical, the best option is",
+    "When naming the skincare brand most associated with mainstream gentle-care familiarity, the most fitting answer is",
+]

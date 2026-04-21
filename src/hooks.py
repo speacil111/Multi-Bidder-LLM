@@ -1,5 +1,7 @@
 import torch
 
+from . import runtime
+
 
 class MLPIntegratedGradientsHook:
     """在 down_proj 前按 alpha 缩放激活，并保存缩放后激活用于 IG 求导。"""
@@ -15,7 +17,7 @@ class MLPIntegratedGradientsHook:
     def register(self, model, layers):
         self.remove()
         for layer_idx in layers:
-            mlp_module = model.model.layers[layer_idx].mlp
+            down_proj = runtime.get_mlp_down_proj(layer_idx)
 
             def make_hook(captured_layer_idx):
                 def hook_fn(module, inputs):
@@ -25,7 +27,7 @@ class MLPIntegratedGradientsHook:
 
                 return hook_fn
 
-            handle = mlp_module.down_proj.register_forward_pre_hook(make_hook(layer_idx))
+            handle = down_proj.register_forward_pre_hook(make_hook(layer_idx))
             self.handles.append(handle)
 
     def remove(self):
@@ -49,7 +51,7 @@ class NeuronInterventionHook:
 
     def register(self, model):
         for layer_idx, neuron_indices in self.target_neurons.items():
-            mlp_module = model.model.layers[layer_idx].mlp
+            down_proj = runtime.get_mlp_down_proj(layer_idx)
 
             def make_pre_hook(indices):
                 def down_proj_pre_hook(module, inputs):
@@ -74,7 +76,7 @@ class NeuronInterventionHook:
 
                 return down_proj_pre_hook
 
-            handle = mlp_module.down_proj.register_forward_pre_hook(make_pre_hook(neuron_indices))
+            handle = down_proj.register_forward_pre_hook(make_pre_hook(neuron_indices))
             self.handles.append(handle)
 
     def remove(self):
@@ -107,7 +109,7 @@ class UnifiedInterventionHook:
     def register(self, model):
         self.remove()
         for layer_idx, groups in self._layer_groups.items():
-            mlp_module = model.model.layers[layer_idx].mlp
+            down_proj = runtime.get_mlp_down_proj(layer_idx)
 
             def make_pre_hook(layer_groups):
                 def down_proj_pre_hook(module, inputs):
@@ -135,9 +137,7 @@ class UnifiedInterventionHook:
 
                 return down_proj_pre_hook
 
-            handle = mlp_module.down_proj.register_forward_pre_hook(
-                make_pre_hook(groups)
-            )
+            handle = down_proj.register_forward_pre_hook(make_pre_hook(groups))
             self.handles.append(handle)
 
     def remove(self):

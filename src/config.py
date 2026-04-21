@@ -5,7 +5,8 @@
 """
 
 SEED = 42
-MODEL_NAME = "../Qwen3-4B"
+# MODEL_NAME = "../Qwen3-4B"
+MODEL_NAME = "../DS_r1_8B"
 OFFLOAD_FOLDER = "./offload"
 
 # 生成任务默认使用的 prompt 条数（索引 0 .. N-1）；与 ``new_prompts.DEFAULT_PROMPT_LIST`` 对齐
@@ -508,6 +509,246 @@ CONCEPT_CONFIGS = {
         "clozes": PIONEER_ELECTRONICS_CLOZE,
         "score_mode": "contrastive",
     },
+    "Adidas": {
+        "positive_word": "Adidas",
+        "negative_words": ["Nike", "Puma", "Reebok", "Under Armour"],
+        "clozes": ADIDAS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "YouTube": {
+        "positive_word": "YouTube",
+        "negative_words": ["Netflix", "Twitch", "TikTok", "Vimeo"],
+        "clozes": YOUTUBE_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "BestBuy": {
+        "positive_word": "Best Buy",
+        "negative_words": ["Target", "Walmart", "Amazon", "Costco"],
+        "clozes": BEST_BUY_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Verizon": {
+        "positive_word": "Verizon",
+        "negative_words": ["AT&T", "T-Mobile", "Sprint", "Xfinity"],
+        "clozes": VERIZON_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Expedia": {
+        "positive_word": "Expedia",
+        "negative_words": ["Orbitz", "Priceline", "Travelocity", "Booking"],
+        "clozes": EXPEDIA_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Hertz": {
+        "positive_word": "Hertz",
+        "negative_words": ["Avis", "Enterprise", "Alamo", "Budget"],
+        "clozes": HERTZ_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "BritishAirways": {
+        "positive_word": "British Airways",
+        "negative_words": ["Virgin Atlantic", "Delta", "United", "American"],
+        "clozes": BRITISH_AIRWAYS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "RitzCarlton": {
+        "positive_word": "Ritz Carlton",
+        "negative_words": ["Four Seasons", "Marriott", "Hyatt", "Westin"],
+        "clozes": RITZ_CARLTON_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "McDonalds": {
+        "positive_word": "McDonald's",
+        "negative_words": ["Burger King", "Wendy's", "Taco Bell", "KFC"],
+        "clozes": MCDONALDS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "CocaCola": {
+        "positive_word": "Coca-Cola",
+        "negative_words": ["Pepsi", "Sprite", "Dr Pepper", "7up"],
+        "clozes": COCACOLA_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Target": {
+        "positive_word": "Target",
+        "negative_words": ["Walmart", "Costco", "Best Buy", "Publix"],
+        "clozes": TARGET_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Pampers": {
+        "positive_word": "Pampers",
+        "negative_words": ["Huggies", "Luvs", "Gerber", "Similac"],
+        "clozes": PAMPERS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Walgreens": {
+        "positive_word": "Walgreens",
+        "negative_words": ["CVS", "Rite Aid", "Target", "Walmart"],
+        "clozes": WALGREENS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Tylenol": {
+        "positive_word": "Tylenol",
+        "negative_words": ["Advil", "Aleve", "Motrin", "Nyquil"],
+        "clozes": TYLENOL_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "DisneyWorld": {
+        "positive_word": "Disney World",
+        "negative_words": ["Universal Orlando", "Six Flags", "Club Med", "Cruise"],
+        "clozes": DISNEY_WORLD_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "SouthwestAirlines": {
+        "positive_word": "Southwest",
+        "negative_words": ["Delta", "United", "American", "JetBlue"],
+        "clozes": SOUTHWEST_AIRLINES_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "StateFarm": {
+        "positive_word": "State Farm",
+        "negative_words": ["Geico", "Allstate", "Progressive", "Prudential"],
+        "clozes": STATE_FARM_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Geico": {
+        "positive_word": "Geico",
+        "negative_words": ["State Farm", "Progressive", "Allstate", "Esurance"],
+        "clozes": GEICO_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "FedEx": {
+        "positive_word": "FedEx",
+        "negative_words": ["UPS", "USPS", "DHL", "Amazon"],
+        "clozes": FEDEX_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "GoDaddy": {
+        "positive_word": "GoDaddy",
+        "negative_words": ["Squarespace", "Wix", "Shopify", "WordPress"],
+        "clozes": GODADDY_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Heineken": {
+        "positive_word": "Heineken",
+        "negative_words": ["Corona", "Coors", "Budweiser", "Stella Artois"],
+        "clozes": HEINEKEN_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "StellaArtois": {
+        "positive_word": "Stella Artois",
+        "negative_words": ["Heineken", "Corona", "Budweiser", "Coors"],
+        "clozes": STELLA_ARTOIS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Colgate": {
+        "positive_word": "Colgate",
+        "negative_words": ["Crest", "Sensodyne", "Listerine", "Oral-B"],
+        "clozes": COLGATE_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Listerine": {
+        "positive_word": "Listerine",
+        "negative_words": ["Scope", "Colgate", "Crest", "Act"],
+        "clozes": LISTERINE_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Huggies": {
+        "positive_word": "Huggies",
+        "negative_words": ["Pampers", "Luvs", "Johnson & Johnson", "Gerber"],
+        "clozes": HUGGIES_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "JohnsonAndJohnson": {
+        "positive_word": "Johnson & Johnson",
+        "negative_words": ["Aveeno", "Huggies", "Pampers", "Cetaphil"],
+        "clozes": JOHNSON_AND_JOHNSON_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Macys": {
+        "positive_word": "Macy's",
+        "negative_words": ["Nordstrom", "Target", "Kohl's", "JCPenney"],
+        "clozes": MACYS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "RalphLauren": {
+        "positive_word": "Ralph Lauren",
+        "negative_words": ["Tommy Hilfiger", "Calvin Klein", "Macy's", "Lacoste"],
+        "clozes": RALPH_LAUREN_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "ATT": {
+        "positive_word": "AT&T",
+        "negative_words": ["Verizon", "T-Mobile", "Cisco", "Sprint"],
+        "clozes": ATT_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "CiscoSystems": {
+        "positive_word": "Cisco",
+        "negative_words": ["Juniper", "AT&T", "IBM", "Oracle"],
+        "clozes": CISCO_SYSTEMS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "UPS": {
+        "positive_word": "UPS",
+        "negative_words": ["FedEx", "USPS", "DHL", "Amazon"],
+        "clozes": UPS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Xerox": {
+        "positive_word": "Xerox",
+        "negative_words": ["Canon", "HP", "Epson", "UPS"],
+        "clozes": XEROX_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "CharlesSchwab": {
+        "positive_word": "Charles Schwab",
+        "negative_words": ["Vanguard", "Fidelity", "Merrill", "Morgan Stanley"],
+        "clozes": CHARLES_SCHWAB_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Vanguard": {
+        "positive_word": "Vanguard",
+        "negative_words": ["Fidelity", "Charles Schwab", "BlackRock", "Merrill"],
+        "clozes": VANGUARD_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "DunkinDonuts": {
+        "positive_word": "Dunkin",
+        "negative_words": ["Starbucks", "Tim Hortons", "Tetley", "McDonald's"],
+        "clozes": DUNKIN_DONUTS_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Tetley": {
+        "positive_word": "Tetley",
+        "negative_words": ["Lipton", "Twinings", "Dunkin", "Bigelow"],
+        "clozes": TETLEY_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Callaway": {
+        "positive_word": "Callaway",
+        "negative_words": ["Titleist", "TaylorMade", "Nike", "Wilson"],
+        "clozes": CALLAWAY_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "GoldsGym": {
+        "positive_word": "Gold's Gym",
+        "negative_words": ["Planet Fitness", "Equinox", "OrangeTheory", "Callaway"],
+        "clozes": GOLDS_GYM_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Aveda": {
+        "positive_word": "Aveda",
+        "negative_words": ["Aveeno", "Pantene", "L'Oreal", "Dove"],
+        "clozes": AVEDA_CLOZE,
+        "score_mode": "contrastive",
+    },
+    "Aveeno": {
+        "positive_word": "Aveeno",
+        "negative_words": ["Cetaphil", "CeraVe", "Aveda", "Lubriderm"],
+        "clozes": AVEENO_CLOZE,
+        "score_mode": "contrastive",
+    },
     
 }
 
@@ -515,26 +756,24 @@ COMBO_PRESETS = {
     "delta_hyatt": ["Delta", "Hyatt"],
     "legend_bernardus": ["LegendAirlines", "BernardusLodge"],
     "nike_spotify": ["Nike", "Spotify"],
-    "apple_adobe": ["Apple", "Adobe"],
+    "apple_adobe": ["Apple", "Adobe"],# 3以前有了
     "bmw_rolex": ["BMW", "Rolex"],
     "uber_starbucks": ["Uber", "Starbucks"],
     "toyota_costco": ["Toyota", "Costco"],
-    # "qantas_swissair": ["Qantas", "SwissAir"],
-    # "okura_radisson": ["Okura", "Radisson"],
     "ford_clinique": ["Ford", "Clinique"],
     "garnier_godiva": ["Garnier", "Godiva"],
-    "honda_lipton": ["Honda", "Lipton"],
-    "jeep_doritos": ["Jeep", "Doritos"],
+    "honda_lipton": ["Honda", "Lipton"], 
+    "jeep_doritos": ["Jeep", "Doritos"],### 10有了
     "samsung_marriott": ["Samsung", "Marriott"],
     "visa_olay": ["Visa", "Olay"],
     "logitech_nespresso": ["Logitech", "Nespresso"],
     "peloton_lululemon": ["Peloton", "Lululemon"],
-    "patagonia_gopro": ["Patagonia", "GoPro"],
+    "patagonia_gopro": ["Patagonia", "GoPro"], # 15有了
     "audi_bose": ["Audi", "Bose"],
     "dell_microsoft": ["Dell", "Microsoft"],
     "hellofresh_cuisinart": ["HelloFresh", "Cuisinart"],
     "kindle_nivea": ["Kindle", "Nivea"],
-    "johndeere_folgers": ["JohnDeere", "Folgers"],
+    "johndeere_folgers": ["JohnDeere", "Folgers"], #20有了
     "acura_michelin": ["Acura", "Michelin"],
     "barilla_campbells": ["Barilla", "Campbells"],
     "coke_cadbury": ["Coke", "Cadbury"],
@@ -555,6 +794,26 @@ COMBO_PRESETS = {
     "planters_dole": ["Planters", "Dole"],
     "landrover_goodyear": ["LandRover", "Goodyear"],
     "panasonic_pioneer": ["Panasonic", "PioneerElectronics"],
+    "adidas_youtube": ["Adidas", "YouTube"],
+    "bestbuy_verizon": ["BestBuy", "Verizon"],
+    "expedia_hertz": ["Expedia", "Hertz"],
+    "britishairways_ritzcarlton": ["BritishAirways", "RitzCarlton"],
+    "mcdonalds_cocacola": ["McDonalds", "CocaCola"],
+    "target_pampers": ["Target", "Pampers"],
+    "walgreens_tylenol": ["Walgreens", "Tylenol"],
+    "disneyworld_southwest": ["DisneyWorld", "SouthwestAirlines"],
+    "statefarm_geico": ["StateFarm", "Geico"],
+    "fedex_godaddy": ["FedEx", "GoDaddy"],
+    "heineken_stellaartois": ["Heineken", "StellaArtois"],
+    "colgate_listerine": ["Colgate", "Listerine"],
+    "huggies_johnsonandjohnson": ["Huggies", "JohnsonAndJohnson"],
+    "macys_ralphlauren": ["Macys", "RalphLauren"],
+    "att_cisco": ["ATT", "CiscoSystems"],
+    "ups_xerox": ["UPS", "Xerox"],
+    "schwab_vanguard": ["CharlesSchwab", "Vanguard"],
+    "dunkindonuts_tetley": ["DunkinDonuts", "Tetley"],
+    "callaway_goldsgym": ["Callaway", "GoldsGym"],
+    "aveda_aveeno": ["Aveda", "Aveeno"],
 }
 
 PRINT_TOP_K = 10

@@ -20,6 +20,7 @@ from src.mind_bridge import COMBO_MIND_BRIDGES, NIKE_BRIDGE
 print("开始运行寻找特定概念 Neuron 的实验")
 torch.manual_seed(SEED)
 _DEBUG_TOKENIZER = None
+_DEBUG_TOKENIZER_MODEL_PATH = None
 
 
 def report_keyword_presence(text, keywords):
@@ -93,12 +94,13 @@ def parse_concept_list(raw_value):
     return concept_names
 
 
-def _format_tokenization(text):
-    global _DEBUG_TOKENIZER
+def _format_tokenization(text, model_path):
+    global _DEBUG_TOKENIZER, _DEBUG_TOKENIZER_MODEL_PATH
     tokenizer = runtime.tokenizer
     if tokenizer is None:
-        if _DEBUG_TOKENIZER is None:
-            _DEBUG_TOKENIZER = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
+        if _DEBUG_TOKENIZER is None or _DEBUG_TOKENIZER_MODEL_PATH != model_path:
+            _DEBUG_TOKENIZER = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+            _DEBUG_TOKENIZER_MODEL_PATH = model_path
         tokenizer = _DEBUG_TOKENIZER
     token_ids = tokenizer.encode(f" {text}", add_special_tokens=False)
     token_strs = tokenizer.convert_ids_to_tokens(token_ids)
@@ -371,6 +373,7 @@ def main(args):
     # print(f"selected_concepts={selected_concepts}")
     print(f"prompt_source={prompt_source}")
     print(f"ig_steps={args.ig_steps}")
+    print(f"model_path={args.model_path}")
     # print(f"attr_sum_1={args.attr_sum_1}")
     print(f"multiplier_1={args.multiplier_1}")
     # print(f"attr_sum_2={args.attr_sum_2}")
@@ -389,9 +392,9 @@ def main(args):
         pos_word = cfg.get("positive_word")
         neg_words = cfg.get("negative_words", [])
         if pos_word:
-            print(f"  {cname}.positive_word='{pos_word}': {_format_tokenization(pos_word)}")
+            print(f"  {cname}.positive_word='{pos_word}': {_format_tokenization(pos_word, args.model_path)}")
         for neg_word in neg_words:
-            print(f"  {cname}.negative_word='{neg_word}': {_format_tokenization(neg_word)}")
+            print(f"  {cname}.negative_word='{neg_word}': {_format_tokenization(neg_word, args.model_path)}")
     print(f"active_concepts={list(active_concept_configs.keys())}")
     concept_gpu_map = {
         concept_name: assigned_gpu_ids[idx]
@@ -468,6 +471,7 @@ def main(args):
                     {concept_name: cfg},
                     ig_steps=args.ig_steps,
                     gpu_ids=[primary_gpu],
+                    model_path=args.model_path,
                 )
                 concept_scores_by_layer.update(single_result)
         else:
@@ -475,6 +479,7 @@ def main(args):
                 active_concept_configs,
                 ig_steps=args.ig_steps,
                 gpu_ids=assigned_gpu_ids,
+                model_path=args.model_path,
             )
         torch.save(
             {
@@ -571,7 +576,7 @@ def main(args):
             f"prompt-index 越界: {args.prompt_index}，可用范围是 [0, {len(prompt_pool) - 1}]"
         )
 
-    runtime.initialize_runtime(device_map="auto", offload_tag="main_generation")
+    runtime.initialize_runtime(model_path=args.model_path, offload_tag="main_generation")
     prompt = prompt_pool[args.prompt_index]
 
     # prompt = ( "You are an expert at writing advertising copy. "
@@ -579,9 +584,8 @@ def main(args):
     #   "Mention the flight and accommodation details naturally.")
     print(f"prompt: {prompt}")
     messages = [{"role": "user", "content": prompt}]
-    text = runtime.tokenizer.apply_chat_template(
+    text = runtime.build_chat_prompt(
         messages,
-        tokenize=False,
         add_generation_prompt=True,
         enable_thinking=False,
     )
@@ -754,6 +758,12 @@ def parse_args():
         type=str,
         default="0,1",
         help="并行归因使用的 GPU 编号列表（逗号分隔），例如 0,1",
+    )
+    parser.add_argument(
+        "--model_path",
+        type=str,
+        default=MODEL_NAME,
+        help="要加载的本地模型路径或 HuggingFace 模型名；整模型必须能装入当前单卡 GPU，禁止自动 offload 到 CPU",
     )
     parser.add_argument(
         "--threshold",

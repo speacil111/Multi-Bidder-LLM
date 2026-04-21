@@ -473,6 +473,226 @@ PANASONIC_PIONEER_BRIDGE = (
     "</think>"
 )
 
+ADIDAS_YOUTUBE_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced active-lifestyle recommendation. "
+    "Give fair consideration to both athletic gear and video-based learning or motivation, and avoid defaulting to one category too early. "
+    "Mention at least one concrete training, apparel, or footwear consideration and at least one concrete creator, tutorial, or video-routine consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in consistency, motivation, and practical daily use."
+    "</think>"
+)
+
+BESTBUY_VERIZON_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced consumer-tech recommendation. "
+    "Give fair consideration to both device purchasing and wireless-service decisions, and avoid defaulting to one category too early. "
+    "Mention at least one concrete electronics-shopping consideration and at least one concrete carrier, plan, or phone-upgrade consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in convenience, support, and everyday tech use."
+    "</think>"
+)
+
+EXPEDIA_HERTZ_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced travel-logistics recommendation. "
+    "Give fair consideration to both booking the broader trip and handling mobility after arrival, and avoid defaulting to one category too early. "
+    "Mention at least one concrete itinerary, booking, or bundling consideration and at least one concrete airport-rental or local-mobility consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in convenience, coordination, and lower-friction travel."
+    "</think>"
+)
+
+BRITISHAIRWAYS_RITZCARLTON_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced premium-travel recommendation. "
+    "Give fair consideration to both the long-haul flight experience and the luxury-hotel experience, and avoid defaulting to one category too early. "
+    "Mention at least one concrete airline-service consideration and at least one concrete hotel-service or atmosphere consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in comfort, polish, and international-travel expectations."
+    "</think>"
+)
+
+MCDONALDS_COCACOLA_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced casual-meal recommendation. "
+    "Give fair consideration to both the quick-service food choice and the beverage choice, and avoid defaulting to one category too early. "
+    "Mention at least one concrete convenience, familiarity, or meal-occasion consideration and at least one concrete drink-pairing or refreshment consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in low-friction, mainstream everyday use."
+    "</think>"
+)
+
+TARGET_PAMPERS_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced young-family recommendation. "
+    "Give fair consideration to both broad household shopping and baby-care essentials, and avoid defaulting to one category too early. "
+    "Mention at least one concrete errand, retail, or nursery-prep consideration and at least one concrete diapering, baby-routine, or caregiver-convenience consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in routine family life and repeatable errands."
+    "</think>"
+)
+
+WALGREENS_TYLENOL_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced everyday-health recommendation. "
+    "Give fair consideration to both access to routine pharmacy items and choosing a straightforward pain-relief staple, and avoid defaulting to one category too early. "
+    "Mention at least one concrete drugstore, refill, or household-health consideration and at least one concrete symptom-relief or medicine-cabinet consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in convenience, preparedness, and household practicality."
+    "</think>"
+)
+
+DISNEYWORLD_SOUTHWEST_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced family-vacation recommendation. "
+    "Give fair consideration to both the destination experience and the flight-planning side, and avoid defaulting to one category too early. "
+    "Mention at least one concrete theme-park or family-itinerary consideration and at least one concrete domestic-flight or trip-budget consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in family logistics, energy management, and trip simplicity."
+    "</think>"
+)
+
+STATEFARM_GEICO_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced insurance recommendation. "
+    "Give fair consideration to both candidate insurers, and avoid collapsing too early into one generic coverage answer. "
+    "Mention concrete differences in quoting, bundling, claims feel, household fit, and mainstream trust, and evaluate both brands with comparable depth. "
+    "Favor real consumer tradeoffs over vague advertising language. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in everyday auto or home coverage decisions."
+    "</think>"
+)
+
+FEDEX_GODADDY_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced small-business operations recommendation. "
+    "Give fair consideration to both physical fulfillment and online-business setup, and avoid defaulting to one category too early. "
+    "Mention at least one concrete shipping, delivery, or fulfillment consideration and at least one concrete domain, website, or online-presence consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in practical business execution and early-stage operations."
+    "</think>"
+)
+
+HEINEKEN_STELLAARTOIS_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced beer recommendation. "
+    "Give fair consideration to both candidate beer brands, and avoid collapsing too early into one generic drink answer. "
+    "Mention concrete differences in social setting, perceived refinement, familiarity, and easy drinkability, and evaluate both brands with comparable depth. "
+    "Favor realistic occasion-based distinctions over vague prestige claims. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in casual entertaining and mainstream taste."
+    "</think>"
+)
+
+COLGATE_LISTERINE_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced oral-care recommendation. "
+    "Give fair consideration to both brushing and rinse-based hygiene support, and avoid defaulting to one category too early. "
+    "Mention at least one concrete toothpaste or brushing consideration and at least one concrete freshness or mouthwash consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in daily routines and household practicality."
+    "</think>"
+)
+
+HUGGIES_JOHNSONANDJOHNSON_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced baby-care recommendation. "
+    "Give fair consideration to both diapering logistics and broader gentle baby-care routines, and avoid defaulting to one category too early. "
+    "Mention at least one concrete diapering or wipe-use consideration and at least one concrete bathing, soothing, or family-care consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in repeatable caregiving and parental convenience."
+    "</think>"
+)
+
+MACYS_RALPHLAUREN_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced fashion-shopping recommendation. "
+    "Give fair consideration to both the retail environment and the apparel-brand identity, and avoid defaulting to one category too early. "
+    "Mention at least one concrete department-store or shopping-experience consideration and at least one concrete style, wardrobe, or brand-image consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in practical wardrobe building and mainstream style aspirations."
+    "</think>"
+)
+
+ATT_CISCO_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced connectivity recommendation. "
+    "Give fair consideration to both large-scale telecom service and networking infrastructure, and avoid defaulting to one category too early. "
+    "Mention at least one concrete household or mobile-connectivity consideration and at least one concrete enterprise-networking or office-infrastructure consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in communications reliability and real-world tech use."
+    "</think>"
+)
+
+UPS_XEROX_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced office-operations recommendation. "
+    "Give fair consideration to both moving physical documents or packages and managing paper-based office workflows, and avoid defaulting to one category too early. "
+    "Mention at least one concrete shipping, returns, or package-handling consideration and at least one concrete document, print, or office-admin consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in business practicality and everyday operations."
+    "</think>"
+)
+
+SCHWAB_VANGUARD_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced investing recommendation. "
+    "Give fair consideration to both candidate investment brands, and avoid collapsing too early into one generic portfolio answer. "
+    "Mention concrete differences in investor experience, product emphasis, low-cost discipline, and long-term planning feel, and evaluate both brands with comparable depth. "
+    "Favor realistic wealth-building considerations over flashy performance claims. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in retirement, brokerage choice, and disciplined investing."
+    "</think>"
+)
+
+DUNKINDONUTS_TETLEY_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced everyday-beverage recommendation. "
+    "Give fair consideration to both on-the-go coffee-and-breakfast convenience and at-home tea routines, and avoid defaulting to one category too early. "
+    "Mention at least one concrete commuter, breakfast, or quick-stop consideration and at least one concrete pantry, tea, or slower-routine consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in daily habits and real morning routines."
+    "</think>"
+)
+
+CALLAWAY_GOLDSGYM_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced active-lifestyle recommendation. "
+    "Give fair consideration to both sport-specific equipment and general training or conditioning support, and avoid defaulting to one category too early. "
+    "Mention at least one concrete golf-practice or gear consideration and at least one concrete strength, cardio, or training-routine consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in practical athletic improvement and repeatable habits."
+    "</think>"
+)
+
+AVEDA_AVEENO_BRIDGE = (
+    "<think>"
+    "Provide a practical, logical, and balanced personal-care recommendation. "
+    "Give fair consideration to both elevated salon-leaning beauty routines and gentle everyday skin comfort, and avoid defaulting to one category too early. "
+    "Mention at least one concrete haircare, ritual, or premium-self-care consideration and at least one concrete soothing, hydration, or sensitive-skin consideration, and evaluate them with comparable depth. "
+    "Do not let one side dominate the response unless there is a clear context-based reason. "
+    "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+    "Keep the reasoning diverse, stable, and grounded in realistic self-care and daily usability."
+    "</think>"
+)
+
 
 
 
@@ -529,4 +749,24 @@ COMBO_MIND_BRIDGES = {
     "planters_dole": PLANTERS_DOLE_BRIDGE,
     "landrover_goodyear": LANDROVER_GOODYEAR_BRIDGE,
     "panasonic_pioneer": PANASONIC_PIONEER_BRIDGE,
+    "adidas_youtube": ADIDAS_YOUTUBE_BRIDGE,
+    "bestbuy_verizon": BESTBUY_VERIZON_BRIDGE,
+    "expedia_hertz": EXPEDIA_HERTZ_BRIDGE,
+    "britishairways_ritzcarlton": BRITISHAIRWAYS_RITZCARLTON_BRIDGE,
+    "mcdonalds_cocacola": MCDONALDS_COCACOLA_BRIDGE,
+    "target_pampers": TARGET_PAMPERS_BRIDGE,
+    "walgreens_tylenol": WALGREENS_TYLENOL_BRIDGE,
+    "disneyworld_southwest": DISNEYWORLD_SOUTHWEST_BRIDGE,
+    "statefarm_geico": STATEFARM_GEICO_BRIDGE,
+    "fedex_godaddy": FEDEX_GODADDY_BRIDGE,
+    "heineken_stellaartois": HEINEKEN_STELLAARTOIS_BRIDGE,
+    "colgate_listerine": COLGATE_LISTERINE_BRIDGE,
+    "huggies_johnsonandjohnson": HUGGIES_JOHNSONANDJOHNSON_BRIDGE,
+    "macys_ralphlauren": MACYS_RALPHLAUREN_BRIDGE,
+    "att_cisco": ATT_CISCO_BRIDGE,
+    "ups_xerox": UPS_XEROX_BRIDGE,
+    "schwab_vanguard": SCHWAB_VANGUARD_BRIDGE,
+    "dunkindonuts_tetley": DUNKINDONUTS_TETLEY_BRIDGE,
+    "callaway_goldsgym": CALLAWAY_GOLDSGYM_BRIDGE,
+    "aveda_aveeno": AVEDA_AVEENO_BRIDGE,
 }

@@ -227,12 +227,15 @@ def aggregate_contrastive_attribution(prompts, positive_word, negative_words, la
 #         )
 
 
-def run_concept_worker(concept_name, cfg, ig_steps, gpu_id, result_queue):
+def run_concept_worker(concept_name, cfg, ig_steps, gpu_id, result_queue, model_path):
     try:
         if torch.cuda.is_available():
             os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
             torch.cuda.set_device(0)
-        runtime.initialize_runtime(device_map="auto", offload_tag=f"worker_{concept_name}_gpu{gpu_id}")
+        runtime.initialize_runtime(
+            model_path=model_path,
+            offload_tag=f"worker_{concept_name}_gpu{gpu_id}",
+        )
         print(f"\n================ {concept_name} (GPU {gpu_id}) ================")
         score_mode = cfg.get("score_mode", "contrastive")
         if score_mode == "direct":
@@ -269,7 +272,7 @@ def run_concept_worker(concept_name, cfg, ig_steps, gpu_id, result_queue):
         result_queue.put({"concept_name": concept_name, "error": str(exc)})
 
 
-def run_parallel_attribution(concept_configs, ig_steps, gpu_ids):
+def run_parallel_attribution(concept_configs, ig_steps, gpu_ids, model_path=None):
     ctx = mp.get_context("spawn")
     result_queue = ctx.Queue()
     processes = []
@@ -278,7 +281,7 @@ def run_parallel_attribution(concept_configs, ig_steps, gpu_ids):
     for idx, (concept_name, cfg) in enumerate(concept_items):
         proc = ctx.Process(
             target=run_concept_worker,
-            args=(concept_name, cfg, ig_steps, gpu_ids[idx], result_queue),
+            args=(concept_name, cfg, ig_steps, gpu_ids[idx], result_queue, model_path),
         )
         proc.start()
         processes.append(proc)
