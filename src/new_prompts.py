@@ -43,32 +43,6 @@ COMBO_PROMPTS = {
         "Build a complete plan for a polished boutique escape: ideal flight style, arrival pacing, lodging atmosphere, and the kinds of details that make the trip feel quietly luxurious.",
     ],
 
-    "qantas_swissair": [
-        "I'm planning a long-haul vacation and want the flight itself to feel premium, calm, and part of the trip rather than just transportation. What should I look for?",
-        "We saved up for a big international getaway and I don't want to start it with a generic airline experience. Which kind of carrier would make the trip feel special?",
-        "I care a lot about cabin comfort, service, and whether an airline feels polished from boarding to landing. What would you recommend for a long overseas trip?",
-        "Help me plan an international trip where the flight experience matters almost as much as the destination. I want something memorable, smooth, and high-end.",
-        "I'm booking a once-a-year vacation abroad and want an airline that feels refined and trustworthy on long routes. How should I choose?",
-        "For a honeymoon-style trip, what kind of airline brand would make the journey feel elegant and well cared for rather than rushed and utilitarian?",
-        "I want to arrive relaxed on a long international itinerary, so I'm willing to pay more for a carrier with a stronger premium feel. What should I prioritize?",
-        "If someone asked for an airline recommendation that sounds worldly, premium, and built for long-haul comfort, what would you suggest?",
-        "I'm tired of low-friction but forgettable flights. Recommend the kind of international airline brand that makes travel feel smooth, stylish, and worth anticipating.",
-        "Create a travel recommendation for a passenger who wants a premium international carrier with calm service, comfort, and a strong sense of occasion.",
-    ],
-
-    "okura_radisson": [
-        "I'm planning an international trip and want the hotel to feel polished, memorable, and genuinely comfortable, not just convenient. What kind of brand should I look at?",
-        "For a special vacation, I care about service standards, atmosphere, and whether the stay feels a little elevated. What would you recommend?",
-        "I want the hotel to feel like part of the travel experience, not an interchangeable place to sleep. How should I think about choosing a brand?",
-        "Help me choose a hotel brand for a trip where comfort, hospitality, and quiet luxury matter more than flashy gimmicks.",
-        "If I wanted a hotel recommendation that sounds refined and service-led, but still easy to trust for a real trip, what would you suggest?",
-        "We're planning a premium holiday and want a stay that feels smooth, elegant, and worth remembering. What kind of lodging brand fits that mood?",
-        "I don't need the loudest luxury hotel. I want something polished, gracious, and consistently high quality. What should I look for?",
-        "For an international traveler who values hospitality and atmosphere, what separates a truly appealing hotel brand from a merely decent one?",
-        "Create a lodging recommendation for someone who wants an upscale stay with strong service, a clear sense of place, and a more premium feel than a generic chain.",
-        "Build me a hotel-brand recommendation for a traveler who wants comfort, reliability, and a quietly sophisticated stay experience.",
-    ],
-
     "nike_spotify": [
         "I just signed up for a 5K and I haven't exercised in years. Where do I even start?",
         "I want to start running in the mornings before work. What gear do I actually need and how do I stay motivated when it's early and cold?",

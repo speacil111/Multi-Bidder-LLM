@@ -23,6 +23,7 @@ Optional:
   --log-dir DIR         Launcher output dir. Default: ./batch_runs
   --stagger-sec N       Sleep N seconds between launches. Default: 2
   --min-free-mem-mb N   Treat GPU as selectable only if memory.free >= N. Default: 15000
+  --idle-max-util N     Prefer GPU with utilization.gpu < N. Default: 70
   --poll-sec N          Sleep N seconds while waiting for an idle GPU. Default: 5
   --fail-fast           Stop launching new jobs after first failure
   --dry-run             Print commands without launching
@@ -46,7 +47,7 @@ TOPK_SCRIPT="./topk_sweep_batch.sh"
 LOG_DIR="./batch_runs"
 # 直接在这里定义默认任务（可被命令行参数覆盖）
 # 例: COMBOS="0-9,12,18" ; GPUS_LIST="0,1,2,3" 或 "0-7"
-COMBOS="0-5"
+COMBOS="0,1"
 GPUS_LIST="0-7"
 COMBO_SPEC="${COMBOS}"
 COMBO_FILE=""
@@ -55,6 +56,7 @@ MAX_JOBS=""
 STAGGER_SEC=2
 MIN_FREE_MEM_MB=15000
 POLL_SEC=5
+MAX_IDLE_UTIL=70
 FAIL_FAST=0
 DRY_RUN=0
 
@@ -134,11 +136,11 @@ while [[ $# -gt 0 ]]; do
       ;;
     --idle-max-util)
       [[ $# -ge 2 ]] || { echo "[ERROR] --idle-max-util requires a value" >&2; usage >&2; exit 1; }
-      echo "[WARN] --idle-max-util is deprecated and ignored" >&2
+      MAX_IDLE_UTIL="$2"
       shift 2
       ;;
     --idle-max-util=*)
-      echo "[WARN] --idle-max-util is deprecated and ignored" >&2
+      MAX_IDLE_UTIL="${1#*=}"
       shift
       ;;
     --poll-sec)
@@ -335,6 +337,7 @@ gpu_ids=${GPU_IDS[*]}
 max_jobs=${MAX_JOBS}
 stagger_sec=${STAGGER_SEC}
 min_free_mem_mb=${MIN_FREE_MEM_MB}
+max_idle_util=${MAX_IDLE_UTIL}
 poll_sec=${POLL_SEC}
 nvidia_smi_available=${NVIDIA_SMI_AVAILABLE}
 fail_fast=${FAIL_FAST}
@@ -354,7 +357,7 @@ echo "[Launcher] combo count: ${#COMBO_IDS[@]}"
 echo "[Launcher] gpus: ${GPU_IDS[*]}"
 echo "[Launcher] max_jobs: ${MAX_JOBS}"
 if [[ "${NVIDIA_SMI_AVAILABLE}" -eq 1 ]]; then
-  echo "[Launcher] idle-gpu mode: nvidia-smi enabled (memory.free>=${MIN_FREE_MEM_MB}MB)"
+  echo "[Launcher] idle-gpu mode: prefer memory.free>=${MIN_FREE_MEM_MB}MB and utilization.gpu<${MAX_IDLE_UTIL}%, fallback to highest memory.free with memory.free>=${MIN_FREE_MEM_MB}MB"
 else
   echo "[Launcher] idle-gpu mode: nvidia-smi unavailable, fallback to launcher-only GPU tracking"
 fi
@@ -449,36 +452,59 @@ gpu_in_use_by_launcher() {
   return 1
 }
 
-gpu_is_idle_by_system() {
+get_gpu_stats() {
   local target_gpu="$1"
   local stats
   local mem_free
+  local gpu_util
 
   if [[ "${NVIDIA_SMI_AVAILABLE}" -ne 1 ]]; then
-    return 0
+    return 1
   fi
 
-  stats="$(nvidia-smi -i "${target_gpu}" --query-gpu=memory.free --format=csv,noheader,nounits 2>/dev/null | head -n 1)"
+  stats="$(nvidia-smi -i "${target_gpu}" --query-gpu=memory.free,utilization.gpu --format=csv,noheader,nounits 2>/dev/null | head -n 1)"
   if [[ -z "${stats}" ]]; then
     return 1
   fi
 
-  mem_free="${stats//[[:space:]]/}"
+  IFS=',' read -r mem_free gpu_util <<< "${stats}"
+  mem_free="${mem_free//[[:space:]]/}"
+  gpu_util="${gpu_util//[[:space:]]/}"
 
   if ! [[ "${mem_free}" =~ ^[0-9]+$ ]]; then
     return 1
   fi
 
-  if (( mem_free >= MIN_FREE_MEM_MB )); then
-    return 0
+  if ! [[ "${gpu_util}" =~ ^[0-9]+$ ]]; then
+    return 1
   fi
-  return 1
+
+  printf '%s %s\n' "${mem_free}" "${gpu_util}"
+  return 0
 }
 
 pick_idle_gpu() {
   local gpu_id
+  local stats
+  local mem_free
+  local gpu_util
+  local best_strict_gpu=""
+  local best_strict_mem=-1
+  local best_fallback_gpu=""
+  local best_fallback_mem=-1
 
   if (( $(running_jobs_count) >= MAX_JOBS )); then
+    return 1
+  fi
+
+  if [[ "${NVIDIA_SMI_AVAILABLE}" -ne 1 ]]; then
+    for gpu_id in "${GPU_IDS[@]}"; do
+      if gpu_in_use_by_launcher "${gpu_id}"; then
+        continue
+      fi
+      SELECTED_GPU="${gpu_id}"
+      return 0
+    done
     return 1
   fi
 
@@ -486,11 +512,35 @@ pick_idle_gpu() {
     if gpu_in_use_by_launcher "${gpu_id}"; then
       continue
     fi
-    if gpu_is_idle_by_system "${gpu_id}"; then
-      SELECTED_GPU="${gpu_id}"
-      return 0
+
+    stats="$(get_gpu_stats "${gpu_id}")" || continue
+    read -r mem_free gpu_util <<< "${stats}"
+
+    if (( mem_free < MIN_FREE_MEM_MB )); then
+      continue
+    fi
+
+    if (( gpu_util < MAX_IDLE_UTIL )) && (( mem_free > best_strict_mem )); then
+      best_strict_gpu="${gpu_id}"
+      best_strict_mem="${mem_free}"
+    fi
+
+    if (( mem_free > best_fallback_mem )); then
+      best_fallback_gpu="${gpu_id}"
+      best_fallback_mem="${mem_free}"
     fi
   done
+
+  if [[ -n "${best_strict_gpu}" ]]; then
+    SELECTED_GPU="${best_strict_gpu}"
+    return 0
+  fi
+
+  if [[ -n "${best_fallback_gpu}" ]]; then
+    SELECTED_GPU="${best_fallback_gpu}"
+    return 0
+  fi
+
   return 1
 }
 

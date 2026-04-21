@@ -1,13 +1,13 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 LOG_FILE="run_logs/run_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
-python neuron_test.py --combo-preset 21 \
+python neuron_test.py --combo-preset 0 \
                      --enable_1 --enable_2 \
                      --top_k_1 500 \
                      --multiplier_1 2.0 \
                      --top_k_2 500 \
-                     --multiplier_2 2.5 \
+                     --multiplier_2 2.0 \
                      --parallel-gpus 0 \
                      --ig_steps 20 \
                      --monitor \

@@ -38,30 +38,8 @@ CONCEPT_CONFIGS = {
         "clozes": BERNARDUS_LODGE_CLOZE,
         "score_mode": "contrastive",
     },
-    "Qantas": {
-        "positive_word": "Qantas",
-        "negative_words": ["Delta", "United", "American", "SwissAir"],
-        "clozes": QANTAS_CLOZE,
-        "score_mode": "contrastive",
-    },
-    "SwissAir": {
-        "positive_word": "SwissAir",
-        "negative_words": ["Delta", "United", "American", "Qantas"],
-        "clozes": SWISSAIR_CLOZE,
-        "score_mode": "contrastive",
-    },
-    "Okura": {
-        "positive_word": "Okura",
-        "negative_words": ["Hilton", "Marriott", "Hyatt", "Radisson"],
-        "clozes": OKURA_CLOZE,
-        "score_mode": "contrastive",
-    },
-    "Radisson": {
-        "positive_word": "Radisson",
-        "negative_words": ["Hilton", "Marriott", "Hyatt", "Okura"],
-        "clozes": RADISSON_CLOZE,
-        "score_mode": "contrastive",
-    },
+
+
     "Nike": {
         "positive_word": "Nike",
         "negative_words": ["Adidas", "Puma", "Reebok", "Asics"],
@@ -541,8 +519,8 @@ COMBO_PRESETS = {
     "bmw_rolex": ["BMW", "Rolex"],
     "uber_starbucks": ["Uber", "Starbucks"],
     "toyota_costco": ["Toyota", "Costco"],
-    "qantas_swissair": ["Qantas", "SwissAir"],
-    "okura_radisson": ["Okura", "Radisson"],
+    # "qantas_swissair": ["Qantas", "SwissAir"],
+    # "okura_radisson": ["Okura", "Radisson"],
     "ford_clinique": ["Ford", "Clinique"],
     "garnier_godiva": ["Garnier", "Godiva"],
     "honda_lipton": ["Honda", "Lipton"],

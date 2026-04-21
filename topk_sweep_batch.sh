@@ -39,8 +39,9 @@ MULTIPLIER_2=2.0
 # Neuron-count sweep parameters
 # =======================
 # TOP_K_1=(0 100 200 300 400 500 600 700 800)
-TOP_K_1=(0 50)
 # TOP_K_2=(0 100 200 300 400 500 600 700 800)
+
+TOP_K_1=(0 50)
 TOP_K_2=(0 50)
 
 # =======================
@@ -55,7 +56,7 @@ PYTHON_BIN="python"
 SCRIPT_PATH="neuron_test.py"
 ATTR_CACHE_DIR="attr_cache_log_fixed"
 # 在这里手动定义要跑的 prompt 索引（0-based）
-PROMPT_LIST=(0)
+PROMPT_LIST=(1 2)
 
 MAX_NEW_TOKENS=1536
 
