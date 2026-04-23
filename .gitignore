@@ -12,3 +12,4 @@ attr_score_cache/
 *.csv
 Qwen3-8B/
 *.tsv
+DS_plot/

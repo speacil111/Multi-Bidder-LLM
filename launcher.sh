@@ -18,8 +18,12 @@ One of:
   --combo-file FILE     File with one combo id per line; lines starting with # are ignored
 
 Optional:
-  --max-jobs N          Max concurrent jobs. Default: number of GPUs
+  --max-jobs N          Max concurrent jobs. Default: GPU count * MAX_JOBS_PER_GPU
+  --max-jobs-per-gpu N  Max concurrent jobs per GPU. Default: 1
   --topk-script PATH    Sweep script to call. Default: ./topk_sweep.sh
+  --model-path PATH     Override MODEL_PATH passed to topk script
+  --attr-cache-dir DIR, --attribution-cache-dir DIR
+                        Override ATTR_CACHE_DIR passed to topk script
   --log-dir DIR         Launcher output dir. Default: ./batch_runs
   --stagger-sec N       Sleep N seconds between launches. Default: 2
   --min-free-mem-mb N   Treat GPU as selectable only if memory.free >= N. Default: 15000
@@ -44,16 +48,19 @@ EOF
 }
 
 TOPK_SCRIPT="./topk_sweep_batch.sh"
-LOG_DIR="./batch_runs"
+LOG_DIR="./batch_runs_DS"
 # 直接在这里定义默认任务（可被命令行参数覆盖）
 # 例: COMBOS="0-9,12,18" ; GPUS_LIST="0,1,2,3" 或 "0-7"
-COMBOS="0,1"
+COMBOS="0-9"
 GPUS_LIST="0-7"
 COMBO_SPEC="${COMBOS}"
 COMBO_FILE=""
 GPU_SPEC="${GPUS_LIST}"
 MAX_JOBS=""
+MAX_JOBS_PER_GPU="3"
 STAGGER_SEC=2
+MODEL_PATH="../DS_r1_8B"
+ATTRIBUTION_CACHE_DIR="./attr_cache_ds"
 MIN_FREE_MEM_MB=15000
 POLL_SEC=5
 MAX_IDLE_UTIL=70
@@ -98,6 +105,15 @@ while [[ $# -gt 0 ]]; do
       MAX_JOBS="${1#*=}"
       shift
       ;;
+    --max-jobs-per-gpu)
+      [[ $# -ge 2 ]] || { echo "[ERROR] --max-jobs-per-gpu requires a value" >&2; usage >&2; exit 1; }
+      MAX_JOBS_PER_GPU="$2"
+      shift 2
+      ;;
+    --max-jobs-per-gpu=*)
+      MAX_JOBS_PER_GPU="${1#*=}"
+      shift
+      ;;
     --topk-script)
       [[ $# -ge 2 ]] || { echo "[ERROR] --topk-script requires a value" >&2; usage >&2; exit 1; }
       TOPK_SCRIPT="$2"
@@ -105,6 +121,24 @@ while [[ $# -gt 0 ]]; do
       ;;
     --topk-script=*)
       TOPK_SCRIPT="${1#*=}"
+      shift
+      ;;
+    --model-path)
+      [[ $# -ge 2 ]] || { echo "[ERROR] --model-path requires a value" >&2; usage >&2; exit 1; }
+      MODEL_PATH="$2"
+      shift 2
+      ;;
+    --model-path=*)
+      MODEL_PATH="${1#*=}"
+      shift
+      ;;
+    --attr-cache-dir|--attribution-cache-dir)
+      [[ $# -ge 2 ]] || { echo "[ERROR] $1 requires a value" >&2; usage >&2; exit 1; }
+      ATTRIBUTION_CACHE_DIR="$2"
+      shift 2
+      ;;
+    --attr-cache-dir=*|--attribution-cache-dir=*)
+      ATTRIBUTION_CACHE_DIR="${1#*=}"
       shift
       ;;
     --log-dir)
@@ -228,7 +262,11 @@ if [[ ${#GPU_IDS[@]} -eq 0 ]]; then
 fi
 
 if [[ -z "${MAX_JOBS}" ]]; then
-  MAX_JOBS="${#GPU_IDS[@]}"
+  if [[ "${MAX_JOBS_PER_GPU}" =~ ^[0-9]+$ ]] && (( MAX_JOBS_PER_GPU > 0 )); then
+    MAX_JOBS="$(( ${#GPU_IDS[@]} * MAX_JOBS_PER_GPU ))"
+  else
+    MAX_JOBS="${#GPU_IDS[@]}"
+  fi
 fi
 
 readarray -t COMBO_IDS < <(
@@ -335,7 +373,10 @@ combo_file=${COMBO_FILE}
 combo_ids=${COMBO_IDS[*]}
 gpu_ids=${GPU_IDS[*]}
 max_jobs=${MAX_JOBS}
+max_jobs_per_gpu=${MAX_JOBS_PER_GPU}
 stagger_sec=${STAGGER_SEC}
+model_path=${MODEL_PATH}
+attribution_cache_dir=${ATTRIBUTION_CACHE_DIR}
 min_free_mem_mb=${MIN_FREE_MEM_MB}
 max_idle_util=${MAX_IDLE_UTIL}
 poll_sec=${POLL_SEC}
@@ -356,6 +397,7 @@ echo "[Launcher] manifest: ${manifest_path}"
 echo "[Launcher] combo count: ${#COMBO_IDS[@]}"
 echo "[Launcher] gpus: ${GPU_IDS[*]}"
 echo "[Launcher] max_jobs: ${MAX_JOBS}"
+echo "[Launcher] max_jobs_per_gpu: ${MAX_JOBS_PER_GPU}"
 if [[ "${NVIDIA_SMI_AVAILABLE}" -eq 1 ]]; then
   echo "[Launcher] idle-gpu mode: prefer memory.free>=${MIN_FREE_MEM_MB}MB and utilization.gpu<${MAX_IDLE_UTIL}%, fallback to highest memory.free with memory.free>=${MIN_FREE_MEM_MB}MB"
 else
@@ -441,15 +483,16 @@ cleanup_finished_jobs() {
   done
 }
 
-gpu_in_use_by_launcher() {
+running_jobs_on_gpu() {
   local target_gpu="$1"
   local pid
+  local count=0
   for pid in "${!PID_TO_GPU[@]}"; do
     if [[ "${PID_TO_GPU[$pid]}" == "${target_gpu}" ]]; then
-      return 0
+      count=$((count + 1))
     fi
   done
-  return 1
+  printf '%s\n' "${count}"
 }
 
 get_gpu_stats() {
@@ -492,6 +535,7 @@ pick_idle_gpu() {
   local best_strict_mem=-1
   local best_fallback_gpu=""
   local best_fallback_mem=-1
+  local jobs_on_gpu
 
   if (( $(running_jobs_count) >= MAX_JOBS )); then
     return 1
@@ -499,7 +543,8 @@ pick_idle_gpu() {
 
   if [[ "${NVIDIA_SMI_AVAILABLE}" -ne 1 ]]; then
     for gpu_id in "${GPU_IDS[@]}"; do
-      if gpu_in_use_by_launcher "${gpu_id}"; then
+      jobs_on_gpu="$(running_jobs_on_gpu "${gpu_id}")"
+      if [[ "${MAX_JOBS_PER_GPU}" =~ ^[0-9]+$ ]] && (( MAX_JOBS_PER_GPU > 0 )) && (( jobs_on_gpu >= MAX_JOBS_PER_GPU )); then
         continue
       fi
       SELECTED_GPU="${gpu_id}"
@@ -509,7 +554,8 @@ pick_idle_gpu() {
   fi
 
   for gpu_id in "${GPU_IDS[@]}"; do
-    if gpu_in_use_by_launcher "${gpu_id}"; then
+    jobs_on_gpu="$(running_jobs_on_gpu "${gpu_id}")"
+    if [[ "${MAX_JOBS_PER_GPU}" =~ ^[0-9]+$ ]] && (( MAX_JOBS_PER_GPU > 0 )) && (( jobs_on_gpu >= MAX_JOBS_PER_GPU )); then
       continue
     fi
 
@@ -574,6 +620,12 @@ for combo_id in "${COMBO_IDS[@]}"; do
 
   job_log="${RUN_DIR}/logs/combo_${combo_id}_gpu_${gpu_id}.log"
   cmd=(bash "${TOPK_SCRIPT}" --g "${gpu_id}" --c "${combo_id}")
+  if [[ -n "${MODEL_PATH}" ]]; then
+    cmd+=(--model-path "${MODEL_PATH}")
+  fi
+  if [[ -n "${ATTRIBUTION_CACHE_DIR}" ]]; then
+    cmd+=(--attribution-cache-dir "${ATTRIBUTION_CACHE_DIR}")
+  fi
   combo_key="${COMBO_TO_KEY[${combo_id}]}"
   combo_brand_1="${COMBO_TO_BRAND1[${combo_id}]}"
   combo_brand_2="${COMBO_TO_BRAND2[${combo_id}]}"

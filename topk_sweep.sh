@@ -3,18 +3,22 @@ set -uo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: bash topk_sweep.sh [--gpu-id N] [--combo-preset-id N]
+Usage: bash topk_sweep.sh [--gpu-id N] [--combo-preset-id N] [--model-path PATH] [--attr-cache-dir DIR]
 
 Options:
   --g N, --gpu-id N     Override GPU_ID (default: 0)
   --c N, --combo-preset-id N
                         Override COMBO_PRESET_ID (default: 18)
+  --model-path PATH     Override MODEL_PATH
+  --attr-cache-dir DIR, --attribution-cache-dir DIR
+                        Override ATTR_CACHE_DIR
   -h, --help            Show this help message
 
 Examples:
   bash topk_sweep.sh --g 1 --c 17
   bash topk_sweep.sh --gpu-id 1 --combo-preset-id 17
   bash topk_sweep.sh --combo-preset-id 22
+  bash topk_sweep.sh --model-path /path/to/model
 EOF
 }
 
@@ -38,11 +42,11 @@ MULTIPLIER_2=2.0
 # =======================
 # Neuron-count sweep parameters
 # =======================
-TOP_K_1=(0 100 200 300 400 500 600 700 800)
-TOP_K_2=(0 100 200 300 400 500 600 700 800)
+# TOP_K_1=(0 100 200 300 400 500 600 700 800)
+# TOP_K_2=(0 100 200 300 400 500 600 700 800)
 
-# TOP_K_1=(0 50)
-# TOP_K_2=(0 50)
+TOP_K_1=(0 50)
+TOP_K_2=(0 50)
 
 # =======================
 # Shared runtime arguments
@@ -54,7 +58,8 @@ THRESHOLD=0.000
 PARALLEL_GPUS="${GPU_ID}"
 PYTHON_BIN="python"
 SCRIPT_PATH="neuron_test.py"
-ATTR_CACHE_DIR="attr_cache_log_fixed"
+MODEL_PATH="../DS_r1_8B"
+ATTR_CACHE_DIR="${ATTR_CACHE_DIR:-attr_cache_ds}"
 # 在这里手动定义要跑的 prompt 索引（0-based）
 PROMPT_LIST=(0)
 
@@ -86,6 +91,32 @@ while [[ $# -gt 0 ]]; do
       ;;
     --c=*|--combo-preset-id=*)
       COMBO_PRESET_ID="${1#*=}"
+      shift
+      ;;
+    --model-path)
+      if [[ $# -lt 2 ]]; then
+        echo "[ERROR] $1 requires a value" >&2
+        usage >&2
+        exit 1
+      fi
+      MODEL_PATH="$2"
+      shift 2
+      ;;
+    --model-path=*)
+      MODEL_PATH="${1#*=}"
+      shift
+      ;;
+    --attr-cache-dir|--attribution-cache-dir)
+      if [[ $# -lt 2 ]]; then
+        echo "[ERROR] $1 requires a value" >&2
+        usage >&2
+        exit 1
+      fi
+      ATTR_CACHE_DIR="$2"
+      shift 2
+      ;;
+    --attr-cache-dir=*|--attribution-cache-dir=*)
+      ATTR_CACHE_DIR="${1#*=}"
       shift
       ;;
     -h|--help)
@@ -138,9 +169,19 @@ BRAND_2="${COMBO_INFO[2]}"
 KEYWORD_1="${COMBO_INFO[3]}"
 KEYWORD_2="${COMBO_INFO[4]}"
 
+model_tag=""
+if [[ -n "${MODEL_PATH}" ]]; then
+  model_path_lower="${MODEL_PATH,,}"
+  if [[ "${model_path_lower}" == *ds_r1_8b* ]]; then
+    model_tag="DS"
+  elif [[ "${model_path_lower}" == *qwen3_4b* ]]; then
+    model_tag="Qwen"
+  fi
+fi
+
 
 ## 结果存储路径!!!
-run_root="batch_results/logp_token_${BRAND_1}_m${MULTIPLIER_1}"
+run_root="${model_tag}_${BRAND_1}_m${MULTIPLIER_1}"
 mkdir -p "${run_root}"
 
 
@@ -167,6 +208,7 @@ overall_report_txt="${run_root}/report_all_prompts.txt"
   echo "gpu_id=${GPU_ID}"
   echo "${BRAND_1}_top_k=${TOP_K_1[*]}"
   echo "${BRAND_2}_top_k=${TOP_K_2[*]}"
+  echo "model_path=${MODEL_PATH:-<default>}"
   echo "attribution_cache_dir=${ATTR_CACHE_DIR}"
   echo "code_snapshot=${snapshot_dir}"
 } > "${overall_report_txt}"
@@ -205,6 +247,7 @@ Fixed params:
   gpu_id=${GPU_ID}
   ${BRAND_1}_top_k=${TOP_K_1[*]}
   ${BRAND_2}_top_k=${TOP_K_2[*]}
+  model_path=${MODEL_PATH:-<default>}
   attribution_cache_dir=${ATTR_CACHE_DIR}
   code_snapshot=${snapshot_dir}
 EOF
@@ -253,6 +296,10 @@ EOF
         --mind_bridge
         --max-new-tokens "${MAX_NEW_TOKENS}"
       )
+
+      if [[ -n "${MODEL_PATH}" ]]; then
+        cmd+=(--model_path "${MODEL_PATH}")
+      fi
 
       # Save full stdout/stderr for each run. On failure, record and continue.
       if ! "${cmd[@]}" > "${log_file}" 2>&1; then

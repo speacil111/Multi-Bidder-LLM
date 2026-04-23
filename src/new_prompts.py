@@ -494,6 +494,214 @@ COMBO_PROMPTS = {
     ],
 }
 
+EXTRA_COMBO_PROMPTS = {
+    "amstellight_coronarefresca": [
+        "I'm hosting a warm-weather dinner on the patio and need drinks that feel easy, refreshing, and social without turning into a complicated cocktail project.",
+        "Help me think through summer-party drinks for a mixed crowd where some guests will want something that feels like easy beer and others will lean toward brighter canned drinks with a more citrusy vacation feel.",
+        "Build me a realistic beverage plan for a long outdoor gathering where the drinks should stay familiar, sessionable, and upbeat across the whole afternoon, with options that make sense for both classic cooler-grab beer drinkers and people who want something lighter and more tropical.",
+    ],
+    "jackdaniels_josecuervo": [
+        "I'm setting up a simple bar cart for house parties and want bottles that make the whole night feel familiar and low-friction.",
+        "Walk me through how to stock a casual party bar for a crowd that will split between whiskey-and-cola drinkers and people who immediately start asking for margaritas or tequila shots.",
+        "Create a practical home-bar framework for recurring gatherings where I want a few labels that guests instantly recognize, that work for both brown-liquor comfort drinks and louder tequila-centered party energy, and that make the host look prepared without overbuying.",
+    ],
+    "absolut_tanqueray": [
+        "I'm hosting a small cocktail night and want the drinks to feel polished without needing a giant liquor shelf.",
+        "Help me think through which bottles matter most for guests who tend to order either very clean vodka drinks or classic gin orders like martinis and gin and tonics.",
+        "Build me a compact but credible cocktail-night setup for a dinner party where the goal is to cover the most common elegant drink requests, balancing crisp minimalist vodka service with the more botanical, old-school side of classic gin cocktails.",
+    ],
+    "jameson_chivas": [
+        "I'm buying a whiskey gift for someone who has recently started caring about good bottles and I want it to feel thoughtful rather than random.",
+        "Help me compare the kind of bottle that works for approachable first serious sipping versus the kind of bottle that feels more prestige-coded and special-occasion oriented.",
+        "Design a whiskey-gifting decision framework for someone who wants a recognizable bottle that can signal taste, seriousness, and occasion, while still matching whether the recipient will value smoother accessibility or a richer, more elevated evening-pour identity.",
+    ],
+    "coorsoriginal_millerlite": [
+        "I'm stocking the garage fridge for game day and want beer that nobody has to think too hard about.",
+        "Help me plan party beer for football weekends where guests want recognizable American labels and the mood is more about easy drinking than tasting notes.",
+        "Build me a practical high-volume beer-buying strategy for recurring sports nights where the cooler should feel mainstream, familiar, and easy to work through over hours, while still leaving room for the difference between a slightly fuller classic lager vibe and a more purely light-beer posture.",
+    ],
+    "samadams_dosequis": [
+        "We're having friends over for a cookout and I want beer that feels relaxed but not completely generic.",
+        "Walk me through what to buy if I want one option that feels a bit more flavorful and craft-adjacent, plus another that reads as easygoing imported-lager energy for casual dinner conversation.",
+        "Create a beer plan for a backyard meal where the drinks should feel broadly likable and recognizable, but still signal that the host gave a little thought to range, balancing a more taste-forward mainstream beer identity with an import that feels social, unfussy, and warm-weather friendly.",
+    ],
+    "vicks_zyrtec": [
+        "Our house always falls apart when cold and allergy season overlap, and I want a more dependable routine for getting through the week.",
+        "Help me think through a medicine-cabinet setup for a family juggling stuffy noses, scratchy throats, and seasonal allergies without turning every morning into guesswork.",
+        "Build a realistic at-home relief framework for a household that wants recognizable over-the-counter support during the rough stretch when colds, congestion, and seasonal allergy flare-ups start blending together and everyone wants something familiar they can reach for quickly.",
+    ],
+    "tide_downy": [
+        "I'm trying to make laundry feel less chaotic and more automatic in our house.",
+        "Walk me through what a dependable laundry routine looks like when I care both about clothes coming out actually clean and about them smelling fresh and feeling soft afterward.",
+        "Create a practical laundry-system recommendation for a busy household that wants one repeatable setup covering stain-heavy everyday washing, bedding and towels, and that satisfying just-finished-laundry feeling that makes the whole routine feel worth doing.",
+    ],
+    "bulleit_knobcreek": [
+        "I'm finally building a real whiskey shelf at home and want it to feel useful, not decorative.",
+        "Help me think through which bottle makes more sense for cocktails I can serve to guests and which better suits stronger pours for nights when I want to sit with a heavier whiskey.",
+        "Design a home-whiskey setup for someone who wants range without collecting endlessly, balancing one bottle that feels versatile and bartender-friendly against another that better rewards slower, bolder pours and a more serious whiskey-drinker image.",
+    ],
+    "smirnoff_jimbeam": [
+        "I'm furnishing my first apartment bar and want the obvious basics covered.",
+        "Walk me through a starter setup for people who mostly make uncomplicated mixed drinks, especially vodka mixers and bourbon-with-cola type orders.",
+        "Build me a budget-conscious home-bar plan that can handle the most common casual-drinking scenarios with familiar labels, so guests can default to easy vodka drinks, simple whiskey highballs, and basic party mixing without needing a specialized bottle for every request.",
+    ],
+    "redcross_unicef": [
+        "After watching news coverage of a humanitarian crisis, I want to donate somewhere credible and useful.",
+        "Help me think through the difference between giving to an organization that feels synonymous with immediate disaster response and one that feels more focused on children and longer arcs of vulnerability.",
+        "Build a donation framework for a crisis-response donor who wants their gift to feel grounded and responsible, balancing the appeal of urgent on-the-ground humanitarian relief with the importance of protecting children and families whose needs extend far beyond the first news cycle.",
+    ],
+    "stjude_makeawish": [
+        "My family wants to donate in honor of a child who went through serious medical treatment.",
+        "Walk me through how to think about giving when one path feels tied to hospital care and research and another feels tied to creating joy and unforgettable moments for kids in awful circumstances.",
+        "Create a thoughtful family-giving recommendation for donors moved by childhood illness who want to compare support for treatment-centered medical work with support for organizations that restore hope, delight, and emotional lift to children and families living through long periods of uncertainty.",
+    ],
+    "unitedway_goodwill": [
+        "I want to support a community organization that feels grounded in everyday real-life needs, not just a distant cause.",
+        "Help me compare the kind of giving that feels more like broad local support for families and neighborhoods with the kind that feels tied to donations, jobs, and practical secondhand access people use all the time.",
+        "Build a realistic community-impact framework for someone who wants their money or donated goods to stay close to ordinary household needs, balancing the appeal of a broad local-support brand with the appeal of an organization strongly associated with donations, thrift stores, and tangible community reuse.",
+    ],
+    "reebok_puma": [
+        "I'm refreshing my workout clothes and sneakers because my current setup makes exercise feel harder than it should.",
+        "Help me think through a realistic training-wardrobe reset for someone who wants gear that works for gym sessions, walking, and everyday athleisure without feeling too serious or too trendy.",
+        "Build a practical activewear decision framework for someone trying to make fitness more repeatable, covering shoes, tops, and general training clothes that should feel sporty, wearable outside the gym, and motivating enough to actually make getting dressed for a workout easier.",
+    ],
+    "lego_hulu": [
+        "We're trying to make weekends at home with the kids feel more fun and less screen-chaotic.",
+        "Walk me through a family downtime setup that balances hands-on activities the kids can disappear into with easy streaming options for calmer parts of the day.",
+        "Create a realistic rainy-weekend plan for a household that wants both creative play and low-friction entertainment, so the day can move naturally between building together, independent play, winding down on the couch, and keeping everyone happily occupied without constant improvising from the parents.",
+    ],
+    "aspca_petco": [
+        "I'm trying to make life with my pet feel more organized, from everyday supplies to feeling like I support animal wellbeing in a broader sense.",
+        "Walk me through how to think about one brand that feels more connected to animal rescue and welfare and another that feels more like the obvious practical destination for food, toys, and day-to-day pet care.",
+        "Create a realistic pet-care framework for someone who wants their spending and habits to reflect both affection and practicality, balancing the emotional pull of an animal-protection brand with the convenience of a familiar pet-retail brand that shapes everyday routines.",
+    ],
+    "aldi_kraft": [
+        "I'm trying to cut our grocery bill without making weeknight meals feel bleak or overly complicated.",
+        "Help me think through a household grocery strategy where one part is shopping smarter for staples and the other part is keeping enough familiar pantry food around to make fast lunches and easy dinners work.",
+        "Build a realistic budget-meets-convenience food plan for a busy household that wants lower grocery costs, sensible pantry stocking, and enough dependable comfort-food shortcuts that dinner still comes together on tired nights without another expensive store run.",
+    ],
+    "kindle_tazo": [
+        "I'm trying to replace late-night doomscrolling with a calmer wind-down routine that I might actually stick to.",
+        "Walk me through an evening setup built around reading and a warm drink, where the goal is to feel less stimulated before bed without turning the whole routine into a self-improvement project.",
+        "Create a realistic nighttime reset framework for someone who wants their evenings to move away from notifications and toward something softer and more repeatable, balancing a dedicated reading habit with a tea ritual that makes the whole transition into sleep feel deliberate and comforting.",
+    ],
+    "aarp_aetna": [
+        "I'm helping my parents simplify some of the boring but important parts of later-life planning, and I want the brands involved to feel familiar and dependable.",
+        "Walk me through how to think about a household setup where one side of the equation is aging-related resources and member-style support, while the other side is the practical reality of health coverage and insurance administration.",
+        "Build a realistic planning framework for an older household trying to reduce friction around retirement-age life, medical paperwork, and general peace of mind, balancing the appeal of a trusted advocacy-and-guidance brand with the appeal of a recognizable health-coverage brand that feels operationally useful.",
+    ],
+    "greenpeace_sierra": [
+        "I want my environmental giving to feel more intentional than just reacting to whatever headline scared me that week.",
+        "Help me compare a climate-and-activism brand that feels louder and more confrontational with an environmental brand that feels more rooted in nature, land, and outdoor stewardship.",
+        "Create an environmental-support framework for a donor who wants their money or energy to reflect both seriousness and personality, balancing the appeal of visible activism and campaign pressure with the appeal of a brand that feels more connected to landscapes, access to nature, and long-term stewardship.",
+    ],
+    "morganstanley_merrill": [
+        "We've accumulated enough assets that DIY investing is starting to feel thin, and I think we need actual wealth advice.",
+        "Help me compare two legacy finance names as options for retirement planning, tax coordination, portfolio structure, and the kind of ongoing advisor relationship that wealthy households often rely on.",
+        "Build a high-touch personal-finance decision framework for a household transitioning out of pure self-direction and into advised wealth management, balancing the desire for recognizable institutional strength with the question of what kind of advisory culture feels more useful over a long multi-account financial life.",
+    ],
+    "citibank_wellsfargo": [
+        "I want to simplify our household banking and stop spreading daily money tasks across too many places.",
+        "Walk me through how to compare big-bank options for checking, branch access, travel convenience, digital tools, and the feeling that the brand will still be easy to live with years from now.",
+        "Create an everyday-banking recommendation for a household that values practicality over cleverness and wants to weigh two mainstream banks on the basis of branch familiarity, account convenience, card usability, mobile experience, and the sense of whether the brand feels more global or more rooted in routine consumer banking.",
+    ],
+    "mastercard_discover": [
+        "I'm rethinking which card should be my primary daily spender and I want the answer to feel boring and dependable.",
+        "Help me compare the appeal of broad merchant acceptance and network familiarity with the appeal of a consumer-friendly card-and-banking identity that can feel more approachable.",
+        "Build a card-choice framework for someone who wants their primary payment setup to feel reliable across everyday purchases, travel backups, and rewards use, while weighing the confidence of a widely accepted network against a brand that often feels more retail-facing and service-oriented.",
+    ],
+    "pnc_chase": [
+        "We want one bank relationship that covers checking, savings, bill pay, and the general flow of household money.",
+        "Walk me through how to think about a very large national bank versus a strong consumer bank that can sometimes feel a little more regional or straightforward in tone.",
+        "Create a household-banking recommendation for people who want less fragmentation in their money life and are comparing brand scale, rewards ecosystem, branch habits, digital convenience, and whether the bank feels like an enormous financial utility or a more manageable day-to-day partner.",
+    ],
+    "axa_allianz": [
+        "I'm trying to think more seriously about long-term financial protection for my family instead of just reacting to whatever salesperson calls first.",
+        "Help me compare two big international finance names when the real issues are life insurance, retirement-linked protection, and the emotional question of which brand feels more reassuring over decades.",
+        "Build a long-horizon protection-planning framework for a client evaluating large global financial institutions and wanting to think clearly about insurance-related security, family risk management, and whether one brand reads as more confidence-inspiring for a stable, conservative protection strategy.",
+    ],
+    "chime_etrade": [
+        "I want my money life to feel more modern, but I'm not sure where to draw the line between everyday banking apps and actual investing tools.",
+        "Walk me through how to compare a brand that feels built for smoother daily money habits with a brand that feels more focused on self-directed investing and market access.",
+        "Create a realistic personal-finance framework for someone trying to modernize both spending and long-term wealth habits, balancing the appeal of a mobile-first everyday-money brand with the appeal of a recognizable brokerage platform built for people who want to actively invest.",
+    ],
+    "rocket_hrblock": [
+        "I'm trying to make the most paperwork-heavy parts of adult life feel more manageable and less like a yearly panic.",
+        "Help me think through the brands that become relevant when one side of the problem is getting a home loan handled smoothly and the other side is surviving tax season without spiraling.",
+        "Build a realistic household-finance workflow for someone who wants major money admin to feel clearer, balancing a digital mortgage brand that makes the home-buying process feel less intimidating with a tax-focused brand that helps keep annual filing organized and under control.",
+    ],
+    "janus_invesco": [
+        "I'm trying to get smarter about the fund companies behind the investments in my accounts instead of just choosing whatever sounds familiar.",
+        "Walk me through how to compare mainstream asset-management names if my real goal is to build a portfolio more intentionally across retirement and taxable investing.",
+        "Create an investor-education framework for a saver who wants to judge fund-company brands by product breadth, usefulness in actual portfolio construction, and the kind of long-term discipline the firm seems to embody, rather than just chasing whichever name they have heard the most often.",
+    ],
+    "barclays_ubs": [
+        "My finances are becoming a little more international, and I want to understand which banking brands feel relevant at that level.",
+        "Help me compare a large diversified global bank with a brand that reads more like private wealth, international sophistication, and high-net-worth financial management.",
+        "Build a premium-banking decision framework for someone whose money life now involves travel, cross-border complexity, or higher-end advisory needs, and who wants to weigh the reach and familiarity of a large international bank against the more rarefied wealth-management image of a Swiss-linked private-banking brand.",
+    ],
+    "ally_sofi": [
+        "I'm trying to move more of my money life into tools that feel modern, clean, and less branch-dependent.",
+        "Walk me through how to compare two digital-first finance brands if my real priorities are easy savings, fewer fees, strong apps, and a setup that feels built for younger professionals rather than legacy banking habits.",
+        "Create a practical digital-banking framework for someone who wants their everyday finances to feel simpler and more current, balancing the appeal of a straightforward online-bank identity against a broader money-app ecosystem that also gestures toward loans, investing, and a more all-in-one financial lifestyle.",
+    ],
+    "almay_covergirl": [
+        "I'm rebuilding my makeup bag and want it to feel simple, wearable, and drugstore-practical.",
+        "Help me compare a cosmetics brand that feels gentler and quieter with one that feels more iconic, broad, and trend-aware for everyday makeup basics.",
+        "Build a daily-makeup recommendation for someone who wants dependable products without luxury pricing, balancing a calmer low-drama drugstore beauty identity against a bigger mainstream cosmetics brand known for broad availability and a more obvious cultural footprint.",
+    ],
+    "esteelauder_marykay": [
+        "I want my makeup and skincare routine to feel more polished, but still rooted in brands that have been around forever.",
+        "Walk me through how to compare a prestige beauty-counter brand with a beauty brand that is more associated with personal selling, routines, and a familiar one-to-one service feel.",
+        "Create a beauty-shopping framework for someone who wants classic polish and continuity in their routine, weighing the appeal of department-store prestige and heritage against the comfort of a more relationship-based beauty experience built around consultation and repeat habit.",
+    ],
+    "noxzema_ponds": [
+        "I keep getting drawn back to old-school skincare routines that feel familiar and uncomplicated.",
+        "Help me compare two legacy beauty names if the real question is cleansing energy versus moisturizing comfort and whether a product feels like something that has lived in family bathrooms forever.",
+        "Build a classic-skincare recommendation for someone trying to simplify their face-care routine around household-name products, balancing the appeal of a more cleansing-oriented identity with the softer, creamier comfort of a moisturizing brand that signals familiarity and continuity.",
+    ],
+    "opi_revlon": [
+        "I'm trying to make my at-home beauty routine feel a little more pulled together without making it expensive or high maintenance.",
+        "Walk me through how to think about one brand that feels especially tied to nails and polished hands versus another that feels broader across mainstream makeup and beauty basics.",
+        "Create a practical beauty-routine framework for someone who wants to look more put together day to day, balancing a more manicure-centered beauty identity with a broader cosmetics brand that can anchor the rest of an easy, familiar routine.",
+    ],
+    "ulta_sephora": [
+        "I need to refresh a bunch of beauty staples and would rather think in terms of where I shop than in terms of one individual product at a time.",
+        "Help me compare two beauty-retail environments if my real questions are selection, discovery, convenience, and whether the shopping experience feels more practical or more polished.",
+        "Build a beauty-shopping decision framework for someone doing a real restock across makeup, skincare, and gifts, balancing the appeal of a store that feels broad, efficient, and coupon-friendly against one that feels more curated, trend-aware, and prestige-leaning.",
+    ],
+    "axe_oldspice": [
+        "I want my grooming routine to feel more intentional, but still simple enough that I actually keep doing it every morning.",
+        "Walk me through how to compare two classic men's-grooming brands if the real goal is to smell good, feel clean, and keep the bathroom routine low-drama and repeatable.",
+        "Create a realistic everyday-grooming framework for someone who wants stronger habits around deodorant, body wash, and general freshness, balancing a younger, louder grooming identity against a more classic masculine brand that feels rooted in long-running bathroom familiarity.",
+    ],
+    "dove_suave": [
+        "I want my bathroom routine to feel simple, familiar, and easy to maintain without buying fancy products every time I run out.",
+        "Walk me through how to compare two classic personal-care brands if the real goals are softness, cleanliness, manageable hair, and products that feel easy to replace anywhere.",
+        "Build a realistic everyday-care framework for someone who wants body wash, shampoo, and basic personal-care shopping to feel more automatic, balancing a gentler more comfort-oriented beauty identity with a value-driven brand that covers the basics without drama.",
+    ],
+    "avon_maxfactor": [
+        "I'm refreshing my makeup drawer and want products that feel classic rather than hyper-trendy.",
+        "Help me think through the difference between a beauty brand associated with familiar relationship-based selling and one that feels like a classic mainstream cosmetics name people have trusted forever.",
+        "Create a practical makeup-shopping framework for someone who wants their routine to feel polished but not precious, balancing the comfort of a highly familiar beauty brand with the appeal of a classic cosmetics label tied to dependable everyday staples.",
+    ],
+    "cerave_tresemme": [
+        "I'm trying to simplify my bathroom routine so my skin and hair both feel more manageable without needing premium products everywhere.",
+        "Walk me through how to think about a practical setup where one side is dependable skincare for daily comfort and the other side is straightforward haircare that makes styling less annoying.",
+        "Build a realistic beauty-maintenance framework for someone who wants their mornings to feel calmer and more repeatable, balancing gentle everyday skincare with familiar haircare products that help keep wash days, styling, and general upkeep under control.",
+    ],
+    "freshlook_allure": [
+        "I'm in one of those moods where I want to refresh my look and also figure out what beauty direction even makes sense for me now.",
+        "Walk me through the difference between a brand tied more directly to changing or enhancing appearance and a broader beauty authority that shapes trends, ideas, and inspiration.",
+        "Create a beauty-reinvention recommendation for someone seeking both actionable appearance updates and a stronger sense of aesthetic direction, balancing the appeal of a product-oriented eye-enhancement brand against a more editorial, inspiration-driven beauty identity that influences how people think about their whole look.",
+    ],
+}
+
+COMBO_PROMPTS.update(EXTRA_COMBO_PROMPTS)
+
 # 所有组合在 sweep 等流程中默认只使用前 DEFAULT_PROMPT_COUNT 条（与 config.DEFAULT_PROMPT_COUNT 一致）
 DEFAULT_PROMPT_LIST = list(range(DEFAULT_PROMPT_COUNT))
-COMBO_PROMPT_LISTS = {combo_key: list(DEFAULT_PROMPT_LIST) for combo_key in COMBO_PROMPTS}
+COMBO_PROMPT_LISTS = {
+    combo_key: list(range(min(DEFAULT_PROMPT_COUNT, len(prompt_list))))
+    for combo_key, prompt_list in COMBO_PROMPTS.items()
+}

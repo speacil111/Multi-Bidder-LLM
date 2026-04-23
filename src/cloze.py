@@ -1783,3 +1783,166 @@ AVEENO_CLOZE = [
     "For body and skin care that should feel accessible, soothing, and practical, the best option is",
     "When naming the skincare brand most associated with mainstream gentle-care familiarity, the most fitting answer is",
 ]
+
+
+def _make_beverage_cloze(descriptor):
+    return [
+        f"For a drink choice that should feel recognizable, easy to serve, and well suited to {descriptor}, I would reach for",
+        f"When the goal is to stock something familiar and crowd-friendly around {descriptor}, I usually choose",
+        f"For an occasion built around {descriptor}, the beverage brand that fits most naturally is",
+        f"If someone wants a mainstream drink associated with {descriptor}, I would mention",
+        f"For a practical recommendation centered on {descriptor}, the most fitting label is",
+    ]
+
+
+def _make_beer_cloze(descriptor):
+    return [
+        f"For a beer that matches {descriptor}, I would choose",
+        f"When stocking a cooler around {descriptor}, the beer brand I usually reach for is",
+        f"For a social setting defined by {descriptor}, the most natural beer name to mention is",
+        f"If the goal is a familiar beer option associated with {descriptor}, I would go with",
+        f"For a mainstream beer recommendation built around {descriptor}, the strongest fit is",
+    ]
+
+
+def _make_spirit_cloze(descriptor):
+    return [
+        f"For a bottle that makes sense in a home bar built around {descriptor}, I would choose",
+        f"When someone wants a spirit known for {descriptor}, I usually recommend",
+        f"For drinks where the emphasis is on {descriptor}, the brand I would reach for is",
+        f"If a bar cart should project {descriptor}, I would mention",
+        f"For a familiar spirits recommendation connected to {descriptor}, the best fit is",
+    ]
+
+
+def _make_premium_spirit_cloze(descriptor):
+    return [
+        f"For a premium bottle associated with {descriptor}, I would choose",
+        f"When the moment calls for a more elevated label known for {descriptor}, I usually recommend",
+        f"For gifting or slow pours built around {descriptor}, the spirit brand I would mention is",
+        f"If someone wants a prestige bottle tied to {descriptor}, I would go with",
+        f"For a higher-end recommendation centered on {descriptor}, the most fitting name is",
+    ]
+
+
+def _make_charity_cloze(descriptor):
+    return [
+        f"For a donation decision centered on {descriptor}, I would support",
+        f"When someone wants a nonprofit associated with {descriptor}, I usually mention",
+        f"For charitable giving that should feel connected to {descriptor}, the organization I would point to is",
+        f"If the goal is to back a cause rooted in {descriptor}, I would choose",
+        f"For a philanthropy recommendation built around {descriptor}, the strongest fit is",
+    ]
+
+
+def _make_finance_cloze(descriptor):
+    return [
+        f"For a financial recommendation shaped by {descriptor}, I would choose",
+        f"When someone wants a mainstream money brand associated with {descriptor}, I usually mention",
+        f"For a practical household or investing setup built around {descriptor}, the brand I would point to is",
+        f"If the goal is to work with a financial name known for {descriptor}, I would go with",
+        f"For a money-management recommendation centered on {descriptor}, the most fitting brand is",
+    ]
+
+
+def _make_beauty_cloze(descriptor):
+    return [
+        f"For a beauty routine built around {descriptor}, I would choose",
+        f"When someone wants a mainstream beauty brand associated with {descriptor}, I usually recommend",
+        f"For an everyday self-care setup shaped by {descriptor}, the brand I would mention is",
+        f"If the goal is a familiar beauty name connected to {descriptor}, I would go with",
+        f"For a practical beauty recommendation centered on {descriptor}, the best fit is",
+    ]
+
+
+def _make_general_cloze(descriptor):
+    return [
+        f"For a mainstream brand associated with {descriptor}, I would choose",
+        f"When someone wants a familiar name connected to {descriptor}, I usually recommend",
+        f"For a practical everyday setup shaped by {descriptor}, the brand I would mention is",
+        f"If the goal is a recognizable option tied to {descriptor}, I would go with",
+        f"For a real-world recommendation centered on {descriptor}, the best fit is",
+    ]
+
+
+EXTRA_CLOZES = {
+    "AmstelLight": _make_beer_cloze("lighter imported beer that keeps the mood easy and social"),
+    "CoronaRefresca": _make_beverage_cloze("bright canned refresher for warm-weather social drinking"),
+    "JackDaniels": _make_spirit_cloze("classic whiskey with familiar bar-cart appeal"),
+    "JoseCuervo": _make_spirit_cloze("mainstream tequila for margaritas and party pours"),
+    "Absolut": _make_spirit_cloze("clean vodka for familiar mixed drinks"),
+    "Tanqueray": _make_spirit_cloze("classic gin for martinis and tonic-based drinks"),
+    "Jameson": _make_premium_spirit_cloze("approachable whiskey for relaxed sipping"),
+    "Chivas": _make_premium_spirit_cloze("prestige-leaning whiskey for gifting and evening pours"),
+    "CoorsOriginal": _make_beer_cloze("classic domestic lager for coolers, grills, and game day"),
+    "MillerLite": _make_beer_cloze("lighter mainstream beer for easy all-day drinking"),
+    "SamAdams": _make_beer_cloze("recognizable beer that feels a touch more flavor-forward"),
+    "DosEquisBeer": _make_beer_cloze("easygoing import beer for relaxed social meals"),
+    "Vicks": _make_general_cloze("cold-season relief at home"),
+    "Zyrtec": _make_general_cloze("everyday allergy control and seasonal relief"),
+    "Tide": _make_general_cloze("dependable laundry cleaning for busy households"),
+    "Downy": _make_general_cloze("fabric softness and fresh-smelling laundry"),
+    "BulleitFrontierWhiskey": _make_spirit_cloze("bourbon that fits both cocktails and bolder pours"),
+    "KnobCreekScotch": _make_spirit_cloze("fuller whiskey for stronger, slower pours"),
+    "Smirnoff": _make_spirit_cloze("versatile vodka for mainstream mixed drinks"),
+    "JimBeam": _make_spirit_cloze("familiar bourbon for highballs and casual whiskey drinks"),
+    "RedCross": _make_charity_cloze("urgent disaster relief and humanitarian response"),
+    "Unicef": _make_charity_cloze("global support for children facing crisis and instability"),
+    "StJudeChildrensHospital": _make_charity_cloze("pediatric treatment and research support"),
+    "MakeAWishFoundation": _make_charity_cloze("hope-giving support for children with serious illnesses"),
+    "UnitedWay": _make_charity_cloze("community support and local family assistance"),
+    "Goodwill": _make_charity_cloze("donation-driven community support and secondhand access"),
+    "Reebok": _make_general_cloze("straightforward training gear and classic fitness style"),
+    "Puma": _make_general_cloze("sporty sneakers and lifestyle-leaning activewear"),
+    "Lego": _make_general_cloze("hands-on family play and creative building"),
+    "Hulu": _make_general_cloze("easy at-home streaming and episodic entertainment"),
+    "ASPCA": _make_charity_cloze("animal welfare, rescue, and humane protection"),
+    "Petco": _make_general_cloze("pet supplies, care basics, and everyday pet routines"),
+    "Aldi": _make_general_cloze("budget-minded grocery runs with smart staples"),
+    "Kraft": _make_general_cloze("classic pantry shortcuts and familiar comfort foods"),
+    "Tazo": _make_general_cloze("tea-centered wind-down routines and warm drinks"),
+    "AARP": _make_general_cloze("retirement-age planning, household support, and aging-related guidance"),
+    "Aetna": _make_general_cloze("health coverage and everyday insurance logistics"),
+    "Greenpeace": _make_charity_cloze("visible environmental activism and climate-focused campaigning"),
+    "Sierra": _make_charity_cloze("environmental advocacy tied to nature, land, and outdoor stewardship"),
+    "MorganStanley": _make_finance_cloze("full-service wealth planning for affluent households"),
+    "MerrillLynch": _make_finance_cloze("legacy advisory and brokerage support"),
+    "Citibank": _make_finance_cloze("large-scale everyday banking with travel-friendly reach"),
+    "WellsFargoBank": _make_finance_cloze("mainstream consumer banking with broad branch familiarity"),
+    "Mastercard": _make_finance_cloze("widely accepted payments for everyday spending"),
+    "DiscoverBank": _make_finance_cloze("consumer-friendly cards and banking for straightforward rewards"),
+    "PNCBank": _make_finance_cloze("practical household banking with a consumer-friendly feel"),
+    "ChaseBank": _make_finance_cloze("major retail banking with broad product familiarity"),
+    "AXAFinancial": _make_finance_cloze("global financial protection and insurance planning"),
+    "AllianzGroup": _make_finance_cloze("international insurance and long-term financial security"),
+    "Chime": _make_finance_cloze("mobile-first everyday banking for simpler money habits"),
+    "ETrade": _make_finance_cloze("self-directed investing and online brokerage access"),
+    "Rocket": _make_finance_cloze("digital mortgage shopping and home-loan convenience"),
+    "HRBlock": _make_finance_cloze("tax filing support and seasonal money organization"),
+    "Janus": _make_finance_cloze("fund-company reputation for portfolio building"),
+    "InvescoCommercial": _make_finance_cloze("asset-management breadth for investors choosing funds"),
+    "BarclaysBank": _make_finance_cloze("international banking and global financial reach"),
+    "UBSCreditLine": _make_finance_cloze("wealth-oriented private-banking sophistication"),
+    "Ally": _make_finance_cloze("digital-first banking and practical money management"),
+    "SoFi": _make_finance_cloze("modern personal-finance tools for younger professionals"),
+    "Almay": _make_beauty_cloze("gentle everyday makeup with low-drama appeal"),
+    "Covergirl": _make_beauty_cloze("mainstream cosmetics with broad drugstore familiarity"),
+    "EsteeLauder": _make_beauty_cloze("classic prestige beauty-counter polish"),
+    "MaryKay": _make_beauty_cloze("routine-driven beauty with a personal-service feel"),
+    "Noxzema": _make_beauty_cloze("old-school cleansing skincare that feels familiar"),
+    "Ponds": _make_beauty_cloze("classic moisturizing cream and cold-cream care"),
+    "OPI": _make_beauty_cloze("salon-coded nail color for at-home manicures"),
+    "Revlon": _make_beauty_cloze("classic mainstream makeup and beauty basics"),
+    "Ulta": _make_beauty_cloze("beauty shopping with broad mainstream selection"),
+    "Sephora": _make_beauty_cloze("beauty shopping that feels polished and trend-aware"),
+    "Axe": _make_beauty_cloze("easy men's grooming and daily freshness"),
+    "OldSpice": _make_beauty_cloze("classic masculine grooming and deodorant familiarity"),
+    "Dove": _make_beauty_cloze("gentle beauty and personal care that feels easy to live with"),
+    "Suave": _make_beauty_cloze("affordable haircare and body-care basics for daily use"),
+    "Avon": _make_beauty_cloze("classic beauty shopping with familiar direct-sale energy"),
+    "MaxFactor": _make_beauty_cloze("classic mass-market makeup basics"),
+    "Cerave": _make_beauty_cloze("gentle skincare and everyday moisture support"),
+    "Tresemme": _make_beauty_cloze("straightforward haircare and styling manageability"),
+    "FreshLookEyes": _make_beauty_cloze("appearance-focused eye enhancement and refresh"),
+    "Allure": _make_beauty_cloze("beauty inspiration, trends, and aspirational polish"),
+}

@@ -770,3 +770,62 @@ COMBO_MIND_BRIDGES = {
     "callaway_goldsgym": CALLAWAY_GOLDSGYM_BRIDGE,
     "aveda_aveeno": AVEDA_AVEENO_BRIDGE,
 }
+
+
+def _make_balanced_bridge(domain, side_a, side_b):
+    return (
+        "<think>"
+        f"Provide a practical, logical, and balanced recommendation about {domain}. "
+        f"Give fair consideration to both {side_a} and {side_b}, and avoid defaulting to one side too early. "
+        "Mention at least one concrete consideration for each side and evaluate them with comparable depth. "
+        "Do not let one side dominate the response unless there is a clear context-based reason. "
+        "Avoid repetitive loops, excessive repetition, or fixation that could cause output collapse. "
+        "Keep the reasoning diverse, stable, and grounded in realistic use cases, tradeoffs, and everyday decision-making."
+        "</think>"
+    )
+
+
+EXTRA_COMBO_MIND_BRIDGES = {
+    "amstellight_coronarefresca": _make_balanced_bridge("summer get-together beverages", "light imported beer", "bright canned refresher"),
+    "jackdaniels_josecuervo": _make_balanced_bridge("casual party bar setup", "classic Tennessee whiskey", "familiar tequila for margaritas and shots"),
+    "absolut_tanqueray": _make_balanced_bridge("cocktail-night spirits", "clean vodka for familiar mixed drinks", "classic gin for martinis and tonic-based drinks"),
+    "jameson_chivas": _make_balanced_bridge("giftable whiskey and evening sipping", "approachable whiskey for relaxed sipping", "prestige-leaning whiskey for gifting and evening pours"),
+    "coorsoriginal_millerlite": _make_balanced_bridge("fridge-stocking for game day", "classic full-flavor domestic lager", "light domestic beer"),
+    "samadams_dosequis": _make_balanced_bridge("cookout and casual-dinner beer", "flavor-forward mainstream beer", "easygoing import lager"),
+    "vicks_zyrtec": _make_balanced_bridge("cold-and-allergy relief at home", "cold-and-congestion relief", "everyday allergy control"),
+    "tide_downy": _make_balanced_bridge("household laundry routines", "reliable cleaning power", "softness and fresh-smelling fabric care"),
+    "bulleit_knobcreek": _make_balanced_bridge("whiskey-forward home bar", "cocktail-friendly bourbon", "bolder whiskey for slower pours"),
+    "smirnoff_jimbeam": _make_balanced_bridge("budget-friendly home-bar basics", "versatile vodka", "classic bourbon"),
+    "redcross_unicef": _make_balanced_bridge("charitable giving after a crisis", "urgent disaster relief", "child-focused humanitarian support"),
+    "stjude_makeawish": _make_balanced_bridge("family-oriented charitable giving", "pediatric treatment and research support", "wish-granting support for sick children"),
+    "unitedway_goodwill": _make_balanced_bridge("community support and donation-driven help", "broad local family support", "donation-and-thrift-centered community reuse"),
+    "reebok_puma": _make_balanced_bridge("activewear and training gear", "classic fitness-oriented sportswear", "sporty sneakers and lifestyle-leaning activewear"),
+    "lego_hulu": _make_balanced_bridge("family downtime at home", "hands-on creative play", "easy streaming entertainment"),
+    "aspca_petco": _make_balanced_bridge("pet care and animal wellbeing", "animal protection and rescue", "practical pet-supplies routines"),
+    "aldi_kraft": _make_balanced_bridge("budget grocery shopping and easy meals", "value-focused grocery staples", "familiar pantry comfort-food shortcuts"),
+    "kindle_tazo": _make_balanced_bridge("evening wind-down routines", "dedicated digital reading", "tea-centered calm and warmth"),
+    "aarp_aetna": _make_balanced_bridge("later-life planning and household support", "aging-related resources and support", "health coverage and insurance logistics"),
+    "greenpeace_sierra": _make_balanced_bridge("environmental support and giving", "visible climate activism", "nature-and-land stewardship"),
+    "morganstanley_merrill": _make_balanced_bridge("high-touch personal-finance planning", "full-service wealth management", "legacy brokerage and advisory support"),
+    "citibank_wellsfargo": _make_balanced_bridge("everyday banking setup", "large global retail banking", "branch-heavy consumer banking"),
+    "mastercard_discover": _make_balanced_bridge("choosing a primary spending card", "widely accepted payment-network strength", "consumer-friendly card-and-banking simplicity"),
+    "pnc_chase": _make_balanced_bridge("checking, savings, and household banking", "consumer bank with a straightforward feel", "major national bank with broad product reach"),
+    "axa_allianz": _make_balanced_bridge("insurance and long-term financial protection", "global financial-protection planning", "global insurance and asset-management confidence"),
+    "chime_etrade": _make_balanced_bridge("modern money habits and investing", "mobile-first everyday banking", "self-directed brokerage access"),
+    "rocket_hrblock": _make_balanced_bridge("big annual money-admin tasks", "digital mortgage convenience", "tax filing and seasonal organization"),
+    "janus_invesco": _make_balanced_bridge("fund selection and portfolio building", "fund-company reputation", "asset-management breadth"),
+    "barclays_ubs": _make_balanced_bridge("premium banking and international finance", "large international banking reach", "wealth-oriented private-banking image"),
+    "ally_sofi": _make_balanced_bridge("digital-first personal finance", "straightforward online banking", "all-in-one modern money tools"),
+    "almay_covergirl": _make_balanced_bridge("daily makeup routine", "gentle mainstream makeup", "ubiquitous drugstore cosmetics"),
+    "esteelauder_marykay": _make_balanced_bridge("classic beauty-shopping habits", "prestige beauty-counter polish", "routine-driven personal-service beauty"),
+    "noxzema_ponds": _make_balanced_bridge("old-school skincare basics", "classic cleansing skincare", "iconic moisturizing cold-cream care"),
+    "opi_revlon": _make_balanced_bridge("easy beauty upkeep at home", "nail-focused beauty polish", "broader mainstream makeup and beauty basics"),
+    "ulta_sephora": _make_balanced_bridge("beauty shopping and restocking", "broad practical beauty retail", "polished and prestige-leaning beauty retail"),
+    "axe_oldspice": _make_balanced_bridge("everyday men's grooming", "younger louder freshness cues", "classic masculine grooming familiarity"),
+    "dove_suave": _make_balanced_bridge("simple daily personal care", "gentle comfort-oriented care", "value-focused everyday basics"),
+    "avon_maxfactor": _make_balanced_bridge("classic everyday makeup shopping", "relationship-driven beauty familiarity", "mainstream cosmetics staples"),
+    "cerave_tresemme": _make_balanced_bridge("skin-and-hair maintenance in daily routines", "gentle dependable skincare", "straightforward haircare and styling control"),
+    "freshlook_allure": _make_balanced_bridge("beauty inspiration and experimentation", "eye-look enhancement", "editorial beauty inspiration"),
+}
+
+COMBO_MIND_BRIDGES.update(EXTRA_COMBO_MIND_BRIDGES)
