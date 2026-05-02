@@ -23,6 +23,52 @@ _DEBUG_TOKENIZER = None
 _DEBUG_TOKENIZER_MODEL_PATH = None
 
 
+def prepare_generation_tokenizer():
+    tokenizer = runtime.tokenizer
+    if tokenizer is None:
+        raise RuntimeError("runtime.tokenizer 尚未初始化，无法准备生成配置。")
+
+    # Llama 3 Instruct 默认没有 pad_token；单轮生成时让它回退到 eos_token 最稳妥。
+    if tokenizer.pad_token_id is None and tokenizer.eos_token is not None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    if getattr(tokenizer, "padding_side", None) != "left":
+        tokenizer.padding_side = "left"
+
+
+def build_generation_kwargs(model_inputs, max_new_tokens):
+    tokenizer = runtime.tokenizer
+    model_type = getattr(getattr(runtime.model, "config", None), "model_type", "")
+
+    generate_kwargs = {
+        **model_inputs,
+        "max_new_tokens": max_new_tokens,
+        "do_sample": False,
+        "repetition_penalty": 1.25,
+    }
+
+    eos_token_ids = []
+    if tokenizer.eos_token_id is not None:
+        eos_token_ids.append(int(tokenizer.eos_token_id))
+
+    llama_eot_id = tokenizer.convert_tokens_to_ids("<|eot_id|>")
+    if llama_eot_id is not None and llama_eot_id >= 0:
+        eos_token_ids.append(int(llama_eot_id))
+
+    eos_token_ids = list(dict.fromkeys(eos_token_ids))
+    if len(eos_token_ids) == 1:
+        generate_kwargs["eos_token_id"] = eos_token_ids[0]
+    elif len(eos_token_ids) > 1:
+        generate_kwargs["eos_token_id"] = eos_token_ids
+
+    if tokenizer.pad_token_id is not None:
+        generate_kwargs["pad_token_id"] = int(tokenizer.pad_token_id)
+    elif eos_token_ids:
+        generate_kwargs["pad_token_id"] = eos_token_ids[0]
+
+    return generate_kwargs
+
+
 def report_keyword_presence(text, keywords):
     print("关键词检测结果:")
     for keyword in keywords:
@@ -33,15 +79,12 @@ def report_keyword_presence(text, keywords):
 
 def generate_text(desc, model_inputs, max_new_tokens=512, monitor=False, monitor_keywords=None):
     print(f"\n----------- {desc} ------------")
+    generate_kwargs = build_generation_kwargs(model_inputs, max_new_tokens=max_new_tokens)
     with torch.no_grad():
-        generated_ids = runtime.model.generate(
-            **model_inputs,
-            max_new_tokens=max_new_tokens,
-            do_sample=False,
-            repetition_penalty=1.2,
-        )
+        generated_ids = runtime.model.generate(**generate_kwargs)
     input_len = model_inputs["input_ids"].shape[1]
-    response = runtime.tokenizer.decode(generated_ids[0][input_len:], skip_special_tokens=True)
+    new_token_ids = generated_ids[0][input_len:]
+    response = runtime.tokenizer.decode(new_token_ids, skip_special_tokens=True)
     if "</think>" in response:
         # 隐藏模型思维内容，仅展示 </think> 之后的可见回答
         response = response.split("</think>", 1)[1].lstrip()
@@ -577,6 +620,7 @@ def main(args):
         )
 
     runtime.initialize_runtime(model_path=args.model_path, offload_tag="main_generation")
+    prepare_generation_tokenizer()
     prompt = prompt_pool[args.prompt_index]
 
     # prompt = ( "You are an expert at writing advertising copy. "
@@ -597,7 +641,7 @@ def main(args):
             text += mind_bridge_text
             print(f"\n[Mind Bridge] 已强制注入思维逻辑:\n{text}")
 
-    model_inputs = runtime.tokenizer([text], return_tensors="pt").to(runtime.input_device)
+    model_inputs = runtime.tokenizer([text], return_tensors="pt", padding=True).to(runtime.input_device)
 
     # 先输出无干预 baseline，避免与 intervention 结果混淆。
     if args.baseline:

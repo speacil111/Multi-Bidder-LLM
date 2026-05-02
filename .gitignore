@@ -13,3 +13,5 @@ attr_score_cache/
 Qwen3-8B/
 *.tsv
 DS_plot/
+.vscode/
+*.DS_Store

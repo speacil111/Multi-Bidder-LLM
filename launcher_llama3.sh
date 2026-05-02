@@ -4,26 +4,33 @@ set -uo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  bash run_batch.sh [options]
-  bash run_batch.sh --combos SPEC --gpus GPU_LIST [options]
-  bash run_batch.sh --combo-file FILE --gpus GPU_LIST [options]
+  bash launcher.sh --combos SPEC --gpus GPU_LIST [options]
+  bash launcher.sh --combo-file FILE --gpus GPU_LIST [options]
+  # Or define COMBOS / GPUS_LIST directly in this script and run:
+  bash launcher.sh
 
-Default behavior:
-  1. Auto-select idle GPUs from GPUS_LIST.
-  2. Run ./run.sh for combos selected by COMBOS, or all combos in src.config.COMBO_PRESETS when COMBOS is empty.
-
-Options:
+Required:
   --gpus LIST, --gpus_list LIST
                         GPU id spec, e.g. 0,1,2,3 or 0-7 or 0-3,6
+
+One of:
   --combos SPEC         Combo id spec, e.g. 0-9,12,18,20-25
   --combo-file FILE     File with one combo id per line; lines starting with # are ignored
+
+Optional:
   --max-jobs N          Max concurrent jobs. Default: GPU count * MAX_JOBS_PER_GPU
-  --run-script PATH     Script to call. Default: ./run.sh
-  --log-dir DIR         Batch output dir. Default: ./batch_runs
-  --ig-steps N          Pass IG steps to run.sh. Default: value of IG_STEPS below
-  --attribution-cache-dir DIR
-                        Pass attribution cache dir to run.sh
-  --model-path PATH     Pass model path to run.sh
+  --max-jobs-per-gpu N  Max concurrent jobs per GPU. Default: 1
+  --topk-script PATH    Sweep script to call. Default: ./topk_sweep_batch.sh
+  --model-path PATH     Override MODEL_PATH passed to topk script
+  --attr-cache-dir DIR, --attribution-cache-dir DIR
+                        Override ATTR_CACHE_DIR passed to topk script
+  --result-root DIR     Override first-level result dir passed to topk script
+  --prompt-list LIST    Override prompt indexes passed to topk script, e.g. "0,1,2" or "0 1 2"
+  --mind-bridge-mode MODE
+                        Control mind_bridge: on, off, or auto. Default: MIND_BRIDGE_MODE
+  --mind-bridge         Force enable mind_bridge in topk script
+  --no-mind-bridge      Force disable mind_bridge in topk script
+  --log-dir DIR         Launcher output dir. Default: ./batch_runs_Llama
   --stagger-sec N       Sleep N seconds between launches. Default: 2
   --min-free-mem-mb N   Treat GPU as selectable only if memory.free >= N. Default: 15000
   --idle-max-util N     Prefer GPU with utilization.gpu < N. Default: 70
@@ -33,28 +40,42 @@ Options:
   -h, --help            Show this help
 
 Examples:
-  bash run_batch.sh
-  bash run_batch.sh --gpus 0-3 --combos 0-9
-  bash run_batch.sh --combo-file combo_ids.txt --gpus 4,5,6,7 --fail-fast
+  bash launcher.sh --combos 0-9 --gpus 0,1,2,3
+  bash launcher.sh --combos 10-29,35 --gpus 0,1 --max-jobs 2
+  bash launcher.sh --combo-file combo_ids.txt --gpus 4,5,6,7 --fail-fast
+
+Notes:
+  1. This launcher is a batch wrapper around topk_sweep_batch.sh.
+  2. It does not change your experiment logic; it only schedules many combo ids.
+  3. Current topk_sweep_batch.sh writes outputs under paths like logp_token_<BRAND_1>_m2.0.
+     If many combos reuse the same first brand, those outputs may collide or overwrite.
+     So this launcher is best viewed as a scheduling template until run_root is made combo-unique.
 EOF
 }
 
-RUN_SCRIPT="./run.sh"
-LOG_DIR="./qwen_attr_batch_runlogs"
-IG_STEPS="20"
-ATTRIBUTION_CACHE_DIR="attr_cache_qwen"
-MODEL_PATH="../Qwen3-4B"
-COMBOS="36-39"
+TOPK_SCRIPT="./topk_sweep_batch.sh"
+LOG_DIR="./batch_runs_Llama"
+# 直接在这里定义默认任务（可被命令行参数覆盖）
+# 例: COMBOS="0-9,12,18" ; GPUS_LIST="0,1,2,3" 或 "0-7"
+COMBOS="0,21-100"
 GPUS_LIST="0-7"
-MAX_JOBS_PER_GPU="3"
 COMBO_SPEC="${COMBOS}"
 COMBO_FILE=""
 GPU_SPEC="${GPUS_LIST}"
 MAX_JOBS=""
+MAX_JOBS_PER_GPU="3"
 STAGGER_SEC=2
+MODEL_PATH="../Llama-3-8B-Instruct"
+ATTRIBUTION_CACHE_DIR="./attr_cache_Llama"
+# First-level result dir. Empty means topk_sweep_batch.sh uses batch_results_<model_tag>.
+RESULT_ROOT="./batch_results_Llama"
+# Empty means use PROMPT_LIST inside topk_sweep_batch.sh.
+PROMPT_LIST="0 1 2"
+# on/off/auto
+MIND_BRIDGE_MODE="off"
 MIN_FREE_MEM_MB=15000
 POLL_SEC=5
-MAX_IDLE_UTIL=75
+MAX_IDLE_UTIL=70
 FAIL_FAST=0
 DRY_RUN=0
 
@@ -96,40 +117,22 @@ while [[ $# -gt 0 ]]; do
       MAX_JOBS="${1#*=}"
       shift
       ;;
-    --run-script)
-      [[ $# -ge 2 ]] || { echo "[ERROR] --run-script requires a value" >&2; usage >&2; exit 1; }
-      RUN_SCRIPT="$2"
+    --max-jobs-per-gpu)
+      [[ $# -ge 2 ]] || { echo "[ERROR] --max-jobs-per-gpu requires a value" >&2; usage >&2; exit 1; }
+      MAX_JOBS_PER_GPU="$2"
       shift 2
       ;;
-    --run-script=*)
-      RUN_SCRIPT="${1#*=}"
+    --max-jobs-per-gpu=*)
+      MAX_JOBS_PER_GPU="${1#*=}"
       shift
       ;;
-    --log-dir)
-      [[ $# -ge 2 ]] || { echo "[ERROR] --log-dir requires a value" >&2; usage >&2; exit 1; }
-      LOG_DIR="$2"
+    --topk-script)
+      [[ $# -ge 2 ]] || { echo "[ERROR] --topk-script requires a value" >&2; usage >&2; exit 1; }
+      TOPK_SCRIPT="$2"
       shift 2
       ;;
-    --log-dir=*)
-      LOG_DIR="${1#*=}"
-      shift
-      ;;
-    --ig-steps)
-      [[ $# -ge 2 ]] || { echo "[ERROR] --ig-steps requires a value" >&2; usage >&2; exit 1; }
-      IG_STEPS="$2"
-      shift 2
-      ;;
-    --ig-steps=*)
-      IG_STEPS="${1#*=}"
-      shift
-      ;;
-    --attribution-cache-dir)
-      [[ $# -ge 2 ]] || { echo "[ERROR] --attribution-cache-dir requires a value" >&2; usage >&2; exit 1; }
-      ATTRIBUTION_CACHE_DIR="$2"
-      shift 2
-      ;;
-    --attribution-cache-dir=*)
-      ATTRIBUTION_CACHE_DIR="${1#*=}"
+    --topk-script=*)
+      TOPK_SCRIPT="${1#*=}"
       shift
       ;;
     --model-path)
@@ -139,6 +142,59 @@ while [[ $# -gt 0 ]]; do
       ;;
     --model-path=*)
       MODEL_PATH="${1#*=}"
+      shift
+      ;;
+    --attr-cache-dir|--attribution-cache-dir)
+      [[ $# -ge 2 ]] || { echo "[ERROR] $1 requires a value" >&2; usage >&2; exit 1; }
+      ATTRIBUTION_CACHE_DIR="$2"
+      shift 2
+      ;;
+    --attr-cache-dir=*|--attribution-cache-dir=*)
+      ATTRIBUTION_CACHE_DIR="${1#*=}"
+      shift
+      ;;
+    --result-root)
+      [[ $# -ge 2 ]] || { echo "[ERROR] --result-root requires a value" >&2; usage >&2; exit 1; }
+      RESULT_ROOT="$2"
+      shift 2
+      ;;
+    --result-root=*)
+      RESULT_ROOT="${1#*=}"
+      shift
+      ;;
+    --prompt-list|--prompts)
+      [[ $# -ge 2 ]] || { echo "[ERROR] $1 requires a value" >&2; usage >&2; exit 1; }
+      PROMPT_LIST="$2"
+      shift 2
+      ;;
+    --prompt-list=*|--prompts=*)
+      PROMPT_LIST="${1#*=}"
+      shift
+      ;;
+    --mind-bridge-mode)
+      [[ $# -ge 2 ]] || { echo "[ERROR] --mind-bridge-mode requires a value: on, off, or auto" >&2; usage >&2; exit 1; }
+      MIND_BRIDGE_MODE="$2"
+      shift 2
+      ;;
+    --mind-bridge-mode=*)
+      MIND_BRIDGE_MODE="${1#*=}"
+      shift
+      ;;
+    --mind-bridge)
+      MIND_BRIDGE_MODE="on"
+      shift
+      ;;
+    --no-mind-bridge)
+      MIND_BRIDGE_MODE="off"
+      shift
+      ;;
+    --log-dir)
+      [[ $# -ge 2 ]] || { echo "[ERROR] --log-dir requires a value" >&2; usage >&2; exit 1; }
+      LOG_DIR="$2"
+      shift 2
+      ;;
+    --log-dir=*)
+      LOG_DIR="${1#*=}"
       shift
       ;;
     --stagger-sec)
@@ -198,7 +254,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "${GPU_SPEC}" ]]; then
-  echo "[ERROR] Please provide --gpus/--gpus_list or define GPUS_LIST in run_batch.sh" >&2
+  echo "[ERROR] Please provide --gpus/--gpus_list or define GPUS_LIST in launcher.sh" >&2
   usage >&2
   exit 1
 fi
@@ -208,10 +264,24 @@ if [[ -n "${COMBO_SPEC}" && -n "${COMBO_FILE}" ]]; then
   exit 1
 fi
 
-if [[ ! -f "${RUN_SCRIPT}" ]]; then
-  echo "[ERROR] run script not found: ${RUN_SCRIPT}" >&2
+if [[ -z "${COMBO_SPEC}" && -z "${COMBO_FILE}" ]]; then
+  echo "[ERROR] Please provide --combos/--combo-file or define COMBOS in launcher.sh" >&2
   exit 1
 fi
+
+if [[ ! -f "${TOPK_SCRIPT}" ]]; then
+  echo "[ERROR] topk script not found: ${TOPK_SCRIPT}" >&2
+  exit 1
+fi
+
+case "${MIND_BRIDGE_MODE}" in
+  on|off|auto)
+    ;;
+  *)
+    echo "[ERROR] Invalid mind_bridge mode: ${MIND_BRIDGE_MODE}. Use on, off, or auto." >&2
+    exit 1
+    ;;
+esac
 
 readarray -t GPU_IDS < <(
   python - "${GPU_SPEC}" <<'PY'
@@ -283,7 +353,7 @@ for part in spec.split(","):
 for x in result:
     print(x)
 PY
-  elif [[ -n "${COMBO_FILE}" ]]; then
+  else
     python - "${COMBO_FILE}" <<'PY'
 import sys
 from pathlib import Path
@@ -300,12 +370,6 @@ for raw in path.read_text(encoding="utf-8").splitlines():
         continue
     seen.add(x)
     print(x)
-PY
-  else
-    python - <<'PY'
-from src.config import COMBO_PRESETS
-for combo_id in range(len(COMBO_PRESETS)):
-    print(combo_id)
 PY
   fi
 )
@@ -346,7 +410,7 @@ for line in "${COMBO_META_LINES[@]}"; do
 done
 
 timestamp="$(date +"%Y-%m-%d_%H-%M-%S")"
-RUN_DIR="${LOG_DIR}/run_batch_${timestamp}"
+RUN_DIR="${LOG_DIR}/launcher_${timestamp}"
 mkdir -p "${RUN_DIR}/logs"
 
 NVIDIA_SMI_AVAILABLE=0
@@ -357,18 +421,21 @@ fi
 manifest_path="${RUN_DIR}/manifest.txt"
 cat > "${manifest_path}" <<EOF
 timestamp=${timestamp}
-run_script=${RUN_SCRIPT}
+topk_script=${TOPK_SCRIPT}
 defined_combos=${COMBOS}
+defined_gpus_list=${GPUS_LIST}
 combo_spec=${COMBO_SPEC}
 combo_file=${COMBO_FILE}
 combo_ids=${COMBO_IDS[*]}
 gpu_ids=${GPU_IDS[*]}
-max_jobs_per_gpu=${MAX_JOBS_PER_GPU}
-ig_steps=${IG_STEPS}
-attribution_cache_dir=${ATTRIBUTION_CACHE_DIR}
-model_path=${MODEL_PATH}
 max_jobs=${MAX_JOBS}
+max_jobs_per_gpu=${MAX_JOBS_PER_GPU}
 stagger_sec=${STAGGER_SEC}
+model_path=${MODEL_PATH}
+attribution_cache_dir=${ATTRIBUTION_CACHE_DIR}
+result_root=${RESULT_ROOT:-<auto>}
+prompt_list=${PROMPT_LIST:-<topk default>}
+mind_bridge_mode=${MIND_BRIDGE_MODE}
 min_free_mem_mb=${MIN_FREE_MEM_MB}
 max_idle_util=${MAX_IDLE_UTIL}
 poll_sec=${POLL_SEC}
@@ -385,26 +452,29 @@ EOF
   echo "combo_mapping_end"
 } >> "${manifest_path}"
 
-echo "[RunBatch] manifest: ${manifest_path}"
-echo "[RunBatch] combo count: ${#COMBO_IDS[@]}"
-echo "[RunBatch] gpus: ${GPU_IDS[*]}"
-echo "[RunBatch] max_jobs: ${MAX_JOBS}"
+echo "[Launcher] manifest: ${manifest_path}"
+echo "[Launcher] combo count: ${#COMBO_IDS[@]}"
+echo "[Launcher] gpus: ${GPU_IDS[*]}"
+echo "[Launcher] max_jobs: ${MAX_JOBS}"
+echo "[Launcher] max_jobs_per_gpu: ${MAX_JOBS_PER_GPU}"
+echo "[Launcher] result_root: ${RESULT_ROOT:-<auto>}"
+echo "[Launcher] prompt_list: ${PROMPT_LIST:-<topk default>}"
+echo "[Launcher] mind_bridge_mode: ${MIND_BRIDGE_MODE}"
 if [[ "${NVIDIA_SMI_AVAILABLE}" -eq 1 ]]; then
-  echo "[RunBatch] idle-gpu mode: prefer memory.free>=${MIN_FREE_MEM_MB}MB and utilization.gpu<${MAX_IDLE_UTIL}%, fallback to highest memory.free with memory.free>=${MIN_FREE_MEM_MB}MB"
+  echo "[Launcher] idle-gpu mode: prefer memory.free>=${MIN_FREE_MEM_MB}MB and utilization.gpu<${MAX_IDLE_UTIL}%, fallback to highest memory.free with memory.free>=${MIN_FREE_MEM_MB}MB"
 else
-  echo "[RunBatch] idle-gpu mode: nvidia-smi unavailable, fallback to launcher-only GPU tracking"
+  echo "[Launcher] idle-gpu mode: nvidia-smi unavailable, fallback to launcher-only GPU tracking"
 fi
 
 job_trace_path="${RUN_DIR}/job_trace.tsv"
 {
-  printf "event_time\tevent\tpid\tgpu\tcombo_id\tcombo_key\tbrand_1\tbrand_2\tstatus\tjob_log\trun_log\n"
+  printf "event_time\tevent\tpid\tgpu\tcombo_id\tcombo_key\tbrand_1\tbrand_2\tstatus\tjob_log\n"
 } > "${job_trace_path}"
-echo "[RunBatch] job trace: ${job_trace_path}"
+echo "[Launcher] job trace: ${job_trace_path}"
 
 declare -A PID_TO_COMBO
 declare -A PID_TO_GPU
 declare -A PID_TO_LOG
-declare -A PID_TO_RUN_LOG
 declare -A PID_TO_KEY
 declare -A PID_TO_BRAND1
 declare -A PID_TO_BRAND2
@@ -413,7 +483,6 @@ success_count=0
 failed_count=0
 stop_launching=0
 SELECTED_GPU=""
-LAST_ACTIVE_JOBS_SNAPSHOT=""
 
 running_jobs_count() {
   local n=0
@@ -431,37 +500,10 @@ print_active_jobs() {
   if (( n == 0 )); then
     return
   fi
-  echo "[RunBatch] active jobs (${n}):"
+  echo "[Launcher] active jobs (${n}):"
   for pid in "${!PID_TO_COMBO[@]}"; do
     echo "  pid=${pid} gpu=${PID_TO_GPU[$pid]} combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} log=${PID_TO_LOG[$pid]}"
   done
-}
-
-build_active_jobs_snapshot() {
-  local pid
-  local lines=()
-  for pid in "${!PID_TO_COMBO[@]}"; do
-    lines+=("${PID_TO_GPU[$pid]}|${PID_TO_COMBO[$pid]}|${PID_TO_KEY[$pid]}|${PID_TO_BRAND1[$pid]}|${PID_TO_BRAND2[$pid]}|${PID_TO_LOG[$pid]}|${pid}")
-  done
-
-  if [[ ${#lines[@]} -eq 0 ]]; then
-    printf '\n'
-    return
-  fi
-
-  printf '%s\n' "${lines[@]}" | sort
-}
-
-print_active_jobs_if_changed() {
-  local snapshot
-  snapshot="$(build_active_jobs_snapshot)"
-  if [[ "${snapshot}" == "${LAST_ACTIVE_JOBS_SNAPSHOT}" ]]; then
-    return
-  fi
-  LAST_ACTIVE_JOBS_SNAPSHOT="${snapshot}"
-  if (( $(running_jobs_count) > 0 )); then
-    print_active_jobs
-  fi
 }
 
 cleanup_finished_jobs() {
@@ -474,16 +516,16 @@ cleanup_finished_jobs() {
     if wait "${pid}"; then
       success_count=$((success_count + 1))
       status="OK"
-      echo "[RunBatch] finished: combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} gpu=${PID_TO_GPU[$pid]} status=OK log=${PID_TO_LOG[$pid]}"
+      echo "[Launcher] finished: combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} gpu=${PID_TO_GPU[$pid]} status=OK log=${PID_TO_LOG[$pid]}"
     else
       failed_count=$((failed_count + 1))
       status="FAIL"
-      echo "[RunBatch] finished: combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} gpu=${PID_TO_GPU[$pid]} status=FAIL log=${PID_TO_LOG[$pid]}"
+      echo "[Launcher] finished: combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} gpu=${PID_TO_GPU[$pid]} status=FAIL log=${PID_TO_LOG[$pid]}"
       if [[ "${FAIL_FAST}" -eq 1 ]]; then
         stop_launching=1
       fi
     fi
-    printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+    printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
       "$(date '+%Y-%m-%d %H:%M:%S')" \
       "FINISH" \
       "${pid}" \
@@ -493,12 +535,10 @@ cleanup_finished_jobs() {
       "${PID_TO_BRAND1[$pid]}" \
       "${PID_TO_BRAND2[$pid]}" \
       "${status}" \
-      "${PID_TO_LOG[$pid]}" \
-      "${PID_TO_RUN_LOG[$pid]}" >> "${job_trace_path}"
+      "${PID_TO_LOG[$pid]}" >> "${job_trace_path}"
     unset 'PID_TO_COMBO[$pid]'
     unset 'PID_TO_GPU[$pid]'
     unset 'PID_TO_LOG[$pid]'
-    unset 'PID_TO_RUN_LOG[$pid]'
     unset 'PID_TO_KEY[$pid]'
     unset 'PID_TO_BRAND1[$pid]'
     unset 'PID_TO_BRAND2[$pid]'
@@ -628,7 +668,7 @@ wait_for_idle_gpu() {
 gpu_index=0
 for combo_id in "${COMBO_IDS[@]}"; do
   if [[ "${stop_launching}" -eq 1 ]]; then
-    echo "[RunBatch] fail-fast triggered; stop launching new jobs."
+    echo "[Launcher] fail-fast triggered; stop launching new jobs."
     break
   fi
 
@@ -641,22 +681,33 @@ for combo_id in "${COMBO_IDS[@]}"; do
   fi
 
   job_log="${RUN_DIR}/logs/combo_${combo_id}_gpu_${gpu_id}.log"
-  run_log="${RUN_DIR}/logs/run_combo_${combo_id}_gpu_${gpu_id}.txt"
-  cmd=(
-    bash "${RUN_SCRIPT}"
-    --g "${gpu_id}"
-    --c "${combo_id}"
-    --ig-steps "${IG_STEPS}"
-    --attribution-cache-dir "${ATTRIBUTION_CACHE_DIR}"
-    --model-path "${MODEL_PATH}"
-    --log-file "${run_log}"
-  )
+  cmd=(bash "${TOPK_SCRIPT}" --g "${gpu_id}" --c "${combo_id}")
+  if [[ -n "${MODEL_PATH}" ]]; then
+    cmd+=(--model-path "${MODEL_PATH}")
+  fi
+  if [[ -n "${ATTRIBUTION_CACHE_DIR}" ]]; then
+    cmd+=(--attribution-cache-dir "${ATTRIBUTION_CACHE_DIR}")
+  fi
+  if [[ -n "${RESULT_ROOT}" ]]; then
+    cmd+=(--result-root "${RESULT_ROOT}")
+  fi
+  if [[ -n "${PROMPT_LIST}" ]]; then
+    cmd+=(--prompt-list "${PROMPT_LIST}")
+  fi
+  case "${MIND_BRIDGE_MODE}" in
+    on)
+      cmd+=(--mind-bridge)
+      ;;
+    off)
+      cmd+=(--no-mind-bridge)
+      ;;
+  esac
   combo_key="${COMBO_TO_KEY[${combo_id}]}"
   combo_brand_1="${COMBO_TO_BRAND1[${combo_id}]}"
   combo_brand_2="${COMBO_TO_BRAND2[${combo_id}]}"
 
-  echo "[RunBatch] launch: combo=${combo_id} key=${combo_key} brand_1=${combo_brand_1} brand_2=${combo_brand_2} gpu=${gpu_id} log=${job_log}"
-  printf '[RunBatch] command:'
+  echo "[Launcher] launch: combo=${combo_id} key=${combo_key} brand_1=${combo_brand_1} brand_2=${combo_brand_2} gpu=${gpu_id} result_root=${RESULT_ROOT:-<auto>} mind_bridge_mode=${MIND_BRIDGE_MODE} log=${job_log}"
+  printf '[Launcher] command:'
   printf ' %q' "${cmd[@]}"
   printf '\n'
 
@@ -665,13 +716,13 @@ for combo_id in "${COMBO_IDS[@]}"; do
   fi
 
   (
-    echo "[RunBatch] START combo=${combo_id} gpu=${gpu_id} time=$(date)"
-    printf '[RunBatch] command:'
+    echo "[Launcher] START combo=${combo_id} gpu=${gpu_id} time=$(date)"
+    printf '[Launcher] command:'
     printf ' %q' "${cmd[@]}"
     printf '\n'
     "${cmd[@]}"
     status=$?
-    echo "[RunBatch] END combo=${combo_id} gpu=${gpu_id} status=${status} time=$(date)"
+    echo "[Launcher] END combo=${combo_id} gpu=${gpu_id} status=${status} time=$(date)"
     exit "${status}"
   ) > "${job_log}" 2>&1 &
 
@@ -679,11 +730,10 @@ for combo_id in "${COMBO_IDS[@]}"; do
   PID_TO_COMBO["${pid}"]="${combo_id}"
   PID_TO_GPU["${pid}"]="${gpu_id}"
   PID_TO_LOG["${pid}"]="${job_log}"
-  PID_TO_RUN_LOG["${pid}"]="${run_log}"
   PID_TO_KEY["${pid}"]="${combo_key}"
   PID_TO_BRAND1["${pid}"]="${combo_brand_1}"
   PID_TO_BRAND2["${pid}"]="${combo_brand_2}"
-  printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+  printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
     "$(date '+%Y-%m-%d %H:%M:%S')" \
     "LAUNCH" \
     "${pid}" \
@@ -693,10 +743,9 @@ for combo_id in "${COMBO_IDS[@]}"; do
     "${combo_brand_1}" \
     "${combo_brand_2}" \
     "RUNNING" \
-    "${job_log}" \
-    "${run_log}" >> "${job_trace_path}"
+    "${job_log}" >> "${job_trace_path}"
 
-  print_active_jobs_if_changed
+  print_active_jobs
 
   if [[ "${STAGGER_SEC}" -gt 0 ]]; then
     sleep "${STAGGER_SEC}"
@@ -706,18 +755,18 @@ done
 while (( $(running_jobs_count) > 0 )); do
   cleanup_finished_jobs
   if (( $(running_jobs_count) > 0 )); then
-    print_active_jobs_if_changed
+    print_active_jobs
     sleep "${POLL_SEC}"
   fi
 done
 
 total_launched=$((success_count + failed_count))
-echo "[RunBatch] done"
-echo "[RunBatch] run_dir=${RUN_DIR}"
-echo "[RunBatch] launched=${total_launched}"
-echo "[RunBatch] success=${success_count}"
-echo "[RunBatch] failed=${failed_count}"
+echo "[Launcher] done"
+echo "[Launcher] run_dir=${RUN_DIR}"
+echo "[Launcher] launched=${total_launched}"
+echo "[Launcher] success=${success_count}"
+echo "[Launcher] failed=${failed_count}"
 
 if [[ "${DRY_RUN}" -eq 1 ]]; then
-  echo "[RunBatch] dry-run mode: no jobs were actually launched"
+  echo "[Launcher] dry-run mode: no jobs were actually launched"
 fi

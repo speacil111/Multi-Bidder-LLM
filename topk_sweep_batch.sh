@@ -3,7 +3,7 @@ set -uo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: bash topk_sweep.sh [--gpu-id N] [--combo-preset-id N] [--model-path PATH] [--attr-cache-dir DIR]
+Usage: bash topk_sweep_batch.sh [--gpu-id N] [--combo-preset-id N] [--model-path PATH] [--attr-cache-dir DIR] [--result-root DIR]
 
 Options:
   --g N, --gpu-id N     Override GPU_ID (default: 0)
@@ -12,13 +12,17 @@ Options:
   --model-path PATH     Override MODEL_PATH
   --attr-cache-dir DIR, --attribution-cache-dir DIR
                         Override ATTR_CACHE_DIR
+  --result-root DIR     Override first-level output dir. Default: batch_results_<model_tag>
+  --prompt-list LIST    Override prompt indexes, e.g. "0,1,2" or "0 1 2"
+  --mind-bridge         Force enable mind_bridge
+  --no-mind-bridge      Force disable mind_bridge
   -h, --help            Show this help message
 
 Examples:
-  bash topk_sweep.sh --g 1 --c 17
-  bash topk_sweep.sh --gpu-id 1 --combo-preset-id 17
-  bash topk_sweep.sh --combo-preset-id 22
-  bash topk_sweep.sh --model-path /path/to/model
+  bash topk_sweep_batch.sh --g 1 --c 17
+  bash topk_sweep_batch.sh --gpu-id 1 --combo-preset-id 17
+  bash topk_sweep_batch.sh --combo-preset-id 22
+  bash topk_sweep_batch.sh --model-path /path/to/model
 EOF
 }
 
@@ -28,6 +32,86 @@ format_duration() {
   local minutes=$(( (total_seconds % 3600) / 60 ))
   local seconds=$(( total_seconds % 60 ))
   printf "%02d:%02d:%02d" "${hours}" "${minutes}" "${seconds}"
+}
+
+resolve_model_tag() {
+  local model_path="$1"
+  local model_path_lower="${model_path,,}"
+  local model_base
+
+  if [[ "${model_path_lower}" == *ds_r1_8b* ]]; then
+    printf "DS"
+    return
+  fi
+
+  if [[ "${model_path_lower}" == *qwen3_4b* || "${model_path_lower}" == *qwen3-4b* ]]; then
+    printf "Qwen"
+    return
+  fi
+
+  if [[ "${model_path_lower}" == *llama*8b* ]]; then
+    printf "Llama"
+    return
+  fi
+
+  model_base="${model_path##*/}"
+  model_base="${model_base//[^[:alnum:]_-]/_}"
+  if [[ -n "${model_base}" ]]; then
+    printf "%s" "${model_base}"
+  else
+    printf "Model"
+  fi
+}
+
+resolve_mind_bridge_enabled() {
+  local requested_mode="$1"
+  local model_path="$2"
+  local model_path_lower="${model_path,,}"
+
+  case "${requested_mode}" in
+    on)
+      printf "1"
+      ;;
+    off)
+      printf "0"
+      ;;
+    *)
+      if [[ "${model_path_lower}" == *llama*8b* ]]; then
+        printf "0"
+      else
+        printf "1"
+      fi
+      ;;
+  esac
+}
+
+parse_prompt_list_spec() {
+  local spec="$1"
+  local token start end i
+  PROMPT_LIST=()
+  spec="${spec//,/ }"
+  for token in ${spec}; do
+    if [[ "${token}" =~ ^[0-9]+-[0-9]+$ ]]; then
+      start="${token%-*}"
+      end="${token#*-}"
+      if (( start > end )); then
+        echo "[ERROR] invalid --prompt-list range: ${token}" >&2
+        exit 1
+      fi
+      for (( i=start; i<=end; i++ )); do
+        PROMPT_LIST+=("${i}")
+      done
+    elif [[ "${token}" =~ ^[0-9]+$ ]]; then
+      PROMPT_LIST+=("${token}")
+    else
+      echo "[ERROR] invalid --prompt-list token: ${token}" >&2
+      exit 1
+    fi
+  done
+  if (( ${#PROMPT_LIST[@]} == 0 )); then
+    echo "[ERROR] --prompt-list cannot be empty" >&2
+    exit 1
+  fi
 }
 
 # GPU
@@ -58,8 +142,10 @@ THRESHOLD=0.000
 PARALLEL_GPUS="${GPU_ID}"
 PYTHON_BIN="python"
 SCRIPT_PATH="neuron_test.py"
-MODEL_PATH="../DS_r1_8B"
-ATTR_CACHE_DIR="${ATTR_CACHE_DIR:-attr_cache_ds}"
+MODEL_PATH="../Llama-3-8B-Instruct"
+ATTR_CACHE_DIR="${ATTR_CACHE_DIR:-attr_cache_Llama}"
+RESULT_ROOT=""
+MIND_BRIDGE_MODE="auto"
 # 在这里手动定义要跑的 prompt 索引（0-based）
 PROMPT_LIST=(0 1 2)
 
@@ -119,6 +205,40 @@ while [[ $# -gt 0 ]]; do
       ATTR_CACHE_DIR="${1#*=}"
       shift
       ;;
+    --result-root)
+      if [[ $# -lt 2 ]]; then
+        echo "[ERROR] --result-root requires a value" >&2
+        usage >&2
+        exit 1
+      fi
+      RESULT_ROOT="$2"
+      shift 2
+      ;;
+    --result-root=*)
+      RESULT_ROOT="${1#*=}"
+      shift
+      ;;
+    --prompt-list|--prompts)
+      if [[ $# -lt 2 ]]; then
+        echo "[ERROR] $1 requires a value" >&2
+        usage >&2
+        exit 1
+      fi
+      parse_prompt_list_spec "$2"
+      shift 2
+      ;;
+    --prompt-list=*|--prompts=*)
+      parse_prompt_list_spec "${1#*=}"
+      shift
+      ;;
+    --mind-bridge)
+      MIND_BRIDGE_MODE="on"
+      shift
+      ;;
+    --no-mind-bridge)
+      MIND_BRIDGE_MODE="off"
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -133,6 +253,8 @@ done
 
 PARALLEL_GPUS="${GPU_ID}"
 export CUDA_VISIBLE_DEVICES="${GPU_ID}"
+
+MIND_BRIDGE_ENABLED="$(resolve_mind_bridge_enabled "${MIND_BRIDGE_MODE}" "${MODEL_PATH}")"
 
 script_start_epoch="$(date +%s)"
 script_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -169,19 +291,16 @@ BRAND_2="${COMBO_INFO[2]}"
 KEYWORD_1="${COMBO_INFO[3]}"
 KEYWORD_2="${COMBO_INFO[4]}"
 
-model_tag=""
-if [[ -n "${MODEL_PATH}" ]]; then
-  model_path_lower="${MODEL_PATH,,}"
-  if [[ "${model_path_lower}" == *ds_r1_8b* ]]; then
-    model_tag="DS"
-  elif [[ "${model_path_lower}" == *qwen3_4b* ]]; then
-    model_tag="Qwen"
-  fi
+model_tag="$(resolve_model_tag "${MODEL_PATH}")"
+if [[ -n "${RESULT_ROOT}" ]]; then
+  result_root_dir="${RESULT_ROOT%/}"
+else
+  result_root_dir="batch_results_${model_tag}"
 fi
 
 
 ## 结果存储路径!!!
-run_root="batch_results_${model_tag}/${model_tag}_${BRAND_1}_m${MULTIPLIER_1}"
+run_root="${result_root_dir}/${model_tag}_${BRAND_1}_m${MULTIPLIER_1}"
 mkdir -p "${run_root}"
 
 
@@ -210,6 +329,10 @@ overall_report_txt="${run_root}/report_all_prompts.txt"
   echo "${BRAND_2}_top_k=${TOP_K_2[*]}"
   echo "model_path=${MODEL_PATH:-<default>}"
   echo "attribution_cache_dir=${ATTR_CACHE_DIR}"
+  echo "result_root_dir=${result_root_dir}"
+  echo "run_root=${run_root}"
+  echo "mind_bridge_mode=${MIND_BRIDGE_MODE}"
+  echo "mind_bridge_enabled=${MIND_BRIDGE_ENABLED}"
   echo "code_snapshot=${snapshot_dir}"
 } > "${overall_report_txt}"
 
@@ -249,6 +372,10 @@ Fixed params:
   ${BRAND_2}_top_k=${TOP_K_2[*]}
   model_path=${MODEL_PATH:-<default>}
   attribution_cache_dir=${ATTR_CACHE_DIR}
+  result_root_dir=${result_root_dir}
+  run_root=${run_root}
+  mind_bridge_mode=${MIND_BRIDGE_MODE}
+  mind_bridge_enabled=${MIND_BRIDGE_ENABLED}
   code_snapshot=${snapshot_dir}
 EOF
 
@@ -293,9 +420,12 @@ EOF
         --intervention_layer -1
         --prompt-index "${prompt_index}"
         --unified-hook
-        --mind_bridge
         --max-new-tokens "${MAX_NEW_TOKENS}"
       )
+
+      if [[ "${MIND_BRIDGE_ENABLED}" == "1" ]]; then
+        cmd+=(--mind_bridge)
+      fi
 
       if [[ -n "${MODEL_PATH}" ]]; then
         cmd+=(--model_path "${MODEL_PATH}")

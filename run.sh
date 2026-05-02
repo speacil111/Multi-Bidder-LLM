@@ -18,11 +18,11 @@ EOF
 }
 
 # Default config: edit these values directly when you want fixed defaults.
-DEFAULT_GPU_ID="4"
-DEFAULT_COMBO_PRESET_ID="3"
+DEFAULT_GPU_ID="0"
+DEFAULT_COMBO_PRESET_ID="0"
 DEFAULT_IG_STEPS="5"
-DEFAULT_ATTRIBUTION_CACHE_DIR="attr_cache_ds"
-DEFAULT_MODEL_PATH="../DS_r1_8B"
+DEFAULT_ATTRIBUTION_CACHE_DIR="attr_cache_Llama"
+DEFAULT_MODEL_PATH="../Llama-3-8B-Instruct"
 DEFAULT_LOG_DIR="run_logs"
 DEFAULT_LOG_FILE=""
 
@@ -132,7 +132,6 @@ python neuron_test.py --model_path "${MODEL_PATH}" \
                      --ig_steps "${IG_STEPS}" \
                      --baseline \
                      --monitor \
-                     --mind_bridge \
                      --max-new-tokens 1536 \
                      --prompt-index 0 \
                      --score_mode_1 contrastive \

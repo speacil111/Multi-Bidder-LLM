@@ -3,39 +3,8 @@ set -uo pipefail
 
 PLOT_DIR="./DS_plot"
 USE_SUB=1
-RESULT_ROOT=""
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --sub)
-      USE_SUB=1
-      shift
-      ;;
-    --no-sub)
-      USE_SUB=0
-      shift
-      ;;
-    -h|--help)
-      echo "Usage: bash plot_ds_all.sh [--sub|--no-sub]"
-      echo "  --sub     Subtract baseline (0,0) and clip at 0 (default)"
-      echo "  --no-sub  Disable baseline subtraction"
-      exit 0
-      ;;
-    *)
-      echo "[ERROR] Unknown argument: $1" >&2
-      exit 1
-      ;;
-  esac
-done
-
-if [[ -d ".batch_result" ]]; then
-  RESULT_ROOT=".batch_result"
-elif [[ -d "batch_results" ]]; then
-  RESULT_ROOT="batch_results"
-else
-  echo "[ERROR] Neither .batch_result nor batch_results exists." >&2
-  exit 1
-fi
+OUTLIER_HIT_THRESHOLD=20
+RESULT_ROOT="./batch_results_DS"
 
 mkdir -p "${PLOT_DIR}"
 export MPLCONFIGDIR="/tmp/matplotlib_ds_plot"
@@ -136,7 +105,7 @@ for idx in "${!generated_avg_csvs[@]}"; do
 done
 
 echo "[Run] building global normalized heatmaps for blue/red brands"
-python - "${PLOT_DIR}" "${USE_SUB}" "${generated_avg_csvs[@]}" <<'PY'
+python - "${PLOT_DIR}" "${USE_SUB}" "${OUTLIER_HIT_THRESHOLD}" "${generated_avg_csvs[@]}" <<'PY'
 import csv
 import sys
 from collections import defaultdict
@@ -150,12 +119,15 @@ from matplotlib.patches import Rectangle
 
 plot_dir = Path(sys.argv[1])
 use_sub = bool(int(sys.argv[2]))
-csv_paths = [Path(x) for x in sys.argv[3:]]
+outlier_threshold = float(sys.argv[3])
+csv_paths = [Path(x) for x in sys.argv[4:]]
 
 blue_sum = defaultdict(float)
 blue_cnt = defaultdict(int)
 red_sum = defaultdict(float)
 red_cnt = defaultdict(int)
+outlier_hit_count = 0
+outlier_examples = []
 
 for path in csv_paths:
     with path.open("r", encoding="utf-8", newline="") as f:
@@ -169,26 +141,50 @@ for path in csv_paths:
         red_col = fieldnames[-1]
 
         rows = list(reader)
+        hit_cols = [col for col in fieldnames if col.startswith("hit_")]
+        zeroed_cells = set()
+        for row_idx, row in enumerate(rows, start=2):
+            for col in hit_cols:
+                val = float(row[col])
+                if val > outlier_threshold:
+                    outlier_hit_count += 1
+                    zeroed_cells.add((row_idx, col))
+                    if len(outlier_examples) < 10:
+                        outlier_examples.append(
+                            {
+                                "brand": path.parent.name,
+                                "path": path,
+                                "row": row_idx,
+                                "run_id": row.get(fieldnames[0], ""),
+                                "x": row.get(x_col, ""),
+                                "y": row.get(y_col, ""),
+                                "col": col,
+                                "value": val,
+                            }
+                        )
+
         base_blue = 0.0
         base_red = 0.0
         if use_sub:
             baseline = None
-            for row in rows:
+            baseline_row_idx = None
+            for row_idx, row in enumerate(rows, start=2):
                 if abs(float(row[x_col]) - 0.0) < 1e-9 and abs(float(row[y_col]) - 0.0) < 1e-9:
                     baseline = row
+                    baseline_row_idx = row_idx
                     break
             if baseline is not None:
-                base_blue = float(baseline[blue_col])
-                base_red = float(baseline[red_col])
+                base_blue = 0.0 if (baseline_row_idx, blue_col) in zeroed_cells else float(baseline[blue_col])
+                base_red = 0.0 if (baseline_row_idx, red_col) in zeroed_cells else float(baseline[red_col])
             else:
                 print(f"warning: baseline (0,0) not found in {path}, use 0 as baseline")
 
-        for row in rows:
+        for row_idx, row in enumerate(rows, start=2):
             x = float(row[x_col])
             y = float(row[y_col])
             coord = (x, y)
-            blue_val = float(row[blue_col])
-            red_val = float(row[red_col])
+            blue_val = 0.0 if (row_idx, blue_col) in zeroed_cells else float(row[blue_col])
+            red_val = 0.0 if (row_idx, red_col) in zeroed_cells else float(row[red_col])
             if use_sub:
                 blue_val = max(0.0, blue_val - base_blue)
                 red_val = max(0.0, red_val - base_red)
@@ -198,7 +194,23 @@ for path in csv_paths:
             red_cnt[coord] += 1
 
 if not blue_sum:
-    raise ValueError("no rows found for global aggregation")
+    raise ValueError("no rows found for global aggregation after outlier filtering")
+
+if outlier_hit_count:
+    print(f"[Outlier filter] threshold: hit_count > {outlier_threshold:g}")
+    print(f"[Outlier filter] zeroed {outlier_hit_count} exploding hit_count cells in global mean")
+    print("[Outlier filter] first examples:")
+    for item in outlier_examples:
+        print(
+            "  "
+            f"{item['brand']}: {item['col']}={item['value']:.6g} "
+            f"at csv_row={item['row']}, run_id={item['run_id']}, "
+            f"({item['x']}, {item['y']}); csv={item['path']}"
+        )
+else:
+    print(f"[Outlier filter] no hit_count cell > {outlier_threshold:g}")
+
+print(f"[Outlier filter] global mean uses all {len(csv_paths)} brand csvs")
 
 blue_avg = {}
 red_avg = {}

@@ -1,58 +1,51 @@
 #!/bin/bash
 set -uo pipefail
 
-PLOT_DIR="Qwne3_nomind_plot"
+PLOT_DIR="./Llama_plot"
 USE_SUB=1
 OUTLIER_HIT_THRESHOLD=20
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --sub)
-      USE_SUB=1
-      shift
-      ;;
-    --no-sub)
-      USE_SUB=0
-      shift
-      ;;
-    -h|--help)
-      echo "Usage: bash plot.sh [--sub|--no-sub]"
-      echo "  --sub     Subtract baseline (0,0) and clip at 0 (default)"
-      echo "  --no-sub  Disable baseline subtraction"
-      exit 0
-      ;;
-    *)
-      echo "[ERROR] Unknown argument: $1" >&2
-      exit 1
-      ;;
-  esac
-done
+RESULT_ROOT="./batch_results_Llama"
 
 mkdir -p "${PLOT_DIR}"
+export MPLCONFIGDIR="/tmp/matplotlib_ds_plot"
+mkdir -p "${MPLCONFIGDIR}"
 
-required_prompt_ids=(0 1 2)
+readarray -t base_dirs < <(find "${RESULT_ROOT}" -maxdepth 1 -mindepth 1 -type d -name 'Llama*' | sort)
+
+if (( ${#base_dirs[@]} == 0 )); then
+  echo "[ERROR] No Llama result directories found under ${RESULT_ROOT}" >&2
+  exit 1
+fi
+
 processed_count=0
 skipped_count=0
 generated_avg_csvs=()
+generated_plot_dirs=()
 
-for base_dir in logp_token_*; do
-  if [[ ! -d "${base_dir}" ]]; then
+echo "[Info] Result root: ${RESULT_ROOT}"
+echo "[Info] Plot output root: ${PLOT_DIR}"
+echo "[Stage 1/2] Aggregating summary csv files..."
+
+for base_dir in "${base_dirs[@]}"; do
+  run_name="$(basename "${base_dir}")"
+  run_plot_dir="${PLOT_DIR}/${run_name}"
+  avg_csv="${run_plot_dir}/summary_avg.csv"
+  prompt_avg_csv="${base_dir}/prompt_hit_avg.csv"
+  mkdir -p "${run_plot_dir}"
+
+  if [[ -f "${prompt_avg_csv}" ]]; then
+    echo "[Run] ${base_dir}: using aggregated csv ${prompt_avg_csv} -> ${avg_csv}"
+    cp "${prompt_avg_csv}" "${avg_csv}"
+    generated_avg_csvs+=("${avg_csv}")
+    generated_plot_dirs+=("${run_plot_dir}")
+    processed_count=$((processed_count + 1))
     continue
   fi
 
-  missing=0
-  input_paths=()
-  for pid in "${required_prompt_ids[@]}"; do
-    csv_path="${base_dir}/p${pid}/summary_${pid}.csv"
-    if [[ ! -f "${csv_path}" ]]; then
-      missing=1
-      break
-    fi
-    input_paths+=("${csv_path}")
-  done
+  readarray -t input_paths < <(find "${base_dir}" -maxdepth 2 -type f -regextype posix-extended -regex '.*/p[0-9]+/summary_[0-9]+\.csv' | sort -V)
 
-  if (( missing == 1 )); then
-    echo "[Skip] ${base_dir}: missing one or more files in p0~p4"
+  if (( ${#input_paths[@]} == 0 )); then
+    echo "[Skip] ${base_dir}: no p*/summary_*.csv files found"
     skipped_count=$((skipped_count + 1))
     continue
   fi
@@ -61,9 +54,8 @@ for base_dir in logp_token_*; do
   row_count_ref=-1
   row_count_info=()
   for csv_path in "${input_paths[@]}"; do
-    # Count data rows (exclude header line).
     data_rows="$(awk 'NR>1 {c++} END {print c+0}' "${csv_path}")"
-    row_count_info+=("$(basename "${csv_path}")=${data_rows}")
+    row_count_info+=("$(basename "$(dirname "${csv_path}")")/$(basename "${csv_path}")=${data_rows}")
     if (( row_count_ref < 0 )); then
       row_count_ref="${data_rows}"
     elif (( data_rows != row_count_ref )); then
@@ -72,33 +64,48 @@ for base_dir in logp_token_*; do
   done
 
   if (( row_count_mismatch == 1 )); then
-    echo "[Skip] ${base_dir}: summary_i.csv data row counts are not equal (${row_count_info[*]})"
+    echo "[Skip] ${base_dir}: summary csv row counts are not equal (${row_count_info[*]})"
     skipped_count=$((skipped_count + 1))
     continue
   fi
 
-  avg_csv="${base_dir}/summary_avg_p0_p4.csv"
-  echo "[Run] ${base_dir}: generating ${avg_csv}"
+  echo "[Run] ${base_dir}: aggregating ${#input_paths[@]} csv files -> ${avg_csv}"
   python average_summary_csv.py \
     --inputs "${input_paths[@]}" \
     --output "${avg_csv}"
 
-  echo "[Run] ${base_dir}: plotting heatmap"
-  plot_cmd=(python plot_avg_heatmap.py \
-    --csv "${avg_csv}" \
-    --output-dir "${PLOT_DIR}")
-  if (( USE_SUB == 1 )); then
-    plot_cmd+=(--sub)
-  fi
-  "${plot_cmd[@]}"
-
   generated_avg_csvs+=("${avg_csv}")
+  generated_plot_dirs+=("${run_plot_dir}")
   processed_count=$((processed_count + 1))
 done
 
-if (( ${#generated_avg_csvs[@]} > 0 )); then
-  echo "[Run] building global normalized heatmaps for blue/red brands"
-  python - "${PLOT_DIR}" "${USE_SUB}" "${OUTLIER_HIT_THRESHOLD}" "${generated_avg_csvs[@]}" <<'PY'
+if (( ${#generated_avg_csvs[@]} == 0 )); then
+  echo ""
+  echo "Done."
+  echo "Processed dirs: 0"
+  echo "Skipped dirs: ${skipped_count}"
+  echo "Output plot dir: ${PLOT_DIR}"
+  exit 0
+fi
+
+echo "[Stage 2/2] Plotting aggregated csv files..."
+for idx in "${!generated_avg_csvs[@]}"; do
+  avg_csv="${generated_avg_csvs[$idx]}"
+  run_plot_dir="${generated_plot_dirs[$idx]}"
+
+  plot_cmd=(python plot_avg_heatmap.py \
+    --csv "${avg_csv}" \
+    --output-dir "${run_plot_dir}")
+  if (( USE_SUB == 1 )); then
+    plot_cmd+=(--sub)
+  fi
+
+  echo "[Run] ${avg_csv}: plotting heatmaps -> ${run_plot_dir}"
+  "${plot_cmd[@]}"
+done
+
+echo "[Run] building global normalized heatmaps for blue/red brands"
+python - "${PLOT_DIR}" "${USE_SUB}" "${OUTLIER_HIT_THRESHOLD}" "${generated_avg_csvs[@]}" <<'PY'
 import csv
 import sys
 from collections import defaultdict
@@ -115,7 +122,6 @@ use_sub = bool(int(sys.argv[2]))
 outlier_threshold = float(sys.argv[3])
 csv_paths = [Path(x) for x in sys.argv[4:]]
 
-# Keyed by coordinate (x, y): aggregate values from all brands/files.
 blue_sum = defaultdict(float)
 blue_cnt = defaultdict(int)
 red_sum = defaultdict(float)
@@ -129,7 +135,6 @@ for path in csv_paths:
         fieldnames = reader.fieldnames or []
         if len(fieldnames) < 7:
             raise ValueError(f"unexpected columns in {path}")
-        run_col = fieldnames[0]
         x_col = fieldnames[1]
         y_col = fieldnames[2]
         blue_col = fieldnames[-2]
@@ -150,7 +155,7 @@ for path in csv_paths:
                                 "brand": path.parent.name,
                                 "path": path,
                                 "row": row_idx,
-                                "run_id": row.get(run_col, ""),
+                                "run_id": row.get(fieldnames[0], ""),
                                 "x": row.get(x_col, ""),
                                 "y": row.get(y_col, ""),
                                 "col": col,
@@ -268,7 +273,7 @@ def draw_heatmap(data_map, cmap_name, title, out_path):
     ax.set_title(title)
 
     sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
-    fig.colorbar(sm, ax=ax, label="Normalized hit_counts ")
+    fig.colorbar(sm, ax=ax, label="Normalized hit_count [0,1]")
     fig.savefig(out_path, dpi=220, bbox_inches="tight")
     plt.close(fig)
     print(f"saved: {out_path}")
@@ -276,17 +281,16 @@ def draw_heatmap(data_map, cmap_name, title, out_path):
 draw_heatmap(
     blue_norm,
     "Blues",
-    "Brand 1 Mean Hit Counts " if use_sub else " Brand 1 Mean Hit Counts",
+    "Global Blue Brands Mean Hit Count (Normalized, Sub)" if use_sub else "Global Blue Brands Mean Hit Count (Normalized)",
     plot_dir / ("global_blue_mean_normalized_sub.png" if use_sub else "global_blue_mean_normalized.png"),
 )
 draw_heatmap(
     red_norm,
     "Reds",
-    "Brand 2 Mean Hit Counts " if use_sub else "Brand 2 Mean Hit Counts",
+    "Global Red Brands Mean Hit Count (Normalized, Sub)" if use_sub else "Global Red Brands Mean Hit Count (Normalized)",
     plot_dir / ("global_red_mean_normalized_sub.png" if use_sub else "global_red_mean_normalized.png"),
 )
 PY
-fi
 
 echo ""
 echo "Done."
