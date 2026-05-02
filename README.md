@@ -51,4 +51,7 @@ conda activate ypr
 
 3. 下一步在tmux里执行`bash launcher_ds.sh` ,这个任务应该会需要一些时间，至少需要一晚上 记得修改GPU_LIST。
 
-4. 最后一步tmux里执行`bash `
+4. 最后一步tmux里执行`bash launcher_llama3.sh`,这个任务也应该挺慢的,但是比上面的快一些?
+   
+
+**先把 3个model 100个 2-Bidders 的实验测完,**之后应该会得到三个`batch_results*`文件夹,到时候我用这些结果先画三个heatmap ,保证最后有图可以放...
