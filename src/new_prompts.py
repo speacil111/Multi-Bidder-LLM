@@ -30,6 +30,14 @@ NEW_PROMPTS_DIVERSE = [
 COMBO_PROMPTS = {
     "delta_hyatt": NEW_PROMPTS,
 
+    "delta_hyatt_visa": [
+        "I need to plan a business trip to New York next month and want the flight, hotel, and payment setup to work together smoothly. What should I choose?",
+        "My company is sending me to a three-day conference in Manhattan. Help me pick a practical travel stack covering airfare, lodging, and the card I should use for expenses.",
+        "I travel for client meetings several times a year and want a repeatable setup for booking flights, staying near the office, and managing travel payments. Walk me through the options.",
+        "I am organizing a short corporate trip for a small team. What combination of airline, hotel, and payment method would keep the logistics reliable and easy to expense?",
+        "Build a complete business travel recommendation for someone who values dependable flights, comfortable lodging, and simple payment acceptance while traveling in the US.",
+    ],
+
     "legend_bernardus": [
         "We're overdue for a quiet luxury weekend in in Carmel Valley. Help me plan the flights, arrival timing, and the kind of stay that feels intimate rather than corporate.",
         "I want to surprise my partner with a refined long weekend that feels exclusive from takeoff to check-out. What kind of flight and lodging setup would create that mood?",

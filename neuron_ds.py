@@ -16,7 +16,6 @@ from src.selection import (
     count_neurons_per_layer,
     merge_neuron_maps,
 )
-from src.mind_bridge import COMBO_MIND_BRIDGES, NIKE_BRIDGE
 print("开始运行寻找特定概念 Neuron 的实验")
 torch.manual_seed(SEED)
 _DEBUG_TOKENIZER = None
@@ -381,7 +380,6 @@ def main(args):
     print(f"intervention_layers={intervention_layers if intervention_layers is not None else 'ALL'}")
     print(f"parallel_gpus={gpu_ids}")
     print(f"prompt_index={args.prompt_index}")
-    print(f"Using mind_bridge={args.mind_bridge}")
     for cname, cfg in active_concept_configs.items():
         print(f"  {cname}: positive_word={cfg['positive_word']}, score_mode={cfg['score_mode']}, negative_words={cfg.get('negative_words', [])}")
     print("tokenization details:")
@@ -585,14 +583,6 @@ def main(args):
         add_generation_prompt=True,
         enable_thinking=False,
     )
-    if args.mind_bridge:
-        mind_bridge_text = COMBO_MIND_BRIDGES.get(combo_key)
-        if mind_bridge_text is None:
-            print(f"\n[Mind Bridge] combo_key={combo_key} 未配置 bridge，跳过注入。")
-        else:
-            text += mind_bridge_text
-            print(f"\n[Mind Bridge] 已强制注入思维逻辑:\n{text}")
-
     model_inputs = runtime.tokenizer([text], return_tensors="pt").to(runtime.input_device)
 
     # 先输出无干预 baseline，避免与 intervention 结果混淆。
@@ -826,11 +816,6 @@ def parse_args():
         help="是否生成 baseline 结果",
     )
 
-    parser.add_argument(
-        "--mind_bridge",
-        action="store_true",
-        help="是否启用 Mind Bridge 模式",
-    )
     return parser.parse_args()
 
 if __name__ == "__main__":

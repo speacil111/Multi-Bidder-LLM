@@ -222,7 +222,6 @@ def compute_llm_reward(alloc_1, alloc_2, v_1=1.0, v_2=1.0, v_3=1.0, prompt_index
         "--intervention_layer", "-1",
         "--prompt-index", str(prompt_index),
         "--unified-hook",
-        "--mind_bridge",
         "--max-new-tokens", "1536"
     ]
 

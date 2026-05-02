@@ -8,7 +8,7 @@ conda activate ypr
 ```
 ## 模型介绍
 需要下载一下三个模型,放置在Multi-Bidder-LLM同级目录下,模型文件夹名称也需要按照以下重命名
-- `Qwen3-4B`: (https://huggingface.co/Qwen/Qwen3-8B)
+- `Qwen3-4B`: (https://huggingface.co/Qwen/Qwen3-4B)
 - `DS_r1_8B`: (https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-8B)
 - `Llama-3-8B-Instruct`: (https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct)
 
@@ -35,11 +35,9 @@ conda activate ypr
    MODEL_PATH="../Qwen3-4B" # 使用的模型路径
    ATTRIBUTION_CACHE_DIR="./attr_cache_qwen" # 属性缓存路径
    # First-level result dir. Empty means topk_sweep_batch.sh uses batch_results_<model_tag>.
-   RESULT_ROOT="./batch_results_qwen_nomind"
+   RESULT_ROOT="./batch_results_qwen"
    # Empty means use PROMPT_LIST inside topk_sweep_batch.sh.
    PROMPT_LIST="2" # 需要测试的prompt 序号
-   # on/off/auto
-   MIND_BRIDGE_MODE="off"
    MIN_FREE_MEM_MB=15000 # 当某张卡显存剩余少于15000MB时不在分配任务
    POLL_SEC=5
    MAX_IDLE_UTIL=70 # 优先找利用率低于70的GPU分配任务
@@ -54,4 +52,4 @@ conda activate ypr
 4. 最后一步tmux里执行`bash launcher_llama3.sh`,这个任务也应该挺慢的,但是比上面的快一些?
    
 
-**先把 3个model 100个 2-Bidders 的实验测完,**之后应该会得到三个`batch_results*`文件夹,到时候我用这些结果先画三个heatmap ,保证最后有图可以放...
+**先把 3个model 100个 2-Bidders 的实验测完**,之后应该会得到三个`batch_results*`文件夹,到时候我用这些结果先画三个heatmap ,保证最后有图可以放...

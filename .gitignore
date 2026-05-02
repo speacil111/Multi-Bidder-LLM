@@ -15,3 +15,4 @@ Qwen3-8B/
 DS_plot/
 .vscode/
 *.DS_Store
+.codex

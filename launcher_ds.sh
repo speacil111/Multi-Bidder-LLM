@@ -26,10 +26,6 @@ Optional:
                         Override ATTR_CACHE_DIR passed to topk script
   --result-root DIR     Override first-level result dir passed to topk script
   --prompt-list LIST    Override prompt indexes passed to topk script, e.g. "0,1,2" or "0 1 2"
-  --mind-bridge-mode MODE
-                        Control mind_bridge: on, off, or auto. Default: MIND_BRIDGE_MODE
-  --mind-bridge         Force enable mind_bridge in topk script
-  --no-mind-bridge      Force disable mind_bridge in topk script
   --log-dir DIR         Launcher output dir. Default: ./batch_runs_Llama
   --stagger-sec N       Sleep N seconds between launches. Default: 2
   --min-free-mem-mb N   Treat GPU as selectable only if memory.free >= N. Default: 15000
@@ -68,11 +64,9 @@ STAGGER_SEC=2
 MODEL_PATH="../DS_r1_8B"
 ATTRIBUTION_CACHE_DIR="./attr_cache_ds"
 # First-level result dir. Empty means topk_sweep_batch.sh uses batch_results_<model_tag>.
-RESULT_ROOT="./batch_results_ds_nomind"
+RESULT_ROOT="./batch_results_ds"
 # Empty means use PROMPT_LIST inside topk_sweep_batch.sh.
 PROMPT_LIST="0 1 2"
-# on/off/auto
-MIND_BRIDGE_MODE="off"
 MIN_FREE_MEM_MB=15000
 POLL_SEC=5
 MAX_IDLE_UTIL=70
@@ -171,23 +165,6 @@ while [[ $# -gt 0 ]]; do
       PROMPT_LIST="${1#*=}"
       shift
       ;;
-    --mind-bridge-mode)
-      [[ $# -ge 2 ]] || { echo "[ERROR] --mind-bridge-mode requires a value: on, off, or auto" >&2; usage >&2; exit 1; }
-      MIND_BRIDGE_MODE="$2"
-      shift 2
-      ;;
-    --mind-bridge-mode=*)
-      MIND_BRIDGE_MODE="${1#*=}"
-      shift
-      ;;
-    --mind-bridge)
-      MIND_BRIDGE_MODE="on"
-      shift
-      ;;
-    --no-mind-bridge)
-      MIND_BRIDGE_MODE="off"
-      shift
-      ;;
     --log-dir)
       [[ $# -ge 2 ]] || { echo "[ERROR] --log-dir requires a value" >&2; usage >&2; exit 1; }
       LOG_DIR="$2"
@@ -273,15 +250,6 @@ if [[ ! -f "${TOPK_SCRIPT}" ]]; then
   echo "[ERROR] topk script not found: ${TOPK_SCRIPT}" >&2
   exit 1
 fi
-
-case "${MIND_BRIDGE_MODE}" in
-  on|off|auto)
-    ;;
-  *)
-    echo "[ERROR] Invalid mind_bridge mode: ${MIND_BRIDGE_MODE}. Use on, off, or auto." >&2
-    exit 1
-    ;;
-esac
 
 readarray -t GPU_IDS < <(
   python - "${GPU_SPEC}" <<'PY'
@@ -435,7 +403,6 @@ model_path=${MODEL_PATH}
 attribution_cache_dir=${ATTRIBUTION_CACHE_DIR}
 result_root=${RESULT_ROOT:-<auto>}
 prompt_list=${PROMPT_LIST:-<topk default>}
-mind_bridge_mode=${MIND_BRIDGE_MODE}
 min_free_mem_mb=${MIN_FREE_MEM_MB}
 max_idle_util=${MAX_IDLE_UTIL}
 poll_sec=${POLL_SEC}
@@ -459,7 +426,6 @@ echo "[Launcher] max_jobs: ${MAX_JOBS}"
 echo "[Launcher] max_jobs_per_gpu: ${MAX_JOBS_PER_GPU}"
 echo "[Launcher] result_root: ${RESULT_ROOT:-<auto>}"
 echo "[Launcher] prompt_list: ${PROMPT_LIST:-<topk default>}"
-echo "[Launcher] mind_bridge_mode: ${MIND_BRIDGE_MODE}"
 if [[ "${NVIDIA_SMI_AVAILABLE}" -eq 1 ]]; then
   echo "[Launcher] idle-gpu mode: prefer memory.free>=${MIN_FREE_MEM_MB}MB and utilization.gpu<${MAX_IDLE_UTIL}%, fallback to highest memory.free with memory.free>=${MIN_FREE_MEM_MB}MB"
 else
@@ -694,19 +660,11 @@ for combo_id in "${COMBO_IDS[@]}"; do
   if [[ -n "${PROMPT_LIST}" ]]; then
     cmd+=(--prompt-list "${PROMPT_LIST}")
   fi
-  case "${MIND_BRIDGE_MODE}" in
-    on)
-      cmd+=(--mind-bridge)
-      ;;
-    off)
-      cmd+=(--no-mind-bridge)
-      ;;
-  esac
   combo_key="${COMBO_TO_KEY[${combo_id}]}"
   combo_brand_1="${COMBO_TO_BRAND1[${combo_id}]}"
   combo_brand_2="${COMBO_TO_BRAND2[${combo_id}]}"
 
-  echo "[Launcher] launch: combo=${combo_id} key=${combo_key} brand_1=${combo_brand_1} brand_2=${combo_brand_2} gpu=${gpu_id} result_root=${RESULT_ROOT:-<auto>} mind_bridge_mode=${MIND_BRIDGE_MODE} log=${job_log}"
+  echo "[Launcher] launch: combo=${combo_id} key=${combo_key} brand_1=${combo_brand_1} brand_2=${combo_brand_2} gpu=${gpu_id} result_root=${RESULT_ROOT:-<auto>} log=${job_log}"
   printf '[Launcher] command:'
   printf ' %q' "${cmd[@]}"
   printf '\n'

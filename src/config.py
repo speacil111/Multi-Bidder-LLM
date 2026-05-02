@@ -953,6 +953,11 @@ EXTRA_COMBO_PRESETS = {
 
 COMBO_PRESETS.update(EXTRA_COMBO_PRESETS)
 
+# 3-bidder example: flight + hotel + payment network for joint recommendation tests.
+# Keep this appended after all existing 2-bidder presets so numeric combo ids used by
+# existing sweep scripts remain stable.
+COMBO_PRESETS["delta_hyatt_visa"] = ["Delta", "Hyatt", "Visa"]
+
 PRINT_TOP_K = 10
 ATTRIBUTION_LAYER_CHUNK_SIZE = 8
 IG_STEPS_DEFAULT = 20

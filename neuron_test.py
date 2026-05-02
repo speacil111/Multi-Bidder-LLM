@@ -16,7 +16,6 @@ from src.selection import (
     count_neurons_per_layer,
     merge_neuron_maps,
 )
-from src.mind_bridge import COMBO_MIND_BRIDGES, NIKE_BRIDGE
 print("开始运行寻找特定概念 Neuron 的实验")
 torch.manual_seed(SEED)
 _DEBUG_TOKENIZER = None
@@ -201,6 +200,61 @@ def select_top_k_by_difference(target_scores_by_layer, other_scores_by_layer, to
     return neuron_map, len(selected), float(diff_sum), float(target_sum), float(other_abs_sum)
 
 
+def select_top_k_by_mean_difference(target_scores_by_layer, other_scores_by_layers, top_k):
+    if top_k < 0:
+        raise ValueError(f"top_k 必须为非负整数，当前: {top_k}")
+    if top_k == 0:
+        return {}, 0, 0.0, 0.0, 0.0
+
+    candidates = []
+    for layer_idx, target_tensor in target_scores_by_layer.items():
+        target_tensor = target_tensor.to(torch.float32)
+        other_abs_tensors = []
+        for other_scores_by_layer in other_scores_by_layers:
+            other_tensor = other_scores_by_layer.get(layer_idx)
+            if other_tensor is None:
+                other_abs_tensors.append(torch.zeros_like(target_tensor, dtype=torch.float32))
+            else:
+                other_abs_tensors.append(other_tensor.to(torch.float32).abs())
+
+        if other_abs_tensors:
+            other_abs_mean = torch.stack(other_abs_tensors, dim=0).mean(dim=0)
+        else:
+            other_abs_mean = torch.zeros_like(target_tensor, dtype=torch.float32)
+
+        diff_tensor = target_tensor - other_abs_mean
+        for neuron_idx in range(diff_tensor.shape[0]):
+            candidates.append(
+                (
+                    layer_idx,
+                    neuron_idx,
+                    float(diff_tensor[neuron_idx].item()),
+                    float(target_tensor[neuron_idx].item()),
+                    float(other_abs_mean[neuron_idx].item()),
+                )
+            )
+
+    if len(candidates) == 0:
+        return {}, 0, 0.0, 0.0, 0.0
+
+    candidates.sort(key=lambda x: x[2], reverse=True)
+    selected = candidates[: min(int(top_k), len(candidates))]
+
+    neuron_map = {}
+    diff_sum = 0.0
+    target_sum = 0.0
+    other_abs_mean_sum = 0.0
+    for layer_idx, neuron_idx, diff_score, target_score, other_abs_mean_score in selected:
+        if layer_idx not in neuron_map:
+            neuron_map[layer_idx] = []
+        neuron_map[layer_idx].append(neuron_idx)
+        diff_sum += diff_score
+        target_sum += target_score
+        other_abs_mean_sum += other_abs_mean_score
+
+    return neuron_map, len(selected), float(diff_sum), float(target_sum), float(other_abs_mean_sum)
+
+
 def _build_attribution_cache_path(active_concept_configs, ig_steps, cache_dir):
     # 使用排序后的概念名，避免仅因概念顺序不同而产生重复缓存文件。
     concept_names = "-".join(sorted(active_concept_configs.keys()))
@@ -259,6 +313,59 @@ def _validate_cache_for_current_run(loaded_obj, expected_concepts, expected_ig_s
     return False, "缓存格式无法识别"
 
 
+def _extract_concept_scores_from_cache_obj(loaded_obj):
+    if isinstance(loaded_obj, dict) and "concept_scores_by_layer" in loaded_obj:
+        scores = loaded_obj["concept_scores_by_layer"]
+        meta = loaded_obj.get("meta", {})
+        return scores, meta
+    if isinstance(loaded_obj, dict):
+        return loaded_obj, {}
+    return None, {}
+
+
+def _load_partial_concept_scores_from_cache(active_concept_configs, ig_steps, cache_dir):
+    expected_concepts = list(active_concept_configs.keys())
+    expected_set = set(expected_concepts)
+    cache_dir_path = Path(cache_dir)
+    if not cache_dir_path.exists():
+        return {}, []
+
+    partial_scores = {}
+    source_paths = {}
+    pattern = f"attribution_*_ig{ig_steps}.pt"
+    for candidate_path in sorted(cache_dir_path.glob(pattern)):
+        if expected_set.issubset(partial_scores.keys()):
+            break
+
+        try:
+            loaded_obj = torch.load(candidate_path, map_location="cpu")
+        except Exception as exc:
+            print(f"[缓存复用] 跳过无法读取的缓存 {candidate_path}: {exc}")
+            continue
+
+        scores, meta = _extract_concept_scores_from_cache_obj(loaded_obj)
+        if not isinstance(scores, dict):
+            continue
+
+        cached_ig_steps = meta.get("ig_steps") if isinstance(meta, dict) else None
+        if cached_ig_steps is not None and cached_ig_steps != ig_steps:
+            continue
+
+        for concept_name in expected_concepts:
+            if concept_name in partial_scores:
+                continue
+            if concept_name in scores:
+                partial_scores[concept_name] = scores[concept_name]
+                source_paths[concept_name] = candidate_path
+
+    reused_sources = [
+        (concept_name, source_paths[concept_name])
+        for concept_name in expected_concepts
+        if concept_name in source_paths
+    ]
+    return partial_scores, reused_sources
+
+
 def _find_combo_key_for_selected_concepts(selected_concepts):
     for combo_key, combo_concepts in COMBO_PRESETS.items():
         if list(combo_concepts) == list(selected_concepts):
@@ -300,6 +407,7 @@ def main(args):
     intervention_layers = parse_intervention_layers(args.intervention_layer)
     enable_1 = args.enable_1
     enable_2 = args.enable_2
+    enable_3 = args.enable_3
 
     resolved_combo_preset = _resolve_combo_preset(args.combo_preset)
 
@@ -315,9 +423,9 @@ def main(args):
     else:
         raise ValueError("请使用 --combo-preset 或 --concepts 指定概念")
 
-    if len(candidate_concepts) > 2:
+    if len(candidate_concepts) > 3:
         raise ValueError(
-            "当前参数槽位仅支持 2 个概念，请将 --concepts 控制在 2 个以内，"
+            "当前参数槽位仅支持 3 个概念，请将 --concepts 控制在 3 个以内，"
             "或使用 --combo-preset"
         )
 
@@ -326,6 +434,8 @@ def main(args):
         score_mode_overrides[candidate_concepts[0]] = args.score_mode_1
     if len(candidate_concepts) >= 2 and args.score_mode_2:
         score_mode_overrides[candidate_concepts[1]] = args.score_mode_2
+    if len(candidate_concepts) >= 3 and args.score_mode_3:
+        score_mode_overrides[candidate_concepts[2]] = args.score_mode_3
 
     selected_concepts = []
     if enable_1:
@@ -336,6 +446,10 @@ def main(args):
         if len(candidate_concepts) < 2:
             raise ValueError("未提供第 2 个候选概念，无法使用 --enable_2")
         selected_concepts.append(candidate_concepts[1])
+    if enable_3:
+        if len(candidate_concepts) < 3:
+            raise ValueError("未提供第 3 个候选概念，无法使用 --enable_3")
+        selected_concepts.append(candidate_concepts[2])
 
     unknown_concepts = [name for name in selected_concepts if name not in CONCEPT_CONFIGS]
     if unknown_concepts:
@@ -347,11 +461,11 @@ def main(args):
     if not selected_concepts:
         raise ValueError(
             "至少需要启用一个概念：可使用 --combo-preset、--concepts，"
-            "并通过 --enable_1/--enable_2 启用"
+            "并通过 --enable_1/--enable_2/--enable_3 启用"
         )
-    if len(selected_concepts) != 2:
+    if len(selected_concepts) < 2:
         raise ValueError(
-            "当前脚本已切换为双概念差分选点模式，需要且仅需要启用 2 个概念（例如 bidder_A,bidder_B）。"
+            "当前脚本使用多概念差分选点模式，至少需要启用 2 个概念（例如 bidder_A,bidder_B）。"
         )
 
     combo_key = resolved_combo_preset or _find_combo_key_for_selected_concepts(selected_concepts)
@@ -387,19 +501,26 @@ def main(args):
     if enable_2 and len(candidate_concepts) >= 2:
         target_attr_sum_by_concept[candidate_concepts[1]] = args.attr_sum_2
         multiplier_by_concept[candidate_concepts[1]] = args.multiplier_2
+    if enable_3 and len(candidate_concepts) >= 3:
+        target_attr_sum_by_concept[candidate_concepts[2]] = args.attr_sum_3
+        multiplier_by_concept[candidate_concepts[2]] = args.multiplier_3
     for concept_name in CONCEPT_CONFIGS:
         target_attr_sum_by_concept.setdefault(concept_name, 10.0)
         multiplier_by_concept.setdefault(concept_name, 3.0)
 
-    if args.neuron_count_1 is not None or args.neuron_count_2 is not None:
+    if (
+        args.neuron_count_1 is not None
+        or args.neuron_count_2 is not None
+        or args.neuron_count_3 is not None
+    ):
         print(
-            "[警告] --neuron_count_1/--neuron_count_2 已废弃，当前版本请使用 "
-            "--top_k_1/--top_k_2 控制选点数量。"
+            "[警告] --neuron_count_1/--neuron_count_2/--neuron_count_3 已废弃，当前版本请使用 "
+            "--top_k_1/--top_k_2/--top_k_3 控制选点数量。"
         )
-    if args.attr_sum_1 != 10.0 or args.attr_sum_2 != 10.0:
+    if args.attr_sum_1 != 10.0 or args.attr_sum_2 != 10.0 or args.attr_sum_3 != 10.0:
         print(
-            "[警告] 当前版本不再使用 --attr_sum_1/--attr_sum_2 自动选 k；"
-            "请改用 --top_k_1/--top_k_2。"
+            "[警告] 当前版本不再使用 --attr_sum_1/--attr_sum_2/--attr_sum_3 自动选 k；"
+            "请改用 --top_k_1/--top_k_2/--top_k_3。"
         )
     if args.threshold != 0.0:
         print(
@@ -409,6 +530,7 @@ def main(args):
     print("\n>>> 当前运行参数 <<<")
     print(f"enable_1={enable_1}")
     print(f"enable_2={enable_2}")
+    print(f"enable_3={enable_3}")
     print(f"combo_preset={args.combo_preset}")
     # print(f"resolved_combo_preset={resolved_combo_preset}")
     print(f"concepts={args.concepts}")
@@ -421,13 +543,14 @@ def main(args):
     print(f"multiplier_1={args.multiplier_1}")
     # print(f"attr_sum_2={args.attr_sum_2}")
     print(f"multiplier_2={args.multiplier_2}")
+    print(f"multiplier_3={args.multiplier_3}")
     print(f"top_k_1={args.top_k_1}")
     print(f"top_k_2={args.top_k_2}")
+    print(f"top_k_3={args.top_k_3}")
     # print(f"threshold={args.threshold}")
     print(f"intervention_layers={intervention_layers if intervention_layers is not None else 'ALL'}")
     print(f"parallel_gpus={gpu_ids}")
     print(f"prompt_index={args.prompt_index}")
-    print(f"Using mind_bridge={args.mind_bridge}")
     for cname, cfg in active_concept_configs.items():
         print(f"  {cname}: positive_word={cfg['positive_word']}, score_mode={cfg['score_mode']}, negative_words={cfg.get('negative_words', [])}")
     print("tokenization details:")
@@ -503,12 +626,50 @@ def main(args):
         elif not load_cache_path.exists():
             print("未检测到归因缓存，将进行重算。")
 
+    if should_recompute and not args.force_recmp and not args.attribution_cache_path:
+        partial_scores, reused_sources = _load_partial_concept_scores_from_cache(
+            active_concept_configs=active_concept_configs,
+            ig_steps=args.ig_steps,
+            cache_dir=args.attribution_cache_dir,
+        )
+        if reused_sources:
+            print("[缓存复用] 从已有归因缓存中复用 concept 分数:")
+            for concept_name, source_path in reused_sources:
+                print(f"  {concept_name}: {source_path}")
+
+        missing_concepts = [
+            concept_name
+            for concept_name in active_concept_configs.keys()
+            if concept_name not in partial_scores
+        ]
+        if partial_scores and not missing_concepts:
+            concept_scores_by_layer = partial_scores
+            should_recompute = False
+            torch.save(
+                {
+                    "concept_scores_by_layer": concept_scores_by_layer,
+                    "meta": {
+                        "ig_steps": args.ig_steps,
+                        "active_concepts": list(active_concept_configs.keys()),
+                    },
+                },
+                canonical_cache_path,
+            )
+            print(f"[缓存复用] 已合并并保存当前组合缓存: {canonical_cache_path}")
+        elif partial_scores:
+            concept_scores_by_layer = partial_scores
+            print(f"[缓存复用] 仍缺少概念 {missing_concepts}，将只重算缺失部分。")
+
     if should_recompute:
         if sequential_attribution:
             primary_gpu = assigned_gpu_ids[0]
             print(f"开始顺序归因（single GPU: {primary_gpu}）...")
-            concept_scores_by_layer = {}
+            if concept_scores_by_layer is None:
+                concept_scores_by_layer = {}
             for concept_name, cfg in active_concept_configs.items():
+                if concept_name in concept_scores_by_layer:
+                    print(f"[顺序归因] 跳过已复用缓存: {concept_name}")
+                    continue
                 print(f"[顺序归因] 正在计算: {concept_name}")
                 single_result = run_parallel_attribution(
                     {concept_name: cfg},
@@ -539,34 +700,37 @@ def main(args):
     concept_neurons = {}
     selected_count_by_concept = {}
     selected_sum_by_concept = {}
-    print("\n>>> 不做归属分类：按 (target - abs(other)) 选 Top-k 神经元 <<<")
+    print("\n>>> 不做归属分类：按 (target - mean(abs(others))) 选 Top-k 神经元 <<<")
     selected_list = list(active_concept_configs.keys())
-    first_concept = selected_list[0]
-    second_concept = selected_list[1]
+    top_k_args = [args.top_k_1, args.top_k_2, args.top_k_3]
     top_k_by_concept = {
-        first_concept: args.top_k_1,
-        second_concept: args.top_k_2,
+        concept_name: top_k_args[idx]
+        for idx, concept_name in enumerate(selected_list)
     }
     contrast_stats_by_concept = {}
     for cname in selected_list:
-        other_name = second_concept if cname == first_concept else first_concept
+        other_names = [name for name in selected_list if name != cname]
+        other_scores_by_layers = [
+            concept_scores_by_layer[other_name]
+            for other_name in other_names
+        ]
         (
             concept_neurons[cname],
             selected_cnt,
             selected_diff_sum,
             selected_target_sum,
-            selected_other_abs_sum,
-        ) = select_top_k_by_difference(
+            selected_other_abs_mean_sum,
+        ) = select_top_k_by_mean_difference(
             concept_scores_by_layer[cname],
-            concept_scores_by_layer[other_name],
+            other_scores_by_layers,
             top_k=top_k_by_concept[cname],
         )
         selected_count_by_concept[cname] = selected_cnt
         selected_sum_by_concept[cname] = selected_diff_sum
         contrast_stats_by_concept[cname] = {
-            "other_name": other_name,
+            "other_names": other_names,
             "target_sum": selected_target_sum,
-            "other_abs_sum": selected_other_abs_sum,
+            "other_abs_mean_sum": selected_other_abs_mean_sum,
         }
         per_layer_counts = count_neurons_per_layer(concept_neurons[cname])
         per_layer_desc = (
@@ -575,9 +739,9 @@ def main(args):
             else "无"
         )
         print(
-            f"  {cname}: other={other_name}, top_k={top_k_by_concept[cname]}, "
+            f"  {cname}: others={'+'.join(other_names)}, top_k={top_k_by_concept[cname]}, "
             f"selected={selected_cnt}, diff_sum={selected_diff_sum:.6f}, "
-            f"target_sum={selected_target_sum:.6f}, other_abs_sum={selected_other_abs_sum:.6f}"
+            f"target_sum={selected_target_sum:.6f}, other_abs_mean_sum={selected_other_abs_mean_sum:.6f}"
         )
         print(f"    按层分布: {per_layer_desc}")
 
@@ -604,13 +768,14 @@ def main(args):
     print(f"\n>>> 准备在生成时进行神经元干预 <<<")
     for cname in concept_neurons.keys():
         contrast_stats = contrast_stats_by_concept.get(cname, {})
-        other_name = contrast_stats.get("other_name", "N/A")
+        other_names = contrast_stats.get("other_names", [])
+        other_desc = "+".join(other_names) if other_names else "N/A"
         print(
-            f"  {cname}: other={other_name}, "
+            f"  {cname}: others={other_desc}, "
             f"top_k={selected_count_by_concept.get(cname, 0)}, "
             f"diff_sum={selected_sum_by_concept.get(cname, 0.0):.6f}, "
             f"target_sum={contrast_stats.get('target_sum', 0.0):.6f}, "
-            f"other_abs_sum={contrast_stats.get('other_abs_sum', 0.0):.6f}, "
+            f"other_abs_mean_sum={contrast_stats.get('other_abs_mean_sum', 0.0):.6f}, "
             f"multiplier={multiplier_by_concept[cname]}x"
         )
 
@@ -633,14 +798,6 @@ def main(args):
         add_generation_prompt=True,
         enable_thinking=False,
     )
-    if args.mind_bridge:
-        mind_bridge_text = COMBO_MIND_BRIDGES.get(combo_key)
-        if mind_bridge_text is None:
-            print(f"\n[Mind Bridge] combo_key={combo_key} 未配置 bridge，跳过注入。")
-        else:
-            text += mind_bridge_text
-            print(f"\n[Mind Bridge] 已强制注入思维逻辑:\n{text}")
-
     model_inputs = runtime.tokenizer([text], return_tensors="pt", padding=True).to(runtime.input_device)
 
     # 先输出无干预 baseline，避免与 intervention 结果混淆。
@@ -732,6 +889,11 @@ def parse_args():
         help="是否启用候选概念列表中的第 2 个概念",
     )
     parser.add_argument(
+        "--enable_3",
+        action="store_true",
+        help="是否启用候选概念列表中的第 3 个概念",
+    )
+    parser.add_argument(
         "--combo-preset",
         type=str,
         default=None,
@@ -786,16 +948,40 @@ def parse_args():
         help="候选概念第 2 项神经元激活放大倍数，需 > 0",
     )
     parser.add_argument(
+        "--attr_sum_3",
+        type=float,
+        default=10.0,
+        help="候选概念第 3 项的目标累计归因分数和 x（已废弃，请使用 --top_k_3）",
+    )
+    parser.add_argument(
+        "--neuron_count_3",
+        type=int,
+        default=None,
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--multiplier_3",
+        type=float,
+        default=2.0,
+        help="候选概念第 3 项神经元激活放大倍数，需 > 0",
+    )
+    parser.add_argument(
         "--top_k_1",
         type=int,
         default=500,
-        help="候选概念第 1 项按 (target - abs(other)) 排序后选取的 Top-k 神经元数；0 表示不为该概念注入神经元",
+        help="候选概念第 1 项按 (target - mean(abs(others))) 排序后选取的 Top-k 神经元数；0 表示不为该概念注入神经元",
     )
     parser.add_argument(
         "--top_k_2",
         type=int,
         default=500,
-        help="候选概念第 2 项按 (target - abs(other)) 排序后选取的 Top-k 神经元数；0 表示不为该概念注入神经元",
+        help="候选概念第 2 项按 (target - mean(abs(others))) 排序后选取的 Top-k 神经元数；0 表示不为该概念注入神经元",
+    )
+    parser.add_argument(
+        "--top_k_3",
+        type=int,
+        default=500,
+        help="候选概念第 3 项按 (target - mean(abs(others))) 排序后选取的 Top-k 神经元数；0 表示不为该概念注入神经元",
     )
     parser.add_argument(
         "--parallel-gpus",
@@ -828,6 +1014,13 @@ def parse_args():
         default=None,
         choices=["direct", "contrastive"],
         help="覆盖候选概念第 2 项的归因模式: direct=仅正向, contrastive=减去负样本",
+    )
+    parser.add_argument(
+        "--score_mode_3",
+        type=str,
+        default=None,
+        choices=["direct", "contrastive"],
+        help="覆盖候选概念第 3 项的归因模式: direct=仅正向, contrastive=减去负样本",
     )
     parser.add_argument(
         "--intervention_layer",
@@ -880,11 +1073,6 @@ def parse_args():
         help="是否生成 baseline 结果",
     )
 
-    parser.add_argument(
-        "--mind_bridge",
-        action="store_true",
-        help="是否启用 Mind Bridge 模式",
-    )
     return parser.parse_args()
 
 if __name__ == "__main__":

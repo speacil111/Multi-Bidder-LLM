@@ -293,7 +293,6 @@ EOF
         --intervention_layer -1
         --prompt-index "${prompt_index}"
         --unified-hook
-        --mind_bridge
         --max-new-tokens "${MAX_NEW_TOKENS}"
       )
 

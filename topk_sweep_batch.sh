@@ -14,8 +14,6 @@ Options:
                         Override ATTR_CACHE_DIR
   --result-root DIR     Override first-level output dir. Default: batch_results_<model_tag>
   --prompt-list LIST    Override prompt indexes, e.g. "0,1,2" or "0 1 2"
-  --mind-bridge         Force enable mind_bridge
-  --no-mind-bridge      Force disable mind_bridge
   -h, --help            Show this help message
 
 Examples:
@@ -61,28 +59,6 @@ resolve_model_tag() {
   else
     printf "Model"
   fi
-}
-
-resolve_mind_bridge_enabled() {
-  local requested_mode="$1"
-  local model_path="$2"
-  local model_path_lower="${model_path,,}"
-
-  case "${requested_mode}" in
-    on)
-      printf "1"
-      ;;
-    off)
-      printf "0"
-      ;;
-    *)
-      if [[ "${model_path_lower}" == *llama*8b* ]]; then
-        printf "0"
-      else
-        printf "1"
-      fi
-      ;;
-  esac
 }
 
 parse_prompt_list_spec() {
@@ -145,7 +121,6 @@ SCRIPT_PATH="neuron_test.py"
 MODEL_PATH="../Llama-3-8B-Instruct"
 ATTR_CACHE_DIR="${ATTR_CACHE_DIR:-attr_cache_Llama}"
 RESULT_ROOT=""
-MIND_BRIDGE_MODE="auto"
 # 在这里手动定义要跑的 prompt 索引（0-based）
 PROMPT_LIST=(0 1 2)
 
@@ -231,14 +206,6 @@ while [[ $# -gt 0 ]]; do
       parse_prompt_list_spec "${1#*=}"
       shift
       ;;
-    --mind-bridge)
-      MIND_BRIDGE_MODE="on"
-      shift
-      ;;
-    --no-mind-bridge)
-      MIND_BRIDGE_MODE="off"
-      shift
-      ;;
     -h|--help)
       usage
       exit 0
@@ -253,8 +220,6 @@ done
 
 PARALLEL_GPUS="${GPU_ID}"
 export CUDA_VISIBLE_DEVICES="${GPU_ID}"
-
-MIND_BRIDGE_ENABLED="$(resolve_mind_bridge_enabled "${MIND_BRIDGE_MODE}" "${MODEL_PATH}")"
 
 script_start_epoch="$(date +%s)"
 script_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -331,8 +296,6 @@ overall_report_txt="${run_root}/report_all_prompts.txt"
   echo "attribution_cache_dir=${ATTR_CACHE_DIR}"
   echo "result_root_dir=${result_root_dir}"
   echo "run_root=${run_root}"
-  echo "mind_bridge_mode=${MIND_BRIDGE_MODE}"
-  echo "mind_bridge_enabled=${MIND_BRIDGE_ENABLED}"
   echo "code_snapshot=${snapshot_dir}"
 } > "${overall_report_txt}"
 
@@ -374,8 +337,6 @@ Fixed params:
   attribution_cache_dir=${ATTR_CACHE_DIR}
   result_root_dir=${result_root_dir}
   run_root=${run_root}
-  mind_bridge_mode=${MIND_BRIDGE_MODE}
-  mind_bridge_enabled=${MIND_BRIDGE_ENABLED}
   code_snapshot=${snapshot_dir}
 EOF
 
@@ -422,10 +383,6 @@ EOF
         --unified-hook
         --max-new-tokens "${MAX_NEW_TOKENS}"
       )
-
-      if [[ "${MIND_BRIDGE_ENABLED}" == "1" ]]; then
-        cmd+=(--mind_bridge)
-      fi
 
       if [[ -n "${MODEL_PATH}" ]]; then
         cmd+=(--model_path "${MODEL_PATH}")
