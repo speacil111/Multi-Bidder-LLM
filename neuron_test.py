@@ -610,15 +610,15 @@ def main(args):
     print(f"prompt_index={args.prompt_index}")
     for cname, cfg in active_concept_configs.items():
         print(f"  {cname}: positive_word={cfg['positive_word']}, score_mode={cfg['score_mode']}, negative_words={cfg.get('negative_words', [])}")
-    print("tokenization details:")
-    for cname, cfg in active_concept_configs.items():
-        pos_word = cfg.get("positive_word")
-        neg_words = cfg.get("negative_words", [])
-        if pos_word:
-            print(f"  {cname}.positive_word='{pos_word}': {_format_tokenization(pos_word, args.model_path)}")
-        for neg_word in neg_words:
-            print(f"  {cname}.negative_word='{neg_word}': {_format_tokenization(neg_word, args.model_path)}")
-    print(f"active_concepts={list(active_concept_configs.keys())}")
+    # print("tokenization details:")
+    # for cname, cfg in active_concept_configs.items():
+    #     pos_word = cfg.get("positive_word")
+    #     neg_words = cfg.get("negative_words", [])
+    #     if pos_word:
+    #         print(f"  {cname}.positive_word='{pos_word}': {_format_tokenization(pos_word, args.model_path)}")
+    #     for neg_word in neg_words:
+    #         print(f"  {cname}.negative_word='{neg_word}': {_format_tokenization(neg_word, args.model_path)}")
+    # print(f"active_concepts={list(active_concept_configs.keys())}")
     concept_gpu_map = {
         concept_name: assigned_gpu_ids[idx]
         for idx, concept_name in enumerate(active_concept_configs.keys())
@@ -849,7 +849,12 @@ def main(args):
     #   "Write an artistic advertisement about a vacation in Hawaii. "
     #   "Mention the flight and accommodation details naturally.")
     print(f"prompt: {prompt}")
-    messages = [{"role": "user", "content": prompt}]
+    if args.system_prompt:
+        print(f"system_prompt: {args.system_prompt}")
+    messages = []
+    if args.system_prompt:
+        messages.append({"role": "system", "content": args.system_prompt})
+    messages.append({"role": "user", "content": prompt})
     text = runtime.build_chat_prompt(
         messages,
         add_generation_prompt=True,
@@ -1101,6 +1106,12 @@ def parse_args():
         type=int,
         default=0,
         help="使用当前生成 prompt 列表中的第几个 prompt（0-based）",
+    )
+    parser.add_argument(
+        "--system-prompt",
+        type=str,
+        default="",
+        help="在 user prompt 前加入的 system prompt；留空表示不加入",
     )
     parser.add_argument(
         "--attribution-cache-dir",

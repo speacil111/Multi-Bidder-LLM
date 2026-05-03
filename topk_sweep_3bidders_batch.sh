@@ -14,6 +14,10 @@ Options:
                         Override ATTR_CACHE_DIR
   --result-root DIR     Override first-level output dir. Default: batch_results_<model_tag>_3bidders
   --prompt-list LIST    Override prompt indexes, e.g. "0,1,2" or "0 1 2"
+  --system-prompt TEXT  Add a system prompt before the user prompt. Default: empty
+  --top-k-1 LIST        Override bidder 1 top-k values, e.g. "0,100,200" or "0 100 200"
+  --top-k-2 LIST        Override bidder 2 top-k values
+  --top-k-3 LIST        Override bidder 3 top-k values
   -h, --help            Show this help message
 
 Examples:
@@ -86,6 +90,48 @@ parse_prompt_list_spec() {
   fi
 }
 
+parse_top_k_list_spec() {
+  local target_name="$1"
+  local spec="$2"
+  local token start end i
+  local values=()
+
+  spec="${spec//,/ }"
+  for token in ${spec}; do
+    if [[ "${token}" =~ ^[0-9]+-[0-9]+$ ]]; then
+      start="${token%-*}"
+      end="${token#*-}"
+      if (( start > end )); then
+        echo "[ERROR] invalid ${target_name} range: ${token}" >&2
+        exit 1
+      fi
+      for (( i=start; i<=end; i++ )); do
+        values+=("${i}")
+      done
+    elif [[ "${token}" =~ ^[0-9]+$ ]]; then
+      values+=("${token}")
+    else
+      echo "[ERROR] invalid ${target_name} token: ${token}" >&2
+      exit 1
+    fi
+  done
+
+  if (( ${#values[@]} == 0 )); then
+    echo "[ERROR] ${target_name} cannot be empty" >&2
+    exit 1
+  fi
+
+  case "${target_name}" in
+    TOP_K_1) TOP_K_1=("${values[@]}") ;;
+    TOP_K_2) TOP_K_2=("${values[@]}") ;;
+    TOP_K_3) TOP_K_3=("${values[@]}") ;;
+    *)
+      echo "[ERROR] unknown top-k target: ${target_name}" >&2
+      exit 1
+      ;;
+  esac
+}
+
 GPU_ID=0
 export PYTORCH_ALLOC_CONF=expandable_segments:True
 
@@ -107,6 +153,7 @@ MODEL_PATH="../Qwen3-4B"
 ATTR_CACHE_DIR="${ATTR_CACHE_DIR:-attr_cache_qwen}"
 RESULT_ROOT=""
 PROMPT_LIST=(0 1 2)
+SYSTEM_PROMPT=""
 MAX_NEW_TOKENS=1536
 
 while [[ $# -gt 0 ]]; do
@@ -163,6 +210,42 @@ while [[ $# -gt 0 ]]; do
       ;;
     --prompt-list=*|--prompts=*)
       parse_prompt_list_spec "${1#*=}"
+      shift
+      ;;
+    --system-prompt)
+      [[ $# -ge 2 ]] || { echo "[ERROR] --system-prompt requires a value" >&2; usage >&2; exit 1; }
+      SYSTEM_PROMPT="$2"
+      shift 2
+      ;;
+    --system-prompt=*)
+      SYSTEM_PROMPT="${1#*=}"
+      shift
+      ;;
+    --top-k-1|--top_k_1)
+      [[ $# -ge 2 ]] || { echo "[ERROR] $1 requires a value" >&2; usage >&2; exit 1; }
+      parse_top_k_list_spec TOP_K_1 "$2"
+      shift 2
+      ;;
+    --top-k-1=*|--top_k_1=*)
+      parse_top_k_list_spec TOP_K_1 "${1#*=}"
+      shift
+      ;;
+    --top-k-2|--top_k_2)
+      [[ $# -ge 2 ]] || { echo "[ERROR] $1 requires a value" >&2; usage >&2; exit 1; }
+      parse_top_k_list_spec TOP_K_2 "$2"
+      shift 2
+      ;;
+    --top-k-2=*|--top_k_2=*)
+      parse_top_k_list_spec TOP_K_2 "${1#*=}"
+      shift
+      ;;
+    --top-k-3|--top_k_3)
+      [[ $# -ge 2 ]] || { echo "[ERROR] $1 requires a value" >&2; usage >&2; exit 1; }
+      parse_top_k_list_spec TOP_K_3 "$2"
+      shift 2
+      ;;
+    --top-k-3=*|--top_k_3=*)
+      parse_top_k_list_spec TOP_K_3 "${1#*=}"
       shift
       ;;
     -h|--help)
@@ -270,6 +353,7 @@ overall_report_txt="${run_root}/report_all_prompts.txt"
   echo "${BRAND_2}_multiplier=${MULTIPLIER_2}"
   echo "${BRAND_3}_multiplier=${MULTIPLIER_3}"
   echo "prompt_list=${PROMPT_LIST[*]}"
+  echo "system_prompt=${SYSTEM_PROMPT:-<empty>}"
   echo "gpu_id=${GPU_ID}"
   echo "${BRAND_1}_top_k=${TOP_K_1[*]}"
   echo "${BRAND_2}_top_k=${TOP_K_2[*]}"
@@ -286,13 +370,14 @@ overall_failed_runs=0
 overall_total_runs=0
 overall_failed_run_msgs=()
 prompt_avg_csv="${run_root}/prompt_hit_avg.csv"
-declare -a run_top_k_1_map
-declare -a run_top_k_2_map
-declare -a run_top_k_3_map
-declare -a run_hit_1_sum_map
-declare -a run_hit_2_sum_map
-declare -a run_hit_3_sum_map
-declare -a run_hit_count_success_map
+rm -f "${prompt_avg_csv}"
+declare -A run_top_k_1_map
+declare -A run_top_k_2_map
+declare -A run_top_k_3_map
+declare -A run_hit_1_sum_map
+declare -A run_hit_2_sum_map
+declare -A run_hit_3_sum_map
+declare -A run_hit_count_success_map
 total_runs_per_prompt=$(( ${#TOP_K_1[@]} * ${#TOP_K_2[@]} * ${#TOP_K_3[@]} ))
 
 for prompt_index in "${PROMPT_LIST[@]}"; do
@@ -383,6 +468,9 @@ EOF
 
         if [[ -n "${MODEL_PATH}" ]]; then
           cmd+=(--model_path "${MODEL_PATH}")
+        fi
+        if [[ -n "${SYSTEM_PROMPT}" ]]; then
+          cmd+=(--system-prompt "${SYSTEM_PROMPT}")
         fi
 
         if ! "${cmd[@]}" > "${log_file}" 2>&1; then

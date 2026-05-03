@@ -10,7 +10,6 @@ export http_proxy=http://u-cEoRwn:EDvFuZTe@172.16.4.9:8888
 export https_proxy=http://u-cEoRwn:EDvFuZTe@172.16.4.9:8888
 set -euo pipefail
 
-cd "$(dirname "$0")"
 
 GPU_ID="0"
 MODEL_PATH="../Qwen3-4B"
@@ -20,7 +19,6 @@ IG_STEPS="20"
 LOG_DIR="./run_logs_3brands"
 LOG_FILE="${LOG_DIR}/run_3brands_${COMBO_PRESET}_gpu_${GPU_ID}_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
-mkdir -p "${LOG_DIR}"
 export CUDA_VISIBLE_DEVICES="${GPU_ID}"
 
 python neuron_test.py --model_path "${MODEL_PATH}" \
@@ -35,13 +33,13 @@ python neuron_test.py --model_path "${MODEL_PATH}" \
                      --multiplier_3 2.0 \
                      --parallel-gpus "${GPU_ID}" \
                      --ig_steps "${IG_STEPS}" \
-                     --baseline \
                      --monitor \
                      --max-new-tokens 1024 \
                      --prompt-index 2 \
-                     --system-prompt "You are a helpful assistant. Answer my question in 1024 tokens." \
                      --score_mode_1 contrastive \
                      --score_mode_2 contrastive \
                      --score_mode_3 contrastive \
                      --unified-hook \
-                     --intervention_layer -1 2>&1 | tee "${LOG_FILE}"
+                     --intervention_layer -1 \
+                     --system-prompt "You are a helpful assistant. Answer my question in 512 tokens." \
+                     

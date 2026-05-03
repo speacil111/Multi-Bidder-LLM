@@ -52,4 +52,9 @@ conda activate ypr
 4. 最后一步tmux里执行`bash launcher_llama3.sh`,这个任务也应该挺慢的,但是比上面的快一些?
    
 
-**先把 3个model 100个 2-Bidders 的实验测完**,之后应该会得到三个`batch_results*`文件夹,到时候我用这些结果先画三个heatmap ,保证最后有图可以放...
+先把 3个model 100个 2-Bidders 的实验测完,之后应该会得到三个`batch_results*`文件夹,到时候我用这些结果先画三个heatmap ,保证最后有图可以放...
+
+--- 
+以上任务运行完毕后,运行接下来的3-bidders实验
+
+1. `bash launcher_3biiders_qwen.sh`,参数设置基本与上面的相同,除了GPU相关的参数以外我已经完成了配置,不需要修改.
