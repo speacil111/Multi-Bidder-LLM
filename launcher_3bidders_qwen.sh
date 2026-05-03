@@ -4,29 +4,28 @@ set -uo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  bash launcher.sh --combos SPEC --gpus GPU_LIST [options]
-  bash launcher.sh --combo-file FILE --gpus GPU_LIST [options]
-  # Or define COMBOS / GPUS_LIST directly in this script and run:
-  bash launcher.sh
+  bash launcher_3bidders_qwen.sh --combos SPEC --gpus GPU_LIST [options]
+  bash launcher_3bidders_qwen.sh --combo-file FILE --gpus GPU_LIST [options]
+  bash launcher_3bidders_qwen.sh
 
 Required:
   --gpus LIST, --gpus_list LIST
                         GPU id spec, e.g. 0,1,2,3 or 0-7 or 0-3,6
 
 One of:
-  --combos SPEC         Combo id spec, e.g. 0-9,12,18,20-25
-  --combo-file FILE     File with one combo id per line; lines starting with # are ignored
+  --combos SPEC         3-bidder combo ids/keys, e.g. 0-4,8 or delta_marriott_visa
+  --combo-file FILE     File with one 3-bidder combo id/key per line; lines starting with # are ignored
 
 Optional:
   --max-jobs N          Max concurrent jobs. Default: GPU count * MAX_JOBS_PER_GPU
   --max-jobs-per-gpu N  Max concurrent jobs per GPU. Default: 1
-  --topk-script PATH    Sweep script to call. Default: ./topk_sweep_batch.sh
+  --topk-script PATH    Sweep script to call. Default: ./topk_sweep_3bidders_batch.sh
   --model-path PATH     Override MODEL_PATH passed to topk script
   --attr-cache-dir DIR, --attribution-cache-dir DIR
                         Override ATTR_CACHE_DIR passed to topk script
   --result-root DIR     Override first-level result dir passed to topk script
   --prompt-list LIST    Override prompt indexes passed to topk script, e.g. "0,1,2" or "0 1 2"
-  --log-dir DIR         Launcher output dir. Default: ./batch_runs_Llama
+  --log-dir DIR         Launcher output dir. Default: ./batch_runs_qwen_3bidders
   --stagger-sec N       Sleep N seconds between launches. Default: 2
   --min-free-mem-mb N   Treat GPU as selectable only if memory.free >= N. Default: 15000
   --idle-max-util N     Prefer GPU with utilization.gpu < N. Default: 70
@@ -36,43 +35,33 @@ Optional:
   -h, --help            Show this help
 
 Examples:
-  bash launcher.sh --combos w0-9 --gpus 0,1,2,3
-  bash launcher.sh --combos 10-29,35 --gpus 0,1 --max-jobs 2
-  bash launcher.sh --combo-file combo_ids.txt --gpus 4,5,6,7 --fail-fast
-
-Notes:
-  1. This launcher is a batch wrapper around topk_sweep_batch.sh.
-  2. It does not change your experiment logic; it only schedules many combo ids.
-  3. Current topk_sweep_batch.sh writes outputs under paths like logp_token_<BRAND_1>_m2.0.
-     If many combos reuse the same first brand, those outputs may collide or overwrite.
-     So this launcher is best viewed as a scheduling template until run_root is made combo-unique.
+  bash launcher_3bidders_qwen.sh --combos 0-4 --gpus 0,1,2,3
+  bash launcher_3bidders_qwen.sh --combos delta_marriott_visa,adobe_dell_logitech --gpus 0-1
+  bash launcher_3bidders_qwen.sh --combo-file combo_3bidders.txt --gpus 4,5,6,7 --fail-fast
 EOF
 }
 
-TOPK_SCRIPT="./topk_sweep_batch.sh"
-LOG_DIR="./batch_runs_qwen" # 运行日志存放路径
-# 直接在这里定义默认任务（可被命令行参数覆盖）
-# 例: COMBOS="0-9,12,18" ; GPUS_LIST="0,1,2,3" 或 "0-7"
-COMBOS="46-60,97-100"
-GPUS_LIST="0-7" # 使用的GPU号
+TOPK_SCRIPT="./topk_sweep_3bidders_batch.sh"
+LOG_DIR="./batch_runs_qwen_3bidders"
+COMBOS="0-19"
+GPUS_LIST="0-7"
 
 COMBO_SPEC="${COMBOS}"
 COMBO_FILE=""
 GPU_SPEC="${GPUS_LIST}"
-MAX_JOBS="" # 总共最大个数
-MAX_JOBS_PER_GPU="3" #每个GPU上的最大运行JOB个数
+MAX_JOBS=""
+MAX_JOBS_PER_GPU="1"
 STAGGER_SEC=2
-MODEL_PATH="../Qwen3-4B" # 使用的模型路径
-ATTRIBUTION_CACHE_DIR="./attr_cache_qwen" # 属性缓存路径
-# First-level result dir. Empty means topk_sweep_batch.sh uses batch_results_<model_tag>.
-RESULT_ROOT="./batch_results_qwen"
-# Empty means use PROMPT_LIST inside topk_sweep_batch.sh.
-PROMPT_LIST="2" # 需要测试的prompt 序号
+MODEL_PATH="../Qwen3-4B"
+ATTRIBUTION_CACHE_DIR="./attr_cache_qwen"
+RESULT_ROOT="./batch_results_qwen_3bidders"
+PROMPT_LIST="0,1,2"
 MIN_FREE_MEM_MB=15000
 POLL_SEC=5
 MAX_IDLE_UTIL=70
 FAIL_FAST=0
 DRY_RUN=0
+PYTHON_BIN="${PYTHON_BIN:-python}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -232,7 +221,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "${GPU_SPEC}" ]]; then
-  echo "[ERROR] Please provide --gpus/--gpus_list or define GPUS_LIST in launcher.sh" >&2
+  echo "[ERROR] Please provide --gpus/--gpus_list or define GPUS_LIST in this script" >&2
   usage >&2
   exit 1
 fi
@@ -243,7 +232,7 @@ if [[ -n "${COMBO_SPEC}" && -n "${COMBO_FILE}" ]]; then
 fi
 
 if [[ -z "${COMBO_SPEC}" && -z "${COMBO_FILE}" ]]; then
-  echo "[ERROR] Please provide --combos/--combo-file or define COMBOS in launcher.sh" >&2
+  echo "[ERROR] Please provide --combos/--combo-file or define COMBOS in this script" >&2
   exit 1
 fi
 
@@ -252,13 +241,15 @@ if [[ ! -f "${TOPK_SCRIPT}" ]]; then
   exit 1
 fi
 
-readarray -t GPU_IDS < <(
-  python - "${GPU_SPEC}" <<'PY'
+GPU_IDS=()
+while IFS= read -r line; do
+  GPU_IDS+=("${line}")
+done < <(
+  "${PYTHON_BIN}" - "${GPU_SPEC}" <<'PY'
 import sys
+
 spec = sys.argv[1]
 parts = [x.strip() for x in spec.split(",") if x.strip()]
-if not parts:
-    raise SystemExit("no gpu ids found")
 seen = set()
 result = []
 for part in parts:
@@ -294,88 +285,116 @@ if [[ -z "${MAX_JOBS}" ]]; then
   fi
 fi
 
-readarray -t COMBO_IDS < <(
+COMBO_META_LINES=()
+while IFS= read -r line; do
+  COMBO_META_LINES+=("${line}")
+done < <(
   if [[ -n "${COMBO_SPEC}" ]]; then
-    python - "${COMBO_SPEC}" <<'PY'
-import sys
-spec = sys.argv[1]
+    "${PYTHON_BIN}" - --spec "${COMBO_SPEC}" <<'PY'
+import argparse
+import importlib
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--spec", required=True)
+args = parser.parse_args()
+
+three_config = importlib.import_module("src.3_config")
+presets = three_config.THREE_BIDDER_COMBO_PRESETS
+combo_keys = list(presets.keys())
 seen = set()
-result = []
-for part in spec.split(","):
+
+def emit(raw):
+    if raw in presets:
+        combo_ref = raw
+        combo_key = raw
+    elif raw.isdigit():
+        combo_id = int(raw)
+        if combo_id < 0 or combo_id >= len(combo_keys):
+            raise SystemExit(f"3-bidder combo id out of range: {combo_id}; valid=[0, {len(combo_keys)-1}]")
+        combo_ref = str(combo_id)
+        combo_key = combo_keys[combo_id]
+    else:
+        raise SystemExit(f"unknown 3-bidder combo preset: {raw}; valid keys: {', '.join(combo_keys)}")
+    if combo_key in seen:
+        return
+    seen.add(combo_key)
+    brand_1, brand_2, brand_3 = presets[combo_key]
+    print(f"{combo_ref}\t{combo_key}\t{brand_1}\t{brand_2}\t{brand_3}")
+
+for part in args.spec.split(","):
     part = part.strip()
     if not part:
         continue
-    if "-" in part:
+    if "-" in part and all(x.strip().isdigit() for x in part.split("-", 1)):
         left, right = part.split("-", 1)
         start = int(left)
         end = int(right)
         step = 1 if end >= start else -1
-        for x in range(start, end + step, step):
-            if x not in seen:
-                seen.add(x)
-                result.append(x)
+        for combo_id in range(start, end + step, step):
+            emit(str(combo_id))
     else:
-        x = int(part)
-        if x not in seen:
-            seen.add(x)
-            result.append(x)
-for x in result:
-    print(x)
+        emit(part)
 PY
   else
-    python - "${COMBO_FILE}" <<'PY'
-import sys
+    "${PYTHON_BIN}" - --combo-file "${COMBO_FILE}" <<'PY'
+import argparse
+import importlib
 from pathlib import Path
-path = Path(sys.argv[1])
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--combo-file", required=True)
+args = parser.parse_args()
+
+path = Path(args.combo_file)
 if not path.exists():
     raise SystemExit(f"combo file not found: {path}")
+
+three_config = importlib.import_module("src.3_config")
+presets = three_config.THREE_BIDDER_COMBO_PRESETS
+combo_keys = list(presets.keys())
 seen = set()
+
 for raw in path.read_text(encoding="utf-8").splitlines():
     line = raw.strip()
     if not line or line.startswith("#"):
         continue
-    x = int(line)
-    if x in seen:
+    if line in presets:
+        combo_ref = line
+        combo_key = line
+    elif line.isdigit():
+        combo_id = int(line)
+        if combo_id < 0 or combo_id >= len(combo_keys):
+            raise SystemExit(f"3-bidder combo id out of range: {combo_id}; valid=[0, {len(combo_keys)-1}]")
+        combo_ref = str(combo_id)
+        combo_key = combo_keys[combo_id]
+    else:
+        raise SystemExit(f"unknown 3-bidder combo preset: {line}; valid keys: {', '.join(combo_keys)}")
+    if combo_key in seen:
         continue
-    seen.add(x)
-    print(x)
+    seen.add(combo_key)
+    brand_1, brand_2, brand_3 = presets[combo_key]
+    print(f"{combo_ref}\t{combo_key}\t{brand_1}\t{brand_2}\t{brand_3}")
 PY
   fi
 )
 
-if [[ ${#COMBO_IDS[@]} -eq 0 ]]; then
-  echo "[ERROR] No combo ids to run" >&2
+if [[ ${#COMBO_META_LINES[@]} -eq 0 ]]; then
+  echo "[ERROR] No 3-bidder combos to run" >&2
   exit 1
 fi
 
-declare -A COMBO_TO_KEY
-declare -A COMBO_TO_BRAND1
-declare -A COMBO_TO_BRAND2
-
-readarray -t COMBO_META_LINES < <(
-  python - "${COMBO_IDS[@]}" <<'PY'
-import sys
-from src.config import COMBO_PRESETS
-
-combo_keys = list(COMBO_PRESETS.keys())
-
-for raw in sys.argv[1:]:
-    combo_id = int(raw)
-    if combo_id < 0 or combo_id >= len(combo_keys):
-        raise SystemExit(
-            f"combo preset id out of range: {combo_id}; valid=[0, {len(combo_keys)-1}]"
-        )
-    combo_key = combo_keys[combo_id]
-    brand_1, brand_2 = COMBO_PRESETS[combo_key]
-    print(f"{combo_id}\t{combo_key}\t{brand_1}\t{brand_2}")
-PY
-)
-
+COMBO_REFS=()
+COMBO_KEYS=()
+COMBO_BRAND1=()
+COMBO_BRAND2=()
+COMBO_BRAND3=()
 for line in "${COMBO_META_LINES[@]}"; do
-  IFS=$'\t' read -r combo_id combo_key brand_1 brand_2 <<< "${line}"
-  COMBO_TO_KEY["${combo_id}"]="${combo_key}"
-  COMBO_TO_BRAND1["${combo_id}"]="${brand_1}"
-  COMBO_TO_BRAND2["${combo_id}"]="${brand_2}"
+  IFS=$'\t' read -r combo_ref combo_key brand_1 brand_2 brand_3 <<< "${line}"
+  COMBO_REFS+=("${combo_ref}")
+  COMBO_KEYS+=("${combo_key}")
+  COMBO_BRAND1+=("${brand_1}")
+  COMBO_BRAND2+=("${brand_2}")
+  COMBO_BRAND3+=("${brand_3}")
 done
 
 timestamp="$(date +"%Y-%m-%d_%H-%M-%S")"
@@ -395,7 +414,8 @@ defined_combos=${COMBOS}
 defined_gpus_list=${GPUS_LIST}
 combo_spec=${COMBO_SPEC}
 combo_file=${COMBO_FILE}
-combo_ids=${COMBO_IDS[*]}
+combo_refs=${COMBO_REFS[*]}
+combo_keys=${COMBO_KEYS[*]}
 gpu_ids=${GPU_IDS[*]}
 max_jobs=${MAX_JOBS}
 max_jobs_per_gpu=${MAX_JOBS_PER_GPU}
@@ -414,37 +434,33 @@ EOF
 
 {
   echo "combo_mapping_begin"
-  for combo_id in "${COMBO_IDS[@]}"; do
-    echo "combo_${combo_id}=${COMBO_TO_KEY[${combo_id}]}|${COMBO_TO_BRAND1[${combo_id}]}|${COMBO_TO_BRAND2[${combo_id}]}"
+  for i in "${!COMBO_KEYS[@]}"; do
+    echo "combo_${COMBO_REFS[$i]}=${COMBO_KEYS[$i]}|${COMBO_BRAND1[$i]}|${COMBO_BRAND2[$i]}|${COMBO_BRAND3[$i]}"
   done
   echo "combo_mapping_end"
 } >> "${manifest_path}"
 
-echo "[Launcher] manifest: ${manifest_path}"
-echo "[Launcher] combo count: ${#COMBO_IDS[@]}"
-echo "[Launcher] gpus: ${GPU_IDS[*]}"
-echo "[Launcher] max_jobs: ${MAX_JOBS}"
-echo "[Launcher] max_jobs_per_gpu: ${MAX_JOBS_PER_GPU}"
-echo "[Launcher] result_root: ${RESULT_ROOT:-<auto>}"
-echo "[Launcher] prompt_list: ${PROMPT_LIST:-<topk default>}"
-if [[ "${NVIDIA_SMI_AVAILABLE}" -eq 1 ]]; then
-  echo "[Launcher] idle-gpu mode: prefer memory.free>=${MIN_FREE_MEM_MB}MB and utilization.gpu<${MAX_IDLE_UTIL}%, fallback to highest memory.free with memory.free>=${MIN_FREE_MEM_MB}MB"
-else
-  echo "[Launcher] idle-gpu mode: nvidia-smi unavailable, fallback to launcher-only GPU tracking"
-fi
+echo "[Launcher3] manifest: ${manifest_path}"
+echo "[Launcher3] combo count: ${#COMBO_KEYS[@]}"
+echo "[Launcher3] gpus: ${GPU_IDS[*]}"
+echo "[Launcher3] max_jobs: ${MAX_JOBS}"
+echo "[Launcher3] max_jobs_per_gpu: ${MAX_JOBS_PER_GPU}"
+echo "[Launcher3] result_root: ${RESULT_ROOT:-<auto>}"
+echo "[Launcher3] prompt_list: ${PROMPT_LIST:-<topk default>}"
 
 job_trace_path="${RUN_DIR}/job_trace.tsv"
 {
-  printf "event_time\tevent\tpid\tgpu\tcombo_id\tcombo_key\tbrand_1\tbrand_2\tstatus\tjob_log\n"
+  printf "event_time\tevent\tpid\tgpu\tcombo_ref\tcombo_key\tbrand_1\tbrand_2\tbrand_3\tstatus\tjob_log\n"
 } > "${job_trace_path}"
-echo "[Launcher] job trace: ${job_trace_path}"
+echo "[Launcher3] job trace: ${job_trace_path}"
 
-declare -A PID_TO_COMBO
+declare -A PID_TO_REF
 declare -A PID_TO_GPU
 declare -A PID_TO_LOG
 declare -A PID_TO_KEY
 declare -A PID_TO_BRAND1
 declare -A PID_TO_BRAND2
+declare -A PID_TO_BRAND3
 
 success_count=0
 failed_count=0
@@ -454,68 +470,54 @@ SELECTED_GPU=""
 running_jobs_count() {
   local n=0
   local pid
-  for pid in "${!PID_TO_COMBO[@]}"; do
+  for pid in "${!PID_TO_REF[@]}"; do
     n=$((n + 1))
   done
   printf '%s\n' "${n}"
 }
 
-print_active_jobs() {
-  local n
-  local pid
-  n="$(running_jobs_count)"
-  if (( n == 0 )); then
-    return
-  fi
-  echo "[Launcher] active jobs (${n}):"
-  for pid in "${!PID_TO_COMBO[@]}"; do
-    echo "  pid=${pid} gpu=${PID_TO_GPU[$pid]} combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} log=${PID_TO_LOG[$pid]}"
-  done
-}
-
 cleanup_finished_jobs() {
-  local pid
-  local status
-  for pid in "${!PID_TO_COMBO[@]}"; do
+  local pid status
+  for pid in "${!PID_TO_REF[@]}"; do
     if kill -0 "${pid}" 2>/dev/null; then
       continue
     fi
     if wait "${pid}"; then
       success_count=$((success_count + 1))
       status="OK"
-      echo "[Launcher] finished: combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} gpu=${PID_TO_GPU[$pid]} status=OK log=${PID_TO_LOG[$pid]}"
     else
       failed_count=$((failed_count + 1))
       status="FAIL"
-      echo "[Launcher] finished: combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} gpu=${PID_TO_GPU[$pid]} status=FAIL log=${PID_TO_LOG[$pid]}"
       if [[ "${FAIL_FAST}" -eq 1 ]]; then
         stop_launching=1
       fi
     fi
-    printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+    echo "[Launcher3] finished: combo=${PID_TO_REF[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} brand_3=${PID_TO_BRAND3[$pid]} gpu=${PID_TO_GPU[$pid]} status=${status} log=${PID_TO_LOG[$pid]}"
+    printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
       "$(date '+%Y-%m-%d %H:%M:%S')" \
       "FINISH" \
       "${pid}" \
       "${PID_TO_GPU[$pid]}" \
-      "${PID_TO_COMBO[$pid]}" \
+      "${PID_TO_REF[$pid]}" \
       "${PID_TO_KEY[$pid]}" \
       "${PID_TO_BRAND1[$pid]}" \
       "${PID_TO_BRAND2[$pid]}" \
+      "${PID_TO_BRAND3[$pid]}" \
       "${status}" \
       "${PID_TO_LOG[$pid]}" >> "${job_trace_path}"
-    unset 'PID_TO_COMBO[$pid]'
+    unset 'PID_TO_REF[$pid]'
     unset 'PID_TO_GPU[$pid]'
     unset 'PID_TO_LOG[$pid]'
     unset 'PID_TO_KEY[$pid]'
     unset 'PID_TO_BRAND1[$pid]'
     unset 'PID_TO_BRAND2[$pid]'
+    unset 'PID_TO_BRAND3[$pid]'
   done
 }
 
 running_jobs_on_gpu() {
   local target_gpu="$1"
-  local pid
-  local count=0
+  local pid count=0
   for pid in "${!PID_TO_GPU[@]}"; do
     if [[ "${PID_TO_GPU[$pid]}" == "${target_gpu}" ]]; then
       count=$((count + 1))
@@ -524,136 +526,85 @@ running_jobs_on_gpu() {
   printf '%s\n' "${count}"
 }
 
-get_gpu_stats() {
-  local target_gpu="$1"
-  local stats
-  local mem_free
-  local gpu_util
+select_gpu() {
+  local gpu line free util best_gpu="" best_free=-1 running
 
-  if [[ "${NVIDIA_SMI_AVAILABLE}" -ne 1 ]]; then
-    return 1
-  fi
-
-  stats="$(nvidia-smi -i "${target_gpu}" --query-gpu=memory.free,utilization.gpu --format=csv,noheader,nounits 2>/dev/null | head -n 1)"
-  if [[ -z "${stats}" ]]; then
-    return 1
-  fi
-
-  IFS=',' read -r mem_free gpu_util <<< "${stats}"
-  mem_free="${mem_free//[[:space:]]/}"
-  gpu_util="${gpu_util//[[:space:]]/}"
-
-  if ! [[ "${mem_free}" =~ ^[0-9]+$ ]]; then
-    return 1
-  fi
-
-  if ! [[ "${gpu_util}" =~ ^[0-9]+$ ]]; then
-    return 1
-  fi
-
-  printf '%s %s\n' "${mem_free}" "${gpu_util}"
-  return 0
-}
-
-pick_idle_gpu() {
-  local gpu_id
-  local stats
-  local mem_free
-  local gpu_util
-  local best_strict_gpu=""
-  local best_strict_mem=-1
-  local best_fallback_gpu=""
-  local best_fallback_mem=-1
-  local jobs_on_gpu
-
-  if (( $(running_jobs_count) >= MAX_JOBS )); then
-    return 1
-  fi
-
-  if [[ "${NVIDIA_SMI_AVAILABLE}" -ne 1 ]]; then
-    for gpu_id in "${GPU_IDS[@]}"; do
-      jobs_on_gpu="$(running_jobs_on_gpu "${gpu_id}")"
-      if [[ "${MAX_JOBS_PER_GPU}" =~ ^[0-9]+$ ]] && (( MAX_JOBS_PER_GPU > 0 )) && (( jobs_on_gpu >= MAX_JOBS_PER_GPU )); then
+  if [[ "${NVIDIA_SMI_AVAILABLE}" -eq 1 ]]; then
+    for gpu in "${GPU_IDS[@]}"; do
+      running="$(running_jobs_on_gpu "${gpu}")"
+      if (( running >= MAX_JOBS_PER_GPU )); then
         continue
       fi
-      SELECTED_GPU="${gpu_id}"
-      return 0
+      line="$(nvidia-smi --id="${gpu}" --query-gpu=memory.free,utilization.gpu --format=csv,noheader,nounits 2>/dev/null | head -n 1)"
+      free="$(printf '%s' "${line}" | awk -F, '{gsub(/ /, "", $1); print $1}')"
+      util="$(printf '%s' "${line}" | awk -F, '{gsub(/ /, "", $2); print $2}')"
+      if ! [[ "${free}" =~ ^[0-9]+$ && "${util}" =~ ^[0-9]+$ ]]; then
+        continue
+      fi
+      if (( free >= MIN_FREE_MEM_MB && util < MAX_IDLE_UTIL )); then
+        SELECTED_GPU="${gpu}"
+        return 0
+      fi
+      if (( free >= MIN_FREE_MEM_MB && free > best_free )); then
+        best_free="${free}"
+        best_gpu="${gpu}"
+      fi
     done
-    return 1
+    if [[ -n "${best_gpu}" ]]; then
+      SELECTED_GPU="${best_gpu}"
+      return 0
+    fi
   fi
 
-  for gpu_id in "${GPU_IDS[@]}"; do
-    jobs_on_gpu="$(running_jobs_on_gpu "${gpu_id}")"
-    if [[ "${MAX_JOBS_PER_GPU}" =~ ^[0-9]+$ ]] && (( MAX_JOBS_PER_GPU > 0 )) && (( jobs_on_gpu >= MAX_JOBS_PER_GPU )); then
-      continue
-    fi
-
-    stats="$(get_gpu_stats "${gpu_id}")" || continue
-    read -r mem_free gpu_util <<< "${stats}"
-
-    if (( mem_free < MIN_FREE_MEM_MB )); then
-      continue
-    fi
-
-    if (( gpu_util < MAX_IDLE_UTIL )) && (( mem_free > best_strict_mem )); then
-      best_strict_gpu="${gpu_id}"
-      best_strict_mem="${mem_free}"
-    fi
-
-    if (( mem_free > best_fallback_mem )); then
-      best_fallback_gpu="${gpu_id}"
-      best_fallback_mem="${mem_free}"
+  for gpu in "${GPU_IDS[@]}"; do
+    running="$(running_jobs_on_gpu "${gpu}")"
+    if (( running < MAX_JOBS_PER_GPU )); then
+      SELECTED_GPU="${gpu}"
+      return 0
     fi
   done
-
-  if [[ -n "${best_strict_gpu}" ]]; then
-    SELECTED_GPU="${best_strict_gpu}"
-    return 0
-  fi
-
-  if [[ -n "${best_fallback_gpu}" ]]; then
-    SELECTED_GPU="${best_fallback_gpu}"
-    return 0
-  fi
 
   return 1
 }
 
-wait_for_idle_gpu() {
-  while true; do
-    cleanup_finished_jobs
-    if [[ "${stop_launching}" -eq 1 ]]; then
-      return 1
-    fi
-    if pick_idle_gpu; then
-      return 0
-    fi
-    sleep "${POLL_SEC}"
-  done
-}
-
-gpu_index=0
-for combo_id in "${COMBO_IDS[@]}"; do
+for i in "${!COMBO_KEYS[@]}"; do
   if [[ "${stop_launching}" -eq 1 ]]; then
-    echo "[Launcher] fail-fast triggered; stop launching new jobs."
+    echo "[Launcher3] fail-fast active; stop launching new jobs"
     break
   fi
 
-  if [[ "${DRY_RUN}" -eq 1 ]]; then
-    gpu_id="${GPU_IDS[$((gpu_index % ${#GPU_IDS[@]}))]}"
-    gpu_index=$((gpu_index + 1))
-  else
-    wait_for_idle_gpu || break
-    gpu_id="${SELECTED_GPU}"
+  cleanup_finished_jobs
+  while (( $(running_jobs_count) >= MAX_JOBS )); do
+    sleep "${POLL_SEC}"
+    cleanup_finished_jobs
+  done
+
+  while ! select_gpu; do
+    sleep "${POLL_SEC}"
+    cleanup_finished_jobs
+    if [[ "${stop_launching}" -eq 1 ]]; then
+      break
+    fi
+  done
+  if [[ "${stop_launching}" -eq 1 ]]; then
+    break
   fi
 
-  job_log="${RUN_DIR}/logs/combo_${combo_id}_gpu_${gpu_id}.log"
-  cmd=(bash "${TOPK_SCRIPT}" --g "${gpu_id}" --c "${combo_id}")
+  gpu_id="${SELECTED_GPU}"
+  combo_ref="${COMBO_REFS[$i]}"
+  combo_key="${COMBO_KEYS[$i]}"
+  combo_brand_1="${COMBO_BRAND1[$i]}"
+  combo_brand_2="${COMBO_BRAND2[$i]}"
+  combo_brand_3="${COMBO_BRAND3[$i]}"
+  safe_combo_key="${combo_key//[^[:alnum:]_-]/_}"
+  job_log="${RUN_DIR}/logs/combo_${safe_combo_key}_gpu_${gpu_id}.log"
+
+  cmd=(bash "${TOPK_SCRIPT}" --g "${gpu_id}" --combo-preset "${combo_key}")
   if [[ -n "${MODEL_PATH}" ]]; then
     cmd+=(--model-path "${MODEL_PATH}")
   fi
   if [[ -n "${ATTRIBUTION_CACHE_DIR}" ]]; then
-    cmd+=(--attribution-cache-dir "${ATTRIBUTION_CACHE_DIR}")
+    cmd+=(--attr-cache-dir "${ATTRIBUTION_CACHE_DIR}")
   fi
   if [[ -n "${RESULT_ROOT}" ]]; then
     cmd+=(--result-root "${RESULT_ROOT}")
@@ -661,71 +612,58 @@ for combo_id in "${COMBO_IDS[@]}"; do
   if [[ -n "${PROMPT_LIST}" ]]; then
     cmd+=(--prompt-list "${PROMPT_LIST}")
   fi
-  combo_key="${COMBO_TO_KEY[${combo_id}]}"
-  combo_brand_1="${COMBO_TO_BRAND1[${combo_id}]}"
-  combo_brand_2="${COMBO_TO_BRAND2[${combo_id}]}"
 
-  echo "[Launcher] launch: combo=${combo_id} key=${combo_key} brand_1=${combo_brand_1} brand_2=${combo_brand_2} gpu=${gpu_id} result_root=${RESULT_ROOT:-<auto>} log=${job_log}"
-  printf '[Launcher] command:'
-  printf ' %q' "${cmd[@]}"
-  printf '\n'
+  echo "[Launcher3] launch: combo=${combo_ref} key=${combo_key} brand_1=${combo_brand_1} brand_2=${combo_brand_2} brand_3=${combo_brand_3} gpu=${gpu_id} result_root=${RESULT_ROOT:-<auto>} log=${job_log}"
 
   if [[ "${DRY_RUN}" -eq 1 ]]; then
+    printf '[DRY-RUN]'
+    printf ' %q' "${cmd[@]}"
+    printf '\n'
     continue
   fi
 
   (
-    echo "[Launcher] START combo=${combo_id} gpu=${gpu_id} time=$(date)"
-    printf '[Launcher] command:'
+    echo "[Launcher3] START combo=${combo_ref} key=${combo_key} gpu=${gpu_id} time=$(date)"
+    printf '[Launcher3] CMD:'
     printf ' %q' "${cmd[@]}"
     printf '\n'
     "${cmd[@]}"
     status=$?
-    echo "[Launcher] END combo=${combo_id} gpu=${gpu_id} status=${status} time=$(date)"
+    echo "[Launcher3] END combo=${combo_ref} key=${combo_key} gpu=${gpu_id} status=${status} time=$(date)"
     exit "${status}"
   ) > "${job_log}" 2>&1 &
-
   pid=$!
-  PID_TO_COMBO["${pid}"]="${combo_id}"
+
+  PID_TO_REF["${pid}"]="${combo_ref}"
   PID_TO_GPU["${pid}"]="${gpu_id}"
   PID_TO_LOG["${pid}"]="${job_log}"
   PID_TO_KEY["${pid}"]="${combo_key}"
   PID_TO_BRAND1["${pid}"]="${combo_brand_1}"
   PID_TO_BRAND2["${pid}"]="${combo_brand_2}"
-  printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+  PID_TO_BRAND3["${pid}"]="${combo_brand_3}"
+
+  printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
     "$(date '+%Y-%m-%d %H:%M:%S')" \
-    "LAUNCH" \
+    "START" \
     "${pid}" \
     "${gpu_id}" \
-    "${combo_id}" \
+    "${combo_ref}" \
     "${combo_key}" \
     "${combo_brand_1}" \
     "${combo_brand_2}" \
+    "${combo_brand_3}" \
     "RUNNING" \
     "${job_log}" >> "${job_trace_path}"
 
-  print_active_jobs
-
-  if [[ "${STAGGER_SEC}" -gt 0 ]]; then
-    sleep "${STAGGER_SEC}"
-  fi
+  sleep "${STAGGER_SEC}"
 done
 
 while (( $(running_jobs_count) > 0 )); do
+  sleep "${POLL_SEC}"
   cleanup_finished_jobs
-  if (( $(running_jobs_count) > 0 )); then
-    print_active_jobs
-    sleep "${POLL_SEC}"
-  fi
 done
 
-total_launched=$((success_count + failed_count))
-echo "[Launcher] done"
-echo "[Launcher] run_dir=${RUN_DIR}"
-echo "[Launcher] launched=${total_launched}"
-echo "[Launcher] success=${success_count}"
-echo "[Launcher] failed=${failed_count}"
-
-if [[ "${DRY_RUN}" -eq 1 ]]; then
-  echo "[Launcher] dry-run mode: no jobs were actually launched"
+echo "[Launcher3] all done. success=${success_count} failed=${failed_count} run_dir=${RUN_DIR}"
+if (( failed_count > 0 )); then
+  exit 1
 fi

@@ -1,4 +1,5 @@
 import argparse
+import importlib
 import itertools
 import re
 from pathlib import Path
@@ -16,6 +17,62 @@ from src.selection import (
     count_neurons_per_layer,
     merge_neuron_maps,
 )
+
+
+def _load_three_bidder_definitions():
+    """Merge optional 3-bidder presets/prompts into the normal lookup tables."""
+    try:
+        three_config = importlib.import_module("src.3_config")
+        three_prompts = importlib.import_module("src.3_prompts")
+    except ModuleNotFoundError as exc:
+        if exc.name in {"src.3_config", "src.3_prompts"}:
+            return
+        raise
+
+    three_combo_presets = getattr(three_config, "THREE_BIDDER_COMBO_PRESETS", {})
+    three_combo_prompts = getattr(three_prompts, "THREE_BIDDER_COMBO_PROMPTS", {})
+    legacy_three_combo_keys = getattr(three_config, "LEGACY_THREE_BIDDER_COMBO_KEYS", ())
+
+    malformed_presets = {
+        combo_key: concepts
+        for combo_key, concepts in three_combo_presets.items()
+        if len(concepts) != 3
+    }
+    if malformed_presets:
+        raise ValueError(f"3-bidder presets must contain exactly 3 concepts: {malformed_presets}")
+
+    unknown_concepts = {
+        combo_key: [concept for concept in concepts if concept not in CONCEPT_CONFIGS]
+        for combo_key, concepts in three_combo_presets.items()
+        if any(concept not in CONCEPT_CONFIGS for concept in concepts)
+    }
+    if unknown_concepts:
+        raise ValueError(f"3-bidder presets reference unknown concepts: {unknown_concepts}")
+
+    missing_prompts = [
+        combo_key for combo_key in three_combo_presets if combo_key not in three_combo_prompts
+    ]
+    if missing_prompts:
+        raise ValueError(f"3-bidder presets missing prompts: {missing_prompts}")
+
+    malformed_prompts = {
+        combo_key: len(prompts)
+        for combo_key, prompts in three_combo_prompts.items()
+        if len(prompts) != 3
+    }
+    if malformed_prompts:
+        raise ValueError(f"3-bidder combos must define exactly 3 prompts: {malformed_prompts}")
+
+    for combo_key in legacy_three_combo_keys:
+        COMBO_PRESETS.pop(combo_key, None)
+        COMBO_PROMPTS.pop(combo_key, None)
+
+    COMBO_PRESETS.update(three_combo_presets)
+    COMBO_PROMPTS.update(three_combo_prompts)
+
+
+_load_three_bidder_definitions()
+
 print("开始运行寻找特定概念 Neuron 的实验")
 torch.manual_seed(SEED)
 _DEBUG_TOKENIZER = None
