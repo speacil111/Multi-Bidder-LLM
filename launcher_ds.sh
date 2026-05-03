@@ -26,6 +26,8 @@ Optional:
                         Override ATTR_CACHE_DIR passed to topk script
   --result-root DIR     Override first-level result dir passed to topk script
   --prompt-list LIST    Override prompt indexes passed to topk script, e.g. "0,1,2" or "0 1 2"
+  --top-k-1 LIST        Override bidder 1 top-k values, e.g. "0,100,200" or "0 100 200"
+  --top-k-2 LIST        Override bidder 2 top-k values
   --log-dir DIR         Launcher output dir. Default: ./batch_runs_Llama
   --stagger-sec N       Sleep N seconds between launches. Default: 2
   --min-free-mem-mb N   Treat GPU as selectable only if memory.free >= N. Default: 15000
@@ -67,11 +69,54 @@ ATTRIBUTION_CACHE_DIR="./attr_cache_ds"
 RESULT_ROOT="./batch_results_ds"
 # Empty means use PROMPT_LIST inside topk_sweep_batch.sh.
 PROMPT_LIST="0 1 2"
+TOP_K_1=(0 100 )
+TOP_K_2=(0 100 )
 MIN_FREE_MEM_MB=15000
 POLL_SEC=5
 MAX_IDLE_UTIL=70
 FAIL_FAST=0
 DRY_RUN=0
+
+parse_top_k_list_spec() {
+  local target_name="$1"
+  local spec="$2"
+  local token start end i
+  local values=()
+
+  spec="${spec//,/ }"
+  for token in ${spec}; do
+    if [[ "${token}" =~ ^[0-9]+-[0-9]+$ ]]; then
+      start="${token%-*}"
+      end="${token#*-}"
+      if (( start > end )); then
+        echo "[ERROR] invalid ${target_name} range: ${token}" >&2
+        exit 1
+      fi
+      for (( i=start; i<=end; i++ )); do
+        values+=("${i}")
+      done
+    elif [[ "${token}" =~ ^[0-9]+$ ]]; then
+      values+=("${token}")
+    else
+      echo "[ERROR] invalid ${target_name} token: ${token}" >&2
+      exit 1
+    fi
+  done
+
+  if (( ${#values[@]} == 0 )); then
+    echo "[ERROR] ${target_name} cannot be empty" >&2
+    exit 1
+  fi
+
+  case "${target_name}" in
+    TOP_K_1) TOP_K_1=("${values[@]}") ;;
+    TOP_K_2) TOP_K_2=("${values[@]}") ;;
+    *)
+      echo "[ERROR] unknown top-k target: ${target_name}" >&2
+      exit 1
+      ;;
+  esac
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -163,6 +208,24 @@ while [[ $# -gt 0 ]]; do
       ;;
     --prompt-list=*|--prompts=*)
       PROMPT_LIST="${1#*=}"
+      shift
+      ;;
+    --top-k-1|--top_k_1)
+      [[ $# -ge 2 ]] || { echo "[ERROR] $1 requires a value" >&2; usage >&2; exit 1; }
+      parse_top_k_list_spec TOP_K_1 "$2"
+      shift 2
+      ;;
+    --top-k-1=*|--top_k_1=*)
+      parse_top_k_list_spec TOP_K_1 "${1#*=}"
+      shift
+      ;;
+    --top-k-2|--top_k_2)
+      [[ $# -ge 2 ]] || { echo "[ERROR] $1 requires a value" >&2; usage >&2; exit 1; }
+      parse_top_k_list_spec TOP_K_2 "$2"
+      shift 2
+      ;;
+    --top-k-2=*|--top_k_2=*)
+      parse_top_k_list_spec TOP_K_2 "${1#*=}"
       shift
       ;;
     --log-dir)
@@ -403,6 +466,8 @@ model_path=${MODEL_PATH}
 attribution_cache_dir=${ATTRIBUTION_CACHE_DIR}
 result_root=${RESULT_ROOT:-<auto>}
 prompt_list=${PROMPT_LIST:-<topk default>}
+top_k_1=${TOP_K_1[*]}
+top_k_2=${TOP_K_2[*]}
 min_free_mem_mb=${MIN_FREE_MEM_MB}
 max_idle_util=${MAX_IDLE_UTIL}
 poll_sec=${POLL_SEC}
@@ -426,6 +491,8 @@ echo "[Launcher] max_jobs: ${MAX_JOBS}"
 echo "[Launcher] max_jobs_per_gpu: ${MAX_JOBS_PER_GPU}"
 echo "[Launcher] result_root: ${RESULT_ROOT:-<auto>}"
 echo "[Launcher] prompt_list: ${PROMPT_LIST:-<topk default>}"
+echo "[Launcher] top_k_1: ${TOP_K_1[*]}"
+echo "[Launcher] top_k_2: ${TOP_K_2[*]}"
 if [[ "${NVIDIA_SMI_AVAILABLE}" -eq 1 ]]; then
   echo "[Launcher] idle-gpu mode: prefer memory.free>=${MIN_FREE_MEM_MB}MB and utilization.gpu<${MAX_IDLE_UTIL}%, fallback to highest memory.free with memory.free>=${MIN_FREE_MEM_MB}MB"
 else
@@ -660,6 +727,8 @@ for combo_id in "${COMBO_IDS[@]}"; do
   if [[ -n "${PROMPT_LIST}" ]]; then
     cmd+=(--prompt-list "${PROMPT_LIST}")
   fi
+  cmd+=(--top-k-1 "${TOP_K_1[*]}")
+  cmd+=(--top-k-2 "${TOP_K_2[*]}")
   combo_key="${COMBO_TO_KEY[${combo_id}]}"
   combo_brand_1="${COMBO_TO_BRAND1[${combo_id}]}"
   combo_brand_2="${COMBO_TO_BRAND2[${combo_id}]}"

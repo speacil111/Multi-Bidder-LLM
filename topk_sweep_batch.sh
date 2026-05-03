@@ -14,6 +14,12 @@ Options:
                         Override ATTR_CACHE_DIR
   --result-root DIR     Override first-level output dir. Default: batch_results_<model_tag>
   --prompt-list LIST    Override prompt indexes, e.g. "0,1,2" or "0 1 2"
+  --top-k-1 LIST        Override brand 1 top-k values, e.g. "0,100,200" or "0 100 200"
+  --top-k-2 LIST        Override brand 2 top-k values
+  --lambda VALUE, --multiplier VALUE
+                        Set both brand intervention multipliers to VALUE
+  --multiplier-1 VALUE  Override brand 1 intervention multiplier
+  --multiplier-2 VALUE  Override brand 2 intervention multiplier
   -h, --help            Show this help message
 
 Examples:
@@ -90,14 +96,55 @@ parse_prompt_list_spec() {
   fi
 }
 
+parse_top_k_list_spec() {
+  local target_name="$1"
+  local spec="$2"
+  local token start end i
+  local values=()
+
+  spec="${spec//,/ }"
+  for token in ${spec}; do
+    if [[ "${token}" =~ ^[0-9]+-[0-9]+$ ]]; then
+      start="${token%-*}"
+      end="${token#*-}"
+      if (( start > end )); then
+        echo "[ERROR] invalid ${target_name} range: ${token}" >&2
+        exit 1
+      fi
+      for (( i=start; i<=end; i++ )); do
+        values+=("${i}")
+      done
+    elif [[ "${token}" =~ ^[0-9]+$ ]]; then
+      values+=("${token}")
+    else
+      echo "[ERROR] invalid ${target_name} token: ${token}" >&2
+      exit 1
+    fi
+  done
+
+  if (( ${#values[@]} == 0 )); then
+    echo "[ERROR] ${target_name} cannot be empty" >&2
+    exit 1
+  fi
+
+  case "${target_name}" in
+    TOP_K_1) TOP_K_1=("${values[@]}") ;;
+    TOP_K_2) TOP_K_2=("${values[@]}") ;;
+    *)
+      echo "[ERROR] unknown top-k target: ${target_name}" >&2
+      exit 1
+      ;;
+  esac
+}
+
 # GPU
 GPU_ID=0
 export PYTORCH_ALLOC_CONF=expandable_segments:True
 # =======================
 # Fixed multiplier settings
 # =======================
-MULTIPLIER_1=2.0
-MULTIPLIER_2=2.0
+MULTIPLIER_1="${MULTIPLIER_1:-2.0}"
+MULTIPLIER_2="${MULTIPLIER_2:-2.0}"
 
 # =======================
 # Neuron-count sweep parameters
@@ -204,6 +251,73 @@ while [[ $# -gt 0 ]]; do
       ;;
     --prompt-list=*|--prompts=*)
       parse_prompt_list_spec "${1#*=}"
+      shift
+      ;;
+    --top-k-1|--top_k_1)
+      if [[ $# -lt 2 ]]; then
+        echo "[ERROR] $1 requires a value" >&2
+        usage >&2
+        exit 1
+      fi
+      parse_top_k_list_spec TOP_K_1 "$2"
+      shift 2
+      ;;
+    --top-k-1=*|--top_k_1=*)
+      parse_top_k_list_spec TOP_K_1 "${1#*=}"
+      shift
+      ;;
+    --top-k-2|--top_k_2)
+      if [[ $# -lt 2 ]]; then
+        echo "[ERROR] $1 requires a value" >&2
+        usage >&2
+        exit 1
+      fi
+      parse_top_k_list_spec TOP_K_2 "$2"
+      shift 2
+      ;;
+    --top-k-2=*|--top_k_2=*)
+      parse_top_k_list_spec TOP_K_2 "${1#*=}"
+      shift
+      ;;
+    --lambda|--multiplier)
+      if [[ $# -lt 2 ]]; then
+        echo "[ERROR] $1 requires a value" >&2
+        usage >&2
+        exit 1
+      fi
+      MULTIPLIER_1="$2"
+      MULTIPLIER_2="$2"
+      shift 2
+      ;;
+    --lambda=*|--multiplier=*)
+      MULTIPLIER_1="${1#*=}"
+      MULTIPLIER_2="${1#*=}"
+      shift
+      ;;
+    --multiplier-1|--multiplier_1)
+      if [[ $# -lt 2 ]]; then
+        echo "[ERROR] $1 requires a value" >&2
+        usage >&2
+        exit 1
+      fi
+      MULTIPLIER_1="$2"
+      shift 2
+      ;;
+    --multiplier-1=*|--multiplier_1=*)
+      MULTIPLIER_1="${1#*=}"
+      shift
+      ;;
+    --multiplier-2|--multiplier_2)
+      if [[ $# -lt 2 ]]; then
+        echo "[ERROR] $1 requires a value" >&2
+        usage >&2
+        exit 1
+      fi
+      MULTIPLIER_2="$2"
+      shift 2
+      ;;
+    --multiplier-2=*|--multiplier_2=*)
+      MULTIPLIER_2="${1#*=}"
       shift
       ;;
     -h|--help)

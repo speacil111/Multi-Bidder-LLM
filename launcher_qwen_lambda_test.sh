@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -uo pipefail
 
 usage() {
@@ -26,6 +27,8 @@ Optional:
                         Override ATTR_CACHE_DIR passed to topk script
   --result-root DIR     Override first-level result dir passed to topk script
   --prompt-list LIST    Override prompt indexes passed to topk script, e.g. "0,1,2" or "0 1 2"
+  --lambda-list LIST    Intervention strength list. Each value is used for both brands,
+                        e.g. "1.0,1.5,2.0" or "1.0 1.5 2.0"
   --top-k-1 LIST        Override bidder 1 top-k values, e.g. "0,100,200" or "0 100 200"
   --top-k-2 LIST        Override bidder 2 top-k values
   --log-dir DIR         Launcher output dir. Default: ./batch_runs_Llama
@@ -55,8 +58,9 @@ TOPK_SCRIPT="./topk_sweep_batch.sh"
 LOG_DIR="./batch_runs_qwen" # 运行日志存放路径
 # 直接在这里定义默认任务（可被命令行参数覆盖）
 # 例: COMBOS="0-9,12,18" ; GPUS_LIST="0,1,2,3" 或 "0-7"
-COMBOS="46-60,97-100"
+COMBOS="0"
 GPUS_LIST="0-7" # 使用的GPU号
+LAMBDA_LIST="1.5 2.5" # 干预强度列表；两个品牌默认使用相同强度，例如 "1.0,1.5,2.0"
 
 COMBO_SPEC="${COMBOS}"
 COMBO_FILE=""
@@ -69,9 +73,12 @@ ATTRIBUTION_CACHE_DIR="./attr_cache_qwen" # 属性缓存路径
 # First-level result dir. Empty means topk_sweep_batch.sh uses batch_results_<model_tag>.
 RESULT_ROOT="./batch_results_qwen"
 # Empty means use PROMPT_LIST inside topk_sweep_batch.sh.
-PROMPT_LIST="2" # 需要测试的prompt 序号
-TOP_K_1=(0 100 200 300 400 500 600 700 800)
-TOP_K_2=(0 100 200 300 400 500 600 700 800)
+PROMPT_LIST="0" # 需要测试的prompt 序号
+LAMBDA_SPEC="${LAMBDA_LIST}"
+# TOP_K_1=(0 100 200 300 400 500 600 700 800)
+# TOP_K_2=(0 100 200 300 400 500 600 700 800)
+TOP_K_1=(0 100 )
+TOP_K_2=(0 100 )
 MIN_FREE_MEM_MB=15000
 POLL_SEC=5
 MAX_IDLE_UTIL=70
@@ -209,6 +216,15 @@ while [[ $# -gt 0 ]]; do
       ;;
     --prompt-list=*|--prompts=*)
       PROMPT_LIST="${1#*=}"
+      shift
+      ;;
+    --lambda-list|--lambdas)
+      [[ $# -ge 2 ]] || { echo "[ERROR] $1 requires a value" >&2; usage >&2; exit 1; }
+      LAMBDA_SPEC="$2"
+      shift 2
+      ;;
+    --lambda-list=*|--lambdas=*)
+      LAMBDA_SPEC="${1#*=}"
       shift
       ;;
     --top-k-1|--top_k_1)
@@ -411,6 +427,39 @@ if [[ ${#COMBO_IDS[@]} -eq 0 ]]; then
   exit 1
 fi
 
+readarray -t LAMBDA_VALUES < <(
+  python - "${LAMBDA_SPEC}" <<'PY'
+import sys
+
+spec = sys.argv[1]
+seen = set()
+values = []
+for token in spec.replace(",", " ").split():
+    value = token.strip()
+    if not value:
+        continue
+    try:
+        float(value)
+    except ValueError:
+        raise SystemExit(f"invalid lambda value: {value}")
+    if value in seen:
+        continue
+    seen.add(value)
+    values.append(value)
+
+if not values:
+    raise SystemExit("lambda list cannot be empty")
+
+for value in values:
+    print(value)
+PY
+)
+
+if [[ ${#LAMBDA_VALUES[@]} -eq 0 ]]; then
+  echo "[ERROR] No lambda values to run" >&2
+  exit 1
+fi
+
 declare -A COMBO_TO_KEY
 declare -A COMBO_TO_BRAND1
 declare -A COMBO_TO_BRAND2
@@ -467,6 +516,7 @@ model_path=${MODEL_PATH}
 attribution_cache_dir=${ATTRIBUTION_CACHE_DIR}
 result_root=${RESULT_ROOT:-<auto>}
 prompt_list=${PROMPT_LIST:-<topk default>}
+lambda_list=${LAMBDA_VALUES[*]}
 top_k_1=${TOP_K_1[*]}
 top_k_2=${TOP_K_2[*]}
 min_free_mem_mb=${MIN_FREE_MEM_MB}
@@ -487,6 +537,7 @@ EOF
 
 echo "[Launcher] manifest: ${manifest_path}"
 echo "[Launcher] combo count: ${#COMBO_IDS[@]}"
+echo "[Launcher] lambda count: ${#LAMBDA_VALUES[@]} (${LAMBDA_VALUES[*]})"
 echo "[Launcher] gpus: ${GPU_IDS[*]}"
 echo "[Launcher] max_jobs: ${MAX_JOBS}"
 echo "[Launcher] max_jobs_per_gpu: ${MAX_JOBS_PER_GPU}"
@@ -502,7 +553,7 @@ fi
 
 job_trace_path="${RUN_DIR}/job_trace.tsv"
 {
-  printf "event_time\tevent\tpid\tgpu\tcombo_id\tcombo_key\tbrand_1\tbrand_2\tstatus\tjob_log\n"
+  printf "event_time\tevent\tpid\tgpu\tcombo_id\tcombo_key\tbrand_1\tbrand_2\tlambda\tstatus\tjob_log\n"
 } > "${job_trace_path}"
 echo "[Launcher] job trace: ${job_trace_path}"
 
@@ -512,6 +563,7 @@ declare -A PID_TO_LOG
 declare -A PID_TO_KEY
 declare -A PID_TO_BRAND1
 declare -A PID_TO_BRAND2
+declare -A PID_TO_LAMBDA
 
 success_count=0
 failed_count=0
@@ -536,7 +588,7 @@ print_active_jobs() {
   fi
   echo "[Launcher] active jobs (${n}):"
   for pid in "${!PID_TO_COMBO[@]}"; do
-    echo "  pid=${pid} gpu=${PID_TO_GPU[$pid]} combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} log=${PID_TO_LOG[$pid]}"
+    echo "  pid=${pid} gpu=${PID_TO_GPU[$pid]} combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} lambda=${PID_TO_LAMBDA[$pid]} log=${PID_TO_LOG[$pid]}"
   done
 }
 
@@ -550,16 +602,16 @@ cleanup_finished_jobs() {
     if wait "${pid}"; then
       success_count=$((success_count + 1))
       status="OK"
-      echo "[Launcher] finished: combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} gpu=${PID_TO_GPU[$pid]} status=OK log=${PID_TO_LOG[$pid]}"
+      echo "[Launcher] finished: combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} lambda=${PID_TO_LAMBDA[$pid]} gpu=${PID_TO_GPU[$pid]} status=OK log=${PID_TO_LOG[$pid]}"
     else
       failed_count=$((failed_count + 1))
       status="FAIL"
-      echo "[Launcher] finished: combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} gpu=${PID_TO_GPU[$pid]} status=FAIL log=${PID_TO_LOG[$pid]}"
+      echo "[Launcher] finished: combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} lambda=${PID_TO_LAMBDA[$pid]} gpu=${PID_TO_GPU[$pid]} status=FAIL log=${PID_TO_LOG[$pid]}"
       if [[ "${FAIL_FAST}" -eq 1 ]]; then
         stop_launching=1
       fi
     fi
-    printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+    printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
       "$(date '+%Y-%m-%d %H:%M:%S')" \
       "FINISH" \
       "${pid}" \
@@ -568,6 +620,7 @@ cleanup_finished_jobs() {
       "${PID_TO_KEY[$pid]}" \
       "${PID_TO_BRAND1[$pid]}" \
       "${PID_TO_BRAND2[$pid]}" \
+      "${PID_TO_LAMBDA[$pid]}" \
       "${status}" \
       "${PID_TO_LOG[$pid]}" >> "${job_trace_path}"
     unset 'PID_TO_COMBO[$pid]'
@@ -576,6 +629,7 @@ cleanup_finished_jobs() {
     unset 'PID_TO_KEY[$pid]'
     unset 'PID_TO_BRAND1[$pid]'
     unset 'PID_TO_BRAND2[$pid]'
+    unset 'PID_TO_LAMBDA[$pid]'
   done
 }
 
@@ -701,83 +755,93 @@ wait_for_idle_gpu() {
 
 gpu_index=0
 for combo_id in "${COMBO_IDS[@]}"; do
-  if [[ "${stop_launching}" -eq 1 ]]; then
-    echo "[Launcher] fail-fast triggered; stop launching new jobs."
-    break
-  fi
+  for lambda_value in "${LAMBDA_VALUES[@]}"; do
+    if [[ "${stop_launching}" -eq 1 ]]; then
+      echo "[Launcher] fail-fast triggered; stop launching new jobs."
+      break 2
+    fi
 
-  if [[ "${DRY_RUN}" -eq 1 ]]; then
-    gpu_id="${GPU_IDS[$((gpu_index % ${#GPU_IDS[@]}))]}"
-    gpu_index=$((gpu_index + 1))
-  else
-    wait_for_idle_gpu || break
-    gpu_id="${SELECTED_GPU}"
-  fi
+    if [[ "${DRY_RUN}" -eq 1 ]]; then
+      gpu_id="${GPU_IDS[$((gpu_index % ${#GPU_IDS[@]}))]}"
+      gpu_index=$((gpu_index + 1))
+    else
+      wait_for_idle_gpu || break 2
+      gpu_id="${SELECTED_GPU}"
+    fi
 
-  job_log="${RUN_DIR}/logs/combo_${combo_id}_gpu_${gpu_id}.log"
-  cmd=(bash "${TOPK_SCRIPT}" --g "${gpu_id}" --c "${combo_id}")
-  if [[ -n "${MODEL_PATH}" ]]; then
-    cmd+=(--model-path "${MODEL_PATH}")
-  fi
-  if [[ -n "${ATTRIBUTION_CACHE_DIR}" ]]; then
-    cmd+=(--attribution-cache-dir "${ATTRIBUTION_CACHE_DIR}")
-  fi
-  if [[ -n "${RESULT_ROOT}" ]]; then
-    cmd+=(--result-root "${RESULT_ROOT}")
-  fi
-  if [[ -n "${PROMPT_LIST}" ]]; then
-    cmd+=(--prompt-list "${PROMPT_LIST}")
-  fi
-  cmd+=(--top-k-1 "${TOP_K_1[*]}")
-  cmd+=(--top-k-2 "${TOP_K_2[*]}")
-  combo_key="${COMBO_TO_KEY[${combo_id}]}"
-  combo_brand_1="${COMBO_TO_BRAND1[${combo_id}]}"
-  combo_brand_2="${COMBO_TO_BRAND2[${combo_id}]}"
+    lambda_tag="$(printf '%s' "${lambda_value}" | sed 's/[^A-Za-z0-9_.-]/_/g')"
+    if [[ -n "${RESULT_ROOT}" ]]; then
+      lambda_result_root="${RESULT_ROOT}_m_${lambda_tag}"
+    else
+      lambda_result_root=""
+    fi
+    job_log="${RUN_DIR}/logs/combo_${combo_id}_lambda_${lambda_tag}_gpu_${gpu_id}.log"
+    cmd=(bash "${TOPK_SCRIPT}" --g "${gpu_id}" --c "${combo_id}" --lambda "${lambda_value}")
+    if [[ -n "${MODEL_PATH}" ]]; then
+      cmd+=(--model-path "${MODEL_PATH}")
+    fi
+    if [[ -n "${ATTRIBUTION_CACHE_DIR}" ]]; then
+      cmd+=(--attribution-cache-dir "${ATTRIBUTION_CACHE_DIR}")
+    fi
+    if [[ -n "${lambda_result_root}" ]]; then
+      cmd+=(--result-root "${lambda_result_root}")
+    fi
+    if [[ -n "${PROMPT_LIST}" ]]; then
+      cmd+=(--prompt-list "${PROMPT_LIST}")
+    fi
+    cmd+=(--top-k-1 "${TOP_K_1[*]}")
+    cmd+=(--top-k-2 "${TOP_K_2[*]}")
+    combo_key="${COMBO_TO_KEY[${combo_id}]}"
+    combo_brand_1="${COMBO_TO_BRAND1[${combo_id}]}"
+    combo_brand_2="${COMBO_TO_BRAND2[${combo_id}]}"
 
-  echo "[Launcher] launch: combo=${combo_id} key=${combo_key} brand_1=${combo_brand_1} brand_2=${combo_brand_2} gpu=${gpu_id} result_root=${RESULT_ROOT:-<auto>} log=${job_log}"
-  printf '[Launcher] command:'
-  printf ' %q' "${cmd[@]}"
-  printf '\n'
-
-  if [[ "${DRY_RUN}" -eq 1 ]]; then
-    continue
-  fi
-
-  (
-    echo "[Launcher] START combo=${combo_id} gpu=${gpu_id} time=$(date)"
+    echo "[Launcher] launch: combo=${combo_id} key=${combo_key} brand_1=${combo_brand_1} brand_2=${combo_brand_2} lambda=${lambda_value} gpu=${gpu_id} result_root=${lambda_result_root:-<auto>} log=${job_log}"
     printf '[Launcher] command:'
     printf ' %q' "${cmd[@]}"
     printf '\n'
-    "${cmd[@]}"
-    status=$?
-    echo "[Launcher] END combo=${combo_id} gpu=${gpu_id} status=${status} time=$(date)"
-    exit "${status}"
-  ) > "${job_log}" 2>&1 &
 
-  pid=$!
-  PID_TO_COMBO["${pid}"]="${combo_id}"
-  PID_TO_GPU["${pid}"]="${gpu_id}"
-  PID_TO_LOG["${pid}"]="${job_log}"
-  PID_TO_KEY["${pid}"]="${combo_key}"
-  PID_TO_BRAND1["${pid}"]="${combo_brand_1}"
-  PID_TO_BRAND2["${pid}"]="${combo_brand_2}"
-  printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
-    "$(date '+%Y-%m-%d %H:%M:%S')" \
-    "LAUNCH" \
-    "${pid}" \
-    "${gpu_id}" \
-    "${combo_id}" \
-    "${combo_key}" \
-    "${combo_brand_1}" \
-    "${combo_brand_2}" \
-    "RUNNING" \
-    "${job_log}" >> "${job_trace_path}"
+    if [[ "${DRY_RUN}" -eq 1 ]]; then
+      continue
+    fi
 
-  print_active_jobs
+    (
+      echo "[Launcher] START combo=${combo_id} lambda=${lambda_value} gpu=${gpu_id} time=$(date)"
+      printf '[Launcher] command:'
+      printf ' %q' "${cmd[@]}"
+      printf '\n'
+      "${cmd[@]}"
+      status=$?
+      echo "[Launcher] END combo=${combo_id} lambda=${lambda_value} gpu=${gpu_id} status=${status} time=$(date)"
+      exit "${status}"
+    ) > "${job_log}" 2>&1 &
 
-  if [[ "${STAGGER_SEC}" -gt 0 ]]; then
-    sleep "${STAGGER_SEC}"
-  fi
+    pid=$!
+    PID_TO_COMBO["${pid}"]="${combo_id}"
+    PID_TO_GPU["${pid}"]="${gpu_id}"
+    PID_TO_LOG["${pid}"]="${job_log}"
+    PID_TO_KEY["${pid}"]="${combo_key}"
+    PID_TO_BRAND1["${pid}"]="${combo_brand_1}"
+    PID_TO_BRAND2["${pid}"]="${combo_brand_2}"
+    PID_TO_LAMBDA["${pid}"]="${lambda_value}"
+    printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+      "$(date '+%Y-%m-%d %H:%M:%S')" \
+      "LAUNCH" \
+      "${pid}" \
+      "${gpu_id}" \
+      "${combo_id}" \
+      "${combo_key}" \
+      "${combo_brand_1}" \
+      "${combo_brand_2}" \
+      "${lambda_value}" \
+      "RUNNING" \
+      "${job_log}" >> "${job_trace_path}"
+
+    print_active_jobs
+
+    if [[ "${STAGGER_SEC}" -gt 0 ]]; then
+      sleep "${STAGGER_SEC}"
+    fi
+  done
 done
 
 while (( $(running_jobs_count) > 0 )); do

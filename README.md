@@ -58,3 +58,8 @@ conda activate ypr
 以上任务运行完毕后,运行接下来的3-bidders实验
 
 1. `bash launcher_3biiders_qwen.sh`,参数设置基本与上面的相同,除了GPU相关的参数以外我已经完成了配置,不需要修改,可能需要修改的是脚本中的`GPUS_LIST="0-7" `参数,这个控制使用几号卡.
+
+--- 
+3-bidder 实验有结果后,运行下面的lambda-test:
+
+1. `bash launcher_qwen_lambda.sh`,参数设置基本与上面的相同,多了一个lambda-list参数也不需要修改,可能需要修改的是脚本中的`GPUS_LIST="0-7" `参数.如果可以的话请先运行`bash launcher_qwen_lambda_test.sh`测试一下脚本是否可以正常跑通,再运行正常的实验.
