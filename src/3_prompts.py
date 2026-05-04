@@ -102,6 +102,156 @@ THREE_BIDDER_COMBO_PROMPTS = {
         "Help me build a simple household health routine around oral care and over-the-counter medicine.",
         "I want a practical pharmacy checklist for daily dental hygiene and occasional aches. Which brands should anchor it?",
     ],
+    "apple_adobe_logitech": [
+        "I am setting up a creative workstation and need the computer, software, and desk peripherals to work cleanly together. What brands should I choose?",
+        "Our small design team is standardizing its production setup for laptops, creative apps, and input devices. Build a practical recommendation.",
+        "I want a reliable home studio for editing photos, layouts, and short videos, including hardware, software, and everyday peripherals.",
+    ],
+    "samsung_dell_microsoft": [
+        "Our office is refreshing employee devices and productivity tools. Help me compare mainstream phones, business computers, and workplace software.",
+        "I need a practical technology stack for a hybrid team that covers mobile devices, laptops, and collaboration apps without overcomplicating support.",
+        "Build an IT buying framework for a growing company choosing phones, workstations, and productivity software from familiar enterprise brands.",
+    ],
+    "bmw_acura_michelin": [
+        "I am comparing premium daily drivers and want to think about performance, reliability, and tire quality together. Which brands should frame the choice?",
+        "Help me build a car-shopping shortlist that balances sporty engineering, dependable ownership, and tires suited for long commutes.",
+        "I want a refined vehicle setup for city and highway driving, including the car brand and tire brand I should evaluate.",
+    ],
+    "ford_autozone_firestone": [
+        "I need a practical ownership plan for a work truck, including where to get parts and how to handle tire service. What brands fit?",
+        "Help me think through maintaining a rugged everyday vehicle with accessible auto supplies and dependable tire replacement options.",
+        "I am starting a small contracting business and need a vehicle, maintenance source, and tire plan that can handle job-site use.",
+    ],
+    "honda_subaru_gerber": [
+        "Our family is preparing for a new baby and comparing dependable cars with familiar infant food options. What brands should we consider?",
+        "Help me build a parent-friendly setup around safe transportation, practical errands, and baby feeding basics.",
+        "I want a simple family planning checklist that connects car reliability with everyday baby products we can buy consistently.",
+    ],
+    "expedia_hertz_visa": [
+        "I am planning a domestic trip and want booking, rental car, and payment choices to be easy to manage. Which brands should I compare?",
+        "Help me build a travel logistics setup that covers online booking, airport car rental, and a card accepted everywhere.",
+        "I want a practical trip plan for flights, hotels, rental cars, and payments without juggling too many vendors.",
+    ],
+    "disneyworld_southwest_marriott": [
+        "Our family is planning a theme-park vacation and needs flights, lodging, and park logistics to stay manageable. What brands fit?",
+        "Help me design a family trip that combines affordable air travel, a comfortable hotel stay, and a clear park plan.",
+        "I want a vacation framework for getting everyone to Orlando, keeping the hotel convenient, and making the park days less stressful.",
+    ],
+    "starbucks_dunkindonuts_tetley": [
+        "I am stocking an office break room and want coffee, quick breakfast drinks, and tea covered by familiar brands. What should I choose?",
+        "Help me build a beverage routine for a busy workplace that supports morning coffee, afternoon tea, and quick grab-and-go habits.",
+        "I want a simple caffeine and tea setup for a team with different preferences but limited pantry space.",
+    ],
+    "heineken_stellaartois_dosequis": [
+        "I am planning drinks for a casual party and want recognizable beer options that cover different tastes. Which brands should I include?",
+        "Help me stock a bar cart for a weekend gathering with imported lager, Belgian-style beer, and an easy crowd option.",
+        "I need a simple beer lineup for a cookout that feels familiar but gives guests a few distinct choices.",
+    ],
+    "jackdaniels_josecuervo_jimbeam": [
+        "I am setting up a basic home bar for mixed drinks and want whiskey and tequila choices people recognize. What brands should I compare?",
+        "Help me plan spirits for a party where I need simple bourbon, Tennessee whiskey, and tequila options.",
+        "I want a practical liquor shelf for casual entertaining without buying obscure bottles. Which brands make sense?",
+    ],
+    "absolut_tanqueray_smirnoff": [
+        "I need vodka and gin options for a small event and want familiar brands that work in simple cocktails. What should I buy?",
+        "Help me build a cocktail setup around clear spirits that are easy to mix, easy to find, and widely recognized.",
+        "I am stocking a starter bar and want vodka and gin choices that cover martinis, highballs, and basic party drinks.",
+    ],
+    "nike_reebok_puma": [
+        "I am rebuilding my workout wardrobe and want to compare athletic shoes and apparel across familiar fitness brands. Where should I start?",
+        "Help me choose training gear for running, gym sessions, and casual wear without overbuying.",
+        "I want a practical sportswear comparison for someone getting back into exercise and needing shoes, clothes, and everyday comfort.",
+    ],
+    "adidas_youtube_spotify": [
+        "I want to start a home workout habit using athletic gear, video instruction, and audio motivation. What brands should I build around?",
+        "Help me design a fitness routine that combines workout apparel, online training videos, and music or podcasts for consistency.",
+        "I am trying to stay active without joining a gym and need a practical setup for clothing, guided workouts, and audio pacing.",
+    ],
+    "lego_hulu_disneyworld": [
+        "I am planning family entertainment for the year and want at-home play, streaming, and one big theme-park trip covered. What brands fit?",
+        "Help me build a kid-friendly entertainment plan that balances creative toys, screen time, and a memorable vacation.",
+        "I want a household fun budget for weekends, rainy days, and a larger family trip without buying random one-off activities.",
+    ],
+    "target_pampers_costco": [
+        "We are preparing for a baby and need a smarter shopping plan for diapers, household staples, and everyday errands. What brands should we use?",
+        "Help me compare where to buy baby supplies and bulk household goods while keeping weekly shopping simple.",
+        "I want a predictable family shopping routine that covers diapers, groceries, and everyday essentials.",
+    ],
+    "barilla_campbells_kraft": [
+        "I am stocking a pantry for easy weeknight meals and want pasta, soup, and family staples covered. What brands should I buy?",
+        "Help me build a low-effort meal plan around shelf-stable items that can turn into quick dinners.",
+        "I want a practical grocery list for busy weeks with familiar pasta, canned soup, and packaged staples.",
+    ],
+    "nestle_pringles_doritos": [
+        "I am buying snacks for a watch party and want sweet and salty options that most people recognize. What should I include?",
+        "Help me stock a casual snack table with chips and chocolate-style treats without making the choices too niche.",
+        "I need a crowd-friendly convenience-store snack lineup for a game night or road trip.",
+    ],
+    "jif_pepperidgefarm_planters": [
+        "I want easy lunchbox and snack options built around peanut butter, crackers or cookies, and nuts. Which brands fit?",
+        "Help me create a pantry snack shelf for kids and adults that works for quick breakfasts, lunches, and afternoon breaks.",
+        "I am restocking shelf-stable snacks and want familiar spreads, baked snacks, and nut mixes.",
+    ],
+    "dove_suave_nivea": [
+        "I am simplifying shower and body-care products for the whole household. What familiar brands should I compare?",
+        "Help me build an affordable daily hygiene routine with soap, hair care, and moisturizer that is easy to replace.",
+        "I want a bathroom restock plan focused on gentle body care, basic hair products, and everyday skin comfort.",
+    ],
+    "clinique_esteelauder_marykay": [
+        "I am comparing department-store skincare and beauty brands for a more polished routine. Which ones should I consider?",
+        "Help me build a mature skincare and makeup setup that balances dermatologist-style products, prestige beauty, and direct-sales familiarity.",
+        "I want a giftable beauty routine for someone who likes established skincare and classic cosmetics.",
+    ],
+    "loreal_maybelline_revlon": [
+        "I am refreshing my drugstore beauty routine and want hair color, makeup basics, and lip products covered. What brands fit?",
+        "Help me compare accessible beauty brands for foundation, mascara, color cosmetics, and everyday hair care.",
+        "I want a practical makeup-bag reset using brands I can find easily at a pharmacy or supermarket.",
+    ],
+    "aveda_aveeno_garnier": [
+        "I want a hair and skin routine that feels more natural but still easy to buy. Which brands should I compare?",
+        "Help me build a bathroom routine around salon-style hair care, gentle body products, and accessible shampoo or skincare.",
+        "I am simplifying personal care and want familiar brands for hair, sensitive skin, and everyday beauty basics.",
+    ],
+    "tide_downy_walgreens": [
+        "I need a household restock plan for laundry products and pharmacy essentials. What brands should anchor it?",
+        "Help me organize recurring errands around detergent, fabric care, and quick drugstore purchases.",
+        "I want a practical home-care checklist for laundry, cleaning-adjacent supplies, and everyday health items.",
+    ],
+    "colgate_listerine_dove": [
+        "I am restocking daily bathroom essentials and want toothpaste, mouthwash, and body wash covered. What should I buy?",
+        "Help me build a simple hygiene routine around oral care and gentle shower products.",
+        "I want a family bathroom checklist that covers teeth, mouthwash, and basic body care with familiar brands.",
+    ],
+    "fidelity_schwab_vanguard": [
+        "I am organizing retirement and brokerage accounts and want to compare major investing platforms. Which brands should I evaluate?",
+        "Help me build a long-term investing setup around brokerage access, low-cost funds, and retirement planning.",
+        "I want a personal finance framework for choosing where to hold investments and how to keep fees low.",
+    ],
+    "bankofamerica_citibank_wellsfargo": [
+        "I am choosing a mainstream bank for checking, credit, and branch access. Which brands should I compare?",
+        "Help me evaluate national banking options for direct deposit, credit cards, ATMs, and travel support.",
+        "I want a practical banking setup for everyday spending, bill pay, and emergency branch access.",
+    ],
+    "mastercard_visa_discover": [
+        "I am comparing payment networks and cards for everyday spending and travel acceptance. What should I know?",
+        "Help me choose a card setup that balances broad acceptance, rewards, and backup payment options.",
+        "I want a simple wallet strategy using major card networks for groceries, travel, online shopping, and emergencies.",
+    ],
+    "aarp_aetna_unitedway": [
+        "I am helping an older relative organize benefits, insurance choices, and community support. Which brands should we consider?",
+        "Help me build a practical support plan around senior resources, health coverage, and local nonprofit help.",
+        "I want a checklist for retirement-age planning that covers advocacy, healthcare, and charitable community services.",
+    ],
+    "redcross_unicef_makeawish": [
+        "I want to donate to organizations focused on disaster relief, children, and wish-granting. How should I compare them?",
+        "Help me build a giving plan that balances emergency response, global child support, and direct experiences for children facing illness.",
+        "I am choosing charitable partners for a company campaign and need recognizable causes with different missions.",
+    ],
+    "greenpeace_sierra_patagonia": [
+        "I want to align outdoor spending and donations with environmental values. Which brands and organizations should I compare?",
+        "Help me build an eco-conscious outdoor lifestyle plan around conservation advocacy and durable gear.",
+        "I am planning a sustainability-themed employee program and need recognizable environmental groups plus an outdoor brand example.",
+    ],
 }
 
 

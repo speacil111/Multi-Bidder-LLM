@@ -57,7 +57,7 @@ EOF
 
 TOPK_SCRIPT="./topk_sweep_3bidders_batch.sh"
 LOG_DIR="./batch_runs_qwen_3bidders"
-COMBOS="0-19"
+COMBOS="20-49"
 GPUS_LIST="0-7" #需要改
 
 COMBO_SPEC="${COMBOS}"

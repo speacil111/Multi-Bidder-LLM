@@ -69,6 +69,96 @@ THREE_BIDDER_COMBO_SOURCES = {
     "colgate_listerine_tylenol": {
         "Colgate", "Listerine", "Tylenol",
     },
+    "apple_adobe_logitech": {
+        "Apple", "Adobe", "Logitech",
+    },
+    "samsung_dell_microsoft": {
+        "Samsung", "Dell", "Microsoft",
+    },
+    "bmw_acura_michelin": {
+        "BMW", "Acura", "Michelin",
+    },
+    "ford_autozone_firestone": {
+        "Ford", "AutoZone", "Firestone",
+    },
+    "honda_subaru_gerber": {
+        "Honda", "Subaru", "Gerber",
+    },
+    "expedia_hertz_visa": {
+        "Expedia", "Hertz", "Visa",
+    },
+    "disneyworld_southwest_marriott": {
+        "DisneyWorld", "SouthwestAirlines", "Marriott",
+    },
+    "starbucks_dunkindonuts_tetley": {
+        "Starbucks", "DunkinDonuts", "Tetley",
+    },
+    "heineken_stellaartois_dosequis": {
+        "Heineken", "StellaArtois", "DosEquisBeer",
+    },
+    "jackdaniels_josecuervo_jimbeam": {
+        "JackDaniels", "JoseCuervo", "JimBeam",
+    },
+    "absolut_tanqueray_smirnoff": {
+        "Absolut", "Tanqueray", "Smirnoff",
+    },
+    "nike_reebok_puma": {
+        "Nike", "Reebok", "Puma",
+    },
+    "adidas_youtube_spotify": {
+        "Adidas", "YouTube", "Spotify",
+    },
+    "lego_hulu_disneyworld": {
+        "Lego", "Hulu", "DisneyWorld",
+    },
+    "target_pampers_costco": {
+        "Target", "Pampers", "Costco",
+    },
+    "barilla_campbells_kraft": {
+        "Barilla", "Campbells", "Kraft",
+    },
+    "nestle_pringles_doritos": {
+        "Nestle", "Pringles", "Doritos",
+    },
+    "jif_pepperidgefarm_planters": {
+        "Jif", "PepperidgeFarm", "Planters",
+    },
+    "dove_suave_nivea": {
+        "Dove", "Suave", "Nivea",
+    },
+    "clinique_esteelauder_marykay": {
+        "Clinique", "EsteeLauder", "MaryKay",
+    },
+    "loreal_maybelline_revlon": {
+        "LOreal", "Maybelline", "Revlon",
+    },
+    "aveda_aveeno_garnier": {
+        "Aveda", "Aveeno", "Garnier",
+    },
+    "tide_downy_walgreens": {
+        "Tide", "Downy", "Walgreens",
+    },
+    "colgate_listerine_dove": {
+        "Colgate", "Listerine", "Dove",
+    },
+    "fidelity_schwab_vanguard": {
+        "Fidelity", "CharlesSchwab", "Vanguard",
+    },
+    "bankofamerica_citibank_wellsfargo": {
+        "BankOfAmerica", "Citibank", "WellsFargoBank",
+    },
+    "mastercard_visa_discover": {
+        "Mastercard", "Visa", "DiscoverBank",
+    },
+    "aarp_aetna_unitedway": {
+        "AARP", "Aetna", "UnitedWay",
+    },
+    "redcross_unicef_makeawish": {
+        "RedCross", "Unicef", "MakeAWishFoundation",
+    },
+    "greenpeace_sierra_patagonia": {
+        "Greenpeace", "Sierra", "Patagonia",
+    },
 }
 
 THREE_BIDDER_COMBO_PRESETS = {
