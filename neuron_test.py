@@ -1,6 +1,7 @@
 import argparse
 import importlib
 import itertools
+import os
 import re
 from pathlib import Path
 
@@ -337,6 +338,14 @@ def _build_alternative_cache_paths(active_concept_configs, ig_steps, cache_dir):
         seen.add(str(candidate_path))
         paths.append(candidate_path)
     return paths
+
+
+def _atomic_torch_save(obj, path):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_name(f"{path.name}.tmp.{os.getpid()}")
+    torch.save(obj, tmp_path)
+    tmp_path.replace(path)
 
 
 def _validate_cache_for_current_run(loaded_obj, expected_concepts, expected_ig_steps):
@@ -702,7 +711,7 @@ def main(args):
         if partial_scores and not missing_concepts:
             concept_scores_by_layer = partial_scores
             should_recompute = False
-            torch.save(
+            _atomic_torch_save(
                 {
                     "concept_scores_by_layer": concept_scores_by_layer,
                     "meta": {
@@ -742,7 +751,7 @@ def main(args):
                 gpu_ids=assigned_gpu_ids,
                 model_path=args.model_path,
             )
-        torch.save(
+        _atomic_torch_save(
             {
                 "concept_scores_by_layer": concept_scores_by_layer,
                 "meta": {

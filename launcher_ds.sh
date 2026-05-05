@@ -18,9 +18,9 @@ One of:
   --combo-file FILE     File with one combo id per line; lines starting with # are ignored
 
 Optional:
-  --max-jobs N          Max concurrent jobs. Default: GPU count * MAX_JOBS_PER_GPU
-  --max-jobs-per-gpu N  Max concurrent jobs per GPU. Default: 1
-  --topk-script PATH    Sweep script to call. Default: ./topk_sweep_batch.sh
+  --max-jobs N          Total worker cap. Default: GPU count * MAX_JOBS_PER_GPU
+  --max-jobs-per-gpu N  Workers per GPU. Default: 1
+  --topk-script PATH    Worker script to call. Default: ./topk_sweep_worker.sh
   --model-path PATH     Override MODEL_PATH passed to topk script
   --attr-cache-dir DIR, --attribution-cache-dir DIR
                         Override ATTR_CACHE_DIR passed to topk script
@@ -29,6 +29,8 @@ Optional:
   --top-k-1 LIST        Override bidder 1 top-k values, e.g. "0,100,200" or "0 100 200"
   --top-k-2 LIST        Override bidder 2 top-k values
   --log-dir DIR         Launcher output dir. Default: ./batch_runs_Llama
+  --state-dir DIR       Worker done-marker dir. Default: <result-root>/.worker_state
+  --force-rerun         Ignore worker done markers and rerun assigned combos
   --stagger-sec N       Sleep N seconds between launches. Default: 2
   --min-free-mem-mb N   Treat GPU as selectable only if memory.free >= N. Default: 15000
   --idle-max-util N     Prefer GPU with utilization.gpu < N. Default: 70
@@ -43,15 +45,16 @@ Examples:
   bash launcher.sh --combo-file combo_ids.txt --gpus 4,5,6,7 --fail-fast
 
 Notes:
-  1. This launcher is a batch wrapper around topk_sweep_batch.sh.
-  2. It does not change your experiment logic; it only schedules many combo ids.
-  3. Current topk_sweep_batch.sh writes outputs under paths like logp_token_<BRAND_1>_m2.0.
+  1. This launcher starts long-lived GPU workers.
+  2. Each worker runs multiple combo ids sequentially and reuses the loaded generation model.
+     Increase --max-jobs-per-gpu only when one GPU can hold multiple model copies.
+  3. Current sweep outputs are still grouped by first brand and multiplier.
      If many combos reuse the same first brand, those outputs may collide or overwrite.
-     So this launcher is best viewed as a scheduling template until run_root is made combo-unique.
+     So keep combo sets disjoint by first brand if you need those result dirs preserved separately.
 EOF
 }
 
-TOPK_SCRIPT="./topk_sweep_batch.sh"
+TOPK_SCRIPT="./topk_sweep_worker.sh"
 LOG_DIR="./batch_runs_ds"
 # 直接在这里定义默认任务（可被命令行参数覆盖）
 # 例: COMBOS="0-9,12,18" ; GPUS_LIST="0,1,2,3" 或 "0-7"
@@ -61,21 +64,23 @@ COMBO_SPEC="${COMBOS}"
 COMBO_FILE=""
 GPU_SPEC="${GPUS_LIST}"
 MAX_JOBS=""
-MAX_JOBS_PER_GPU="3"
+MAX_JOBS_PER_GPU="1"
 STAGGER_SEC=2
 MODEL_PATH="../DS_r1_8B"
 ATTRIBUTION_CACHE_DIR="./attr_cache_ds"
 # First-level result dir. Empty means topk_sweep_batch.sh uses batch_results_<model_tag>.
 RESULT_ROOT="./batch_results_ds"
+WORKER_STATE_DIR=""
 # Empty means use PROMPT_LIST inside topk_sweep_batch.sh.
 PROMPT_LIST="0 1 2"
-TOP_K_1=(0 100 )
-TOP_K_2=(0 100 )
+TOP_K_1=(0 100 200 300 400 500 600 700 800)
+TOP_K_2=(0 100 200 300 400 500 600 700 800)
 MIN_FREE_MEM_MB=15000
 POLL_SEC=5
 MAX_IDLE_UTIL=70
 FAIL_FAST=0
 DRY_RUN=0
+FORCE_RERUN=0
 
 parse_top_k_list_spec() {
   local target_name="$1"
@@ -237,6 +242,19 @@ while [[ $# -gt 0 ]]; do
       LOG_DIR="${1#*=}"
       shift
       ;;
+    --state-dir)
+      [[ $# -ge 2 ]] || { echo "[ERROR] --state-dir requires a value" >&2; usage >&2; exit 1; }
+      WORKER_STATE_DIR="$2"
+      shift 2
+      ;;
+    --state-dir=*)
+      WORKER_STATE_DIR="${1#*=}"
+      shift
+      ;;
+    --force-rerun)
+      FORCE_RERUN=1
+      shift
+      ;;
     --stagger-sec)
       [[ $# -ge 2 ]] || { echo "[ERROR] --stagger-sec requires a value" >&2; usage >&2; exit 1; }
       STAGGER_SEC="$2"
@@ -356,6 +374,26 @@ if [[ -z "${MAX_JOBS}" ]]; then
   fi
 fi
 
+if ! [[ "${MAX_JOBS_PER_GPU}" =~ ^[0-9]+$ ]] || (( MAX_JOBS_PER_GPU <= 0 )); then
+  echo "[ERROR] --max-jobs-per-gpu must be a positive integer, got: ${MAX_JOBS_PER_GPU}" >&2
+  exit 1
+fi
+
+if ! [[ "${MAX_JOBS}" =~ ^[0-9]+$ ]] || (( MAX_JOBS <= 0 )); then
+  echo "[ERROR] --max-jobs must be a positive integer, got: ${MAX_JOBS}" >&2
+  exit 1
+fi
+
+TOTAL_WORKER_SLOTS=$(( ${#GPU_IDS[@]} * MAX_JOBS_PER_GPU ))
+if (( MAX_JOBS < TOTAL_WORKER_SLOTS )); then
+  TOTAL_WORKER_SLOTS="${MAX_JOBS}"
+fi
+
+if (( TOTAL_WORKER_SLOTS <= 0 )); then
+  echo "[ERROR] No worker slots available" >&2
+  exit 1
+fi
+
 readarray -t COMBO_IDS < <(
   if [[ -n "${COMBO_SPEC}" ]]; then
     python - "${COMBO_SPEC}" <<'PY'
@@ -449,9 +487,19 @@ if nvidia-smi --query-gpu=index --format=csv,noheader,nounits >/dev/null 2>&1; t
   NVIDIA_SMI_AVAILABLE=1
 fi
 
+if [[ -z "${WORKER_STATE_DIR}" ]]; then
+  if [[ -n "${RESULT_ROOT}" ]]; then
+    WORKER_STATE_DIR="${RESULT_ROOT%/}/.worker_state"
+  else
+    WORKER_STATE_DIR="${RUN_DIR}/worker_state"
+  fi
+fi
+mkdir -p "${WORKER_STATE_DIR}"
+
 manifest_path="${RUN_DIR}/manifest.txt"
 cat > "${manifest_path}" <<EOF
 timestamp=${timestamp}
+launcher_mode=gpu_worker
 topk_script=${TOPK_SCRIPT}
 defined_combos=${COMBOS}
 defined_gpus_list=${GPUS_LIST}
@@ -461,10 +509,12 @@ combo_ids=${COMBO_IDS[*]}
 gpu_ids=${GPU_IDS[*]}
 max_jobs=${MAX_JOBS}
 max_jobs_per_gpu=${MAX_JOBS_PER_GPU}
+total_worker_slots=${TOTAL_WORKER_SLOTS}
 stagger_sec=${STAGGER_SEC}
 model_path=${MODEL_PATH}
 attribution_cache_dir=${ATTRIBUTION_CACHE_DIR}
 result_root=${RESULT_ROOT:-<auto>}
+worker_state_dir=${WORKER_STATE_DIR}
 prompt_list=${PROMPT_LIST:-<topk default>}
 top_k_1=${TOP_K_1[*]}
 top_k_2=${TOP_K_2[*]}
@@ -474,6 +524,7 @@ poll_sec=${POLL_SEC}
 nvidia_smi_available=${NVIDIA_SMI_AVAILABLE}
 fail_fast=${FAIL_FAST}
 dry_run=${DRY_RUN}
+force_rerun=${FORCE_RERUN}
 EOF
 
 {
@@ -489,7 +540,9 @@ echo "[Launcher] combo count: ${#COMBO_IDS[@]}"
 echo "[Launcher] gpus: ${GPU_IDS[*]}"
 echo "[Launcher] max_jobs: ${MAX_JOBS}"
 echo "[Launcher] max_jobs_per_gpu: ${MAX_JOBS_PER_GPU}"
+echo "[Launcher] total_worker_slots: ${TOTAL_WORKER_SLOTS}"
 echo "[Launcher] result_root: ${RESULT_ROOT:-<auto>}"
+echo "[Launcher] worker_state_dir: ${WORKER_STATE_DIR}"
 echo "[Launcher] prompt_list: ${PROMPT_LIST:-<topk default>}"
 echo "[Launcher] top_k_1: ${TOP_K_1[*]}"
 echo "[Launcher] top_k_2: ${TOP_K_2[*]}"
@@ -516,6 +569,7 @@ success_count=0
 failed_count=0
 stop_launching=0
 SELECTED_GPU=""
+LAST_ACTIVE_JOBS_SIGNATURE=""
 
 running_jobs_count() {
   local n=0
@@ -527,12 +581,28 @@ running_jobs_count() {
 }
 
 print_active_jobs() {
-  local n
-  local pid
+  local n pid signature
   n="$(running_jobs_count)"
   if (( n == 0 )); then
+    LAST_ACTIVE_JOBS_SIGNATURE=""
     return
   fi
+  signature="$(
+    for pid in "${!PID_TO_COMBO[@]}"; do
+      printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+        "${pid}" \
+        "${PID_TO_GPU[$pid]}" \
+        "${PID_TO_COMBO[$pid]}" \
+        "${PID_TO_KEY[$pid]}" \
+        "${PID_TO_BRAND1[$pid]}" \
+        "${PID_TO_BRAND2[$pid]}" \
+        "${PID_TO_LOG[$pid]}"
+    done | sort
+  )"
+  if [[ "${signature}" == "${LAST_ACTIVE_JOBS_SIGNATURE}" ]]; then
+    return
+  fi
+  LAST_ACTIVE_JOBS_SIGNATURE="${signature}"
   echo "[Launcher] active jobs (${n}):"
   for pid in "${!PID_TO_COMBO[@]}"; do
     echo "  pid=${pid} gpu=${PID_TO_GPU[$pid]} combo=${PID_TO_COMBO[$pid]} key=${PID_TO_KEY[$pid]} brand_1=${PID_TO_BRAND1[$pid]} brand_2=${PID_TO_BRAND2[$pid]} log=${PID_TO_LOG[$pid]}"
@@ -698,23 +768,44 @@ wait_for_idle_gpu() {
   done
 }
 
-gpu_index=0
+declare -a WORKER_SLOT_TO_GPU
+declare -a WORKER_SLOT_TO_LOCAL_INDEX
+declare -a WORKER_COMBO_GROUPS
+
+slot_index=0
+for gpu_id in "${GPU_IDS[@]}"; do
+  for (( local_worker_idx=0; local_worker_idx<MAX_JOBS_PER_GPU; local_worker_idx++ )); do
+    if (( slot_index >= TOTAL_WORKER_SLOTS )); then
+      break 2
+    fi
+    WORKER_SLOT_TO_GPU[$slot_index]="${gpu_id}"
+    WORKER_SLOT_TO_LOCAL_INDEX[$slot_index]="${local_worker_idx}"
+    WORKER_COMBO_GROUPS[$slot_index]=""
+    slot_index=$((slot_index + 1))
+  done
+done
+
+combo_index=0
 for combo_id in "${COMBO_IDS[@]}"; do
-  if [[ "${stop_launching}" -eq 1 ]]; then
-    echo "[Launcher] fail-fast triggered; stop launching new jobs."
-    break
-  fi
-
-  if [[ "${DRY_RUN}" -eq 1 ]]; then
-    gpu_id="${GPU_IDS[$((gpu_index % ${#GPU_IDS[@]}))]}"
-    gpu_index=$((gpu_index + 1))
+  worker_slot=$(( combo_index % TOTAL_WORKER_SLOTS ))
+  if [[ -z "${WORKER_COMBO_GROUPS[$worker_slot]}" ]]; then
+    WORKER_COMBO_GROUPS[$worker_slot]="${combo_id}"
   else
-    wait_for_idle_gpu || break
-    gpu_id="${SELECTED_GPU}"
+    WORKER_COMBO_GROUPS[$worker_slot]="${WORKER_COMBO_GROUPS[$worker_slot]},${combo_id}"
+  fi
+  combo_index=$((combo_index + 1))
+done
+
+for (( worker_slot=0; worker_slot<TOTAL_WORKER_SLOTS; worker_slot++ )); do
+  combo_group="${WORKER_COMBO_GROUPS[$worker_slot]}"
+  if [[ -z "${combo_group}" ]]; then
+    continue
   fi
 
-  job_log="${RUN_DIR}/logs/combo_${combo_id}_gpu_${gpu_id}.log"
-  cmd=(bash "${TOPK_SCRIPT}" --g "${gpu_id}" --c "${combo_id}")
+  gpu_id="${WORKER_SLOT_TO_GPU[$worker_slot]}"
+  local_worker_idx="${WORKER_SLOT_TO_LOCAL_INDEX[$worker_slot]}"
+  job_log="${RUN_DIR}/logs/worker_gpu_${gpu_id}_slot_${local_worker_idx}.log"
+  cmd=(bash "${TOPK_SCRIPT}" --g "${gpu_id}" --combos "${combo_group}")
   if [[ -n "${MODEL_PATH}" ]]; then
     cmd+=(--model-path "${MODEL_PATH}")
   fi
@@ -729,11 +820,15 @@ for combo_id in "${COMBO_IDS[@]}"; do
   fi
   cmd+=(--top-k-1 "${TOP_K_1[*]}")
   cmd+=(--top-k-2 "${TOP_K_2[*]}")
-  combo_key="${COMBO_TO_KEY[${combo_id}]}"
-  combo_brand_1="${COMBO_TO_BRAND1[${combo_id}]}"
-  combo_brand_2="${COMBO_TO_BRAND2[${combo_id}]}"
+  cmd+=(--state-dir "${WORKER_STATE_DIR}")
+  if [[ "${FAIL_FAST}" -eq 1 ]]; then
+    cmd+=(--fail-fast)
+  fi
+  if [[ "${FORCE_RERUN}" -eq 1 ]]; then
+    cmd+=(--force)
+  fi
 
-  echo "[Launcher] launch: combo=${combo_id} key=${combo_key} brand_1=${combo_brand_1} brand_2=${combo_brand_2} gpu=${gpu_id} result_root=${RESULT_ROOT:-<auto>} log=${job_log}"
+  echo "[Launcher] launch worker: gpu=${gpu_id} slot=${local_worker_idx} combos=${combo_group} result_root=${RESULT_ROOT:-<auto>} log=${job_log}"
   printf '[Launcher] command:'
   printf ' %q' "${cmd[@]}"
   printf '\n'
@@ -743,32 +838,32 @@ for combo_id in "${COMBO_IDS[@]}"; do
   fi
 
   (
-    echo "[Launcher] START combo=${combo_id} gpu=${gpu_id} time=$(date)"
+    echo "[Launcher] START worker gpu=${gpu_id} slot=${local_worker_idx} combos=${combo_group} time=$(date)"
     printf '[Launcher] command:'
     printf ' %q' "${cmd[@]}"
     printf '\n'
     "${cmd[@]}"
     status=$?
-    echo "[Launcher] END combo=${combo_id} gpu=${gpu_id} status=${status} time=$(date)"
+    echo "[Launcher] END worker gpu=${gpu_id} slot=${local_worker_idx} combos=${combo_group} status=${status} time=$(date)"
     exit "${status}"
   ) > "${job_log}" 2>&1 &
 
   pid=$!
-  PID_TO_COMBO["${pid}"]="${combo_id}"
+  PID_TO_COMBO["${pid}"]="${combo_group}"
   PID_TO_GPU["${pid}"]="${gpu_id}"
   PID_TO_LOG["${pid}"]="${job_log}"
-  PID_TO_KEY["${pid}"]="${combo_key}"
-  PID_TO_BRAND1["${pid}"]="${combo_brand_1}"
-  PID_TO_BRAND2["${pid}"]="${combo_brand_2}"
+  PID_TO_KEY["${pid}"]="worker"
+  PID_TO_BRAND1["${pid}"]="multiple"
+  PID_TO_BRAND2["${pid}"]="multiple"
   printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
     "$(date '+%Y-%m-%d %H:%M:%S')" \
     "LAUNCH" \
     "${pid}" \
     "${gpu_id}" \
-    "${combo_id}" \
-    "${combo_key}" \
-    "${combo_brand_1}" \
-    "${combo_brand_2}" \
+    "${combo_group}" \
+    "worker" \
+    "multiple" \
+    "multiple" \
     "RUNNING" \
     "${job_log}" >> "${job_trace_path}"
 
@@ -790,9 +885,10 @@ done
 total_launched=$((success_count + failed_count))
 echo "[Launcher] done"
 echo "[Launcher] run_dir=${RUN_DIR}"
-echo "[Launcher] launched=${total_launched}"
-echo "[Launcher] success=${success_count}"
-echo "[Launcher] failed=${failed_count}"
+echo "[Launcher] worker_launched=${total_launched}"
+echo "[Launcher] worker_success=${success_count}"
+echo "[Launcher] worker_failed=${failed_count}"
+echo "[Launcher] worker_state_dir=${WORKER_STATE_DIR}"
 
 if [[ "${DRY_RUN}" -eq 1 ]]; then
   echo "[Launcher] dry-run mode: no jobs were actually launched"
